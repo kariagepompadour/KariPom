@@ -1,0 +1,12 @@
+PyQt5==5.15.11
+PyQt5-Qt5==5.15.19
+PyQt5-sip==12.18.0
+certifi==2026.6.17
+cffi==2.1.0
+charset_normalizer==3.4.9
+idna==3.18
+numpy==2.5.1
+pycparser==3.0
+requests==2.34.2
+sounddevice==0.5.5
+urllib3==2.7.0
