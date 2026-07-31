@@ -705,6 +705,7 @@ enum VisualizerMode : uint8_t {
   VIZ_MODE_RHYTHM= 4,   // 8-Lane Rhythm（8バンドFFTをそのまま流す音ゲー風の流れる譜面）
   VIZ_MODE_KALEIDO=5,   // Kaleidoscope（万華鏡・6分割の頂点鏡映方式）
   VIZ_MODE_AVU   = 6,   // Analog VU（8バンドFFTを8個のアナログVUメーターへ / 4×2配置）
+  VIZ_MODE_BLOCKS= 7,   // Mega Blocks（大型落ち物ブロック。8-Lane Rhythmとは無関係の独立モード。仮称）
   VIZ_MODE_COUNT
 };
 
@@ -733,6 +734,8 @@ const VizModeInfo VIZ_MODES[VIZ_MODE_COUNT] = {
     "実物の万華鏡のような、6分割の回転対称・鏡映対称模様を描くビジュアライザーです。点・短い線・小さな三角形・リングなど最大12個のシンプルな図形を、60度ごとの回転と鏡映で12方向へ複製し、黒背景にネオン／宝石調の色鮮やかな幾何学模様を作ります。低音のバンドは中心寄り、高音のバンドは外周寄りに図形を配置し、音量の滑らかな変化で全体がゆっくり回転速度を変え、無音時も止まらずゆっくり回り続けます。低域の急な立ち上がりで新しい図形が一瞬明るく生成されます。ピクセル単位の重い三角関数は使わず、初期化時に求めた6方向の回転定数と少数の図形座標だけで模様を作るため負荷は軽めです。顔・上部48pxの扱いは他のVisualizerと同じです。" },
   { "avu", "Analog VU",
     "1970〜80年代のオーディオアンプ／ミキサーに並んでいたアナログVUメーターを、左右2chではなく『8バンドFFTそれぞれに1個ずつ』割り当てた8連アナログ・スペクトラムメーターです。上部48pxを除く画面へ4個×2段で配置し、上段左からband0〜band3、下段左からband4〜band7＝左上から右下へ低域→高域になります。クリーム色の盤面・黒い主目盛り・右端の赤いピークゾーン・赤い針・濃色の外枠という実機的な意匠で、背景は黒い機器パネル調です。8本の針は完全に独立して振れ、低音の強い曲は左上側、ボーカル中心は中央寄り、ハイハット等は右下側がよく動きます。針は立ち上がりに素早く追従し、下降時だけ機械式メーターらしい慣性でゆっくり戻ります。各バンドの絶対値と8バンド内での相対的な強弱の両方を使うため、小音量でも帯域ごとの違いが残り、音量を上げれば全体の振れ幅も大きくなります。顔・上部48pxの扱いは他のVisualizerと同じです。" },
+  { "blocks", "Mega Blocks（仮称）",
+    "落ち物パズルを連想させる大型ブロックが、かりポムの顔の周囲を少数（最大4個）落下・回転・左右移動するビジュアライザーです。8-Lane Rhythmのような固定8レーンの縦流しではなく、各ブロックが画面内を独立して自由に動きます。ブロックの一辺は目の直径・口の幅と同程度の大きさで、細かい粒を大量に流す表現にはしていません。音の強さで落下速度が、低音の立ち上がりでブロックの出現・90度回転・左右移動の向き変えが起こります。FFTの8バンドを画面の8列へ直接対応させる方式は採用していません。下端に到達したブロックは積み上がらず消え、新しいブロックが上部から出現します。黒背景の上にブロックを描いた後、既存のdrawVisualizerFaceParts()を最後に描くため、かりポムの顔は常にブロックの手前に表示されます。名称は実機での見え方を確認してから正式決定する想定の仮称です。" },
 };
 
 // 現在のVisualizerモード（Wi-Fi / LINE IN / 将来のBluetooth 共通・NVS永続化）
@@ -13413,6 +13416,231 @@ void vizRenderAnalogVu(bool needsInit) {
 }
 
 // ============================================================================
+// Visualizer #7 : Mega Blocks（仮称）── 大型落ち物ブロック（v1.0 / 2026-07-31）
+//
+// ■ 位置づけ（8-Lane Rhythmとは無関係の独立モード）
+//   8-Lane Rhythmが「固定8レーン×時間履歴」という音ゲー的な流れる譜面なのに対し、
+//   本Visualizerは「少数（最大BLK_MAX_PIECES個）の大型ブロックが画面内を自由に
+//   落下・90度回転・左右移動する」という別系統の表現にする。FFTの8バンドを
+//   画面のX座標へ直接対応させる方式（列マッピング）は採用しない。
+//   ブロックの出現位置・色は「どのバンドが立ち上がったか」からは決めるが、
+//   X座標そのものはバンド番号と無関係（random()による疎な配置）にすることで、
+//   低音が強い曲でも画面左に偏らないようにしている。
+//
+// ■ サイズの基準（このファイルの既存定数から算出。数値の決め打ちはしない）
+//   ・目（黒目）の半径 EYE_RADIUS = 20px → 直径40px
+//   ・口の外接ボックス FACE_MOUTH_W=90 / FACE_MOUTH_H=105
+//   目と口のおおよそ中間に位置する40pxを1セルの一辺（BLK_CELL）として採用し、
+//   ブロックは1〜3セルで構成する（最大でも3セル×40px=120px角未満）。
+//   8-Lane Rhythmのバー（34×16px）よりも明確に大きく、かつ口(90〜105px)を
+//   大きく超えない範囲に収まる。
+//
+// ■ 形状と回転
+//   O（2×2セル全埋め・回転不変）／I（3セル一直線・横⇔縦の2状態）／
+//   L（2×2セルの1隅を欠いたトロミノ・4方向）の3種類。実物のテトリミノの
+//   厳密な再現ではなく、「90度単位で見た目が変わる大型ブロック」を安価な
+//   静的テーブル（座標オフセットのみ・三角関数不要）で表現する。
+//
+// ■ 音への反応（既存処理を再利用。新しい解析は追加しない）
+//   ・落下速度      … gViz.level（全帯域平均）で加速。Kaleidoscope等と同じ
+//                     ゆっくりした追従（減衰付き平滑）を用いる。
+//   ・出現           … gViz.band[i]の立ち上がり検出は8-Lane Rhythm/Kaleidoscopeと
+//                     同じ「直前値からの急上昇＋クールダウン」方式をバンドごとに
+//                     判定し、立ち上がったバンドの色（vizSpectrumColor）を
+//                     そのブロックの色として使う（列位置には使わない）。
+//   ・90度回転・左右移動の向き変え … bassの立ち上がり（KaleidoscopeのkalBassAvg
+//                     と同じ考え方の局所平均比較）をきっかけに、既存ブロックへ
+//                     ランダムに1つ適用する。
+//
+// ■ 積み上げなし
+//   下端（BLK_BOTTOM=SCENE_H）へ到達したブロックはそのまま非アクティブ化して
+//   消え、次の出現までは何も描かれない。盤面を保持する目的の配列は持たない。
+//
+// ■ 顔（維持）
+//   Kaleidoscope／Analog VUと同じ「黒背景→ブロック→白下地→
+//   drawVisualizerFaceParts()」の順で最後に顔を描くため、ブロックが顔の
+//   手前に重なって顔を隠すことはない。顔の描画仕様・表情処理は無変更。
+// ============================================================================
+#define BLK_TOP          SCENE_TOP        // 48。他Visualizerと同じ保護ライン
+#define BLK_CELL         40                // 1セル(px)。EYE_RADIUS(20)の直径と同じ大きさを基準にする
+#define BLK_MAX_PIECES   4                 // 少数のみ同時表示
+#define BLK_MAX_CELLS    3                 // 1ピース最大3セル
+
+// 形状定義：{shape}{rotation} ごとに最大3セルの(col,row)オフセット。未使用は{9,9}。
+// O … 回転しても同じ2×2（4セル使うためBLK_MAX_CELLSの例外として4セルテーブルを別に持つ）。
+static const int8_t BLK_SHAPE_O[4][2]  = { {0,0},{1,0},{0,1},{1,1} };
+// I … 3セル一直線。rot 0/2=横、rot 1/3=縦。
+static const int8_t BLK_SHAPE_I[4][BLK_MAX_CELLS][2] = {
+  { {0,0},{1,0},{2,0} }, { {0,0},{0,1},{0,2} },
+  { {0,0},{1,0},{2,0} }, { {0,0},{0,1},{0,2} },
+};
+// L … 2×2の1隅を欠いたトロミノ。4方向で欠ける隅が変わる。
+static const int8_t BLK_SHAPE_L[4][BLK_MAX_CELLS][2] = {
+  { {0,0},{1,0},{0,1} },   // 右下(1,1)が欠け
+  { {0,0},{1,0},{1,1} },   // 左下(0,1)が欠け
+  { {1,0},{0,1},{1,1} },   // 左上(0,0)が欠け
+  { {0,0},{0,1},{1,1} },   // 右上(1,0)が欠け
+};
+
+struct BlkPiece {
+  bool     active;
+  float    x, y;         // 外接ボックス左上のピクセル座標
+  float    vy;           // 落下速度(px/frame)
+  int8_t   driftDir;      // -1/0/+1
+  uint8_t  shape;         // 0=O,1=I,2=L
+  uint8_t  rot;           // 0..3
+  uint16_t color;
+  unsigned long nextActionMs;   // 次に回転/移動方向を見直す時刻
+};
+static BlkPiece blkPieces[BLK_MAX_PIECES];
+static bool     blkReady = false;
+
+static float    blkLevelSmooth = 0.0f;     // gViz.levelの緩やかな平滑値（落下速度に使用）
+static float    blkBassAvg     = 0.0f;     // bassの局所平均（立ち上がり検出の基準）
+static unsigned long blkBeatCooldownUntil = 0;
+static int      blkPrevBandLvl[VIZ_SRC_BAND_COUNT] = {0,0,0,0,0,0,0,0};
+static unsigned long blkBandCooldownUntil[VIZ_SRC_BAND_COUNT] = {0,0,0,0,0,0,0,0};
+static unsigned long blkLastSpawnMs = 0;
+
+// ピースが占めるセル数（O=4、I/L=3）。
+static inline uint8_t blkCellCount(uint8_t shape) { return (shape == 0) ? 4 : BLK_MAX_CELLS; }
+
+// shape/rotに対応するセルオフセットへアクセス（Oは回転無視）。
+static inline void blkGetCell(uint8_t shape, uint8_t rot, uint8_t idx, int8_t& col, int8_t& row) {
+  if (shape == 0) { col = BLK_SHAPE_O[idx][0]; row = BLK_SHAPE_O[idx][1]; return; }
+  const int8_t (*tbl)[BLK_MAX_CELLS][2] = (shape == 1) ? BLK_SHAPE_I : BLK_SHAPE_L;
+  // tbl は BLK_SHAPE_I/L の先頭要素（[BLK_MAX_CELLS][2]型）を指すポインタなので、
+  // tbl[rot] で回転インデックスへ進める（*tblで一段余分にデリファレンスしない）。
+  col = tbl[rot][idx][0];
+  row = tbl[rot][idx][1];
+}
+
+// ピースを空いているスロットへ新規生成する。x/形状/回転/ドリフト方向はrandom()、
+// 色だけ「立ち上がったバンド」から決める（列位置には使わない＝8列直結を避ける）。
+static void blkSpawn(uint16_t color) {
+  int slot = -1;
+  for (int i = 0; i < BLK_MAX_PIECES; i++) { if (!blkPieces[i].active) { slot = i; break; } }
+  if (slot < 0) return;   // 空きが無ければ今回は諦める（強制的な入れ替えはしない）
+
+  uint8_t shape = (uint8_t)random(0, 3);   // 0=O,1=I,2=L
+  uint8_t rot   = (uint8_t)random(0, 4);
+  int wCells = 1, hCells = 1;
+  for (uint8_t c = 0; c < blkCellCount(shape); c++) {
+    int8_t col, row; blkGetCell(shape, rot, c, col, row);
+    if (col + 1 > wCells) wCells = col + 1;
+    if (row + 1 > hCells) hCells = row + 1;
+  }
+  int wPx = wCells * BLK_CELL, hPx = hCells * BLK_CELL;
+
+  BlkPiece& p = blkPieces[slot];
+  p.active   = true;
+  p.x        = (float)random(0, SCENE_W - wPx + 1);
+  p.y        = (float)(BLK_TOP - hPx);   // 画面上端のすぐ外から落ちてくる
+  p.vy       = 0.6f;
+  p.driftDir = (int8_t)random(-1, 2);    // -1,0,1
+  p.shape    = shape;
+  p.rot      = rot;
+  p.color    = color;
+  p.nextActionMs = millis() + (unsigned long)random(900, 1600);
+}
+
+void vizRenderMegaBlocks(bool needsInit) {
+  const AudioVizState& s = gViz;
+  uint8_t n = s.bandCount;
+
+  if (!blkReady || needsInit) {
+    for (int i = 0; i < BLK_MAX_PIECES; i++) blkPieces[i].active = false;
+    blkLevelSmooth = 0.0f;
+    blkBassAvg     = s.bass;
+    blkBeatCooldownUntil = 0;
+    for (int i = 0; i < VIZ_SRC_BAND_COUNT; i++) { blkPrevBandLvl[i] = 0; blkBandCooldownUntil[i] = 0; }
+    blkLastSpawnMs = 0;
+    blkReady = true;
+  }
+
+  unsigned long nowMs = millis();
+
+  // ── 背景：黒（Lighting併用時は既存Lighting背景をそのまま活かし何も塗らない）──
+  if (!gLightingActive) GFX.fillRect(0, BLK_TOP, SCENE_W, SCENE_H - BLK_TOP, BLACK);
+  GFX.setClipRect(0, BLK_TOP, SCENE_W, SCENE_H - BLK_TOP);   // 上部48pxの情報表示は汚さない
+
+  // ── 落下速度：level（全帯域平均）の緩やかな追従。Kaleidoscope同様、音量では
+  //    回転や移動の「主役」は変えず、あくまで落下の速さだけに反映する。──
+  blkLevelSmooth += (s.level - blkLevelSmooth) * 0.10f;
+
+  // ── バンドごとの立ち上がり検出 → 出現（8-Lane Rhythm/Kaleidoscopeと同じ
+  //    「直前値からの急上昇＋クールダウン」方式。列位置には使わず色にのみ使う）──
+  for (uint8_t i = 0; i < n && i < VIZ_SRC_BAND_COUNT; i++) {
+    int lvl  = (int)lroundf(s.band[i] * 100.0f * vizBandGain(i, n));
+    if (lvl > 100) lvl = 100;
+    int rise = lvl - blkPrevBandLvl[i];
+    if (lvl >= 15 && rise >= 12 && nowMs >= blkBandCooldownUntil[i] && nowMs - blkLastSpawnMs >= 220) {
+      blkSpawn(vizSpectrumColor((VIZ_SRC_BAND_COUNT > 1) ? (float)i / (float)(VIZ_SRC_BAND_COUNT - 1) : 0.0f));
+      blkBandCooldownUntil[i] = nowMs + 500;
+      blkLastSpawnMs = nowMs;
+    }
+    blkPrevBandLvl[i] = lvl;
+  }
+  // 無音が続いて画面が空のままにならないよう、一定間隔で最低限の出現を保証する。
+  {
+    int activeCount = 0;
+    for (int i = 0; i < BLK_MAX_PIECES; i++) if (blkPieces[i].active) activeCount++;
+    if (activeCount == 0 && nowMs - blkLastSpawnMs >= 2500) {
+      blkSpawn(vizSpectrumColor(0.5f));
+      blkLastSpawnMs = nowMs;
+    }
+  }
+
+  // ── bassの立ち上がり → 既存ブロックのどれか1つへ90度回転／移動方向転換を適用
+  //    （KaleidoscopeのkalBassAvgと同じ考え方の局所平均比較）──
+  blkBassAvg += (s.bass - blkBassAvg) * 0.15f;
+  bool bassHit = (s.bass > blkBassAvg * 1.3f + 0.04f && nowMs >= blkBeatCooldownUntil);
+  if (bassHit) blkBeatCooldownUntil = nowMs + 200;
+
+  // ── 各ピースの更新・描画 ──
+  for (int i = 0; i < BLK_MAX_PIECES; i++) {
+    BlkPiece& p = blkPieces[i];
+    if (!p.active) continue;
+
+    p.y += p.vy * (1.0f + blkLevelSmooth * 2.2f);
+    p.x += (float)p.driftDir * 0.35f;
+    if (p.x < 0) { p.x = 0; p.driftDir = 1; }
+    if (p.x > SCENE_W - BLK_CELL) { p.x = SCENE_W - BLK_CELL; p.driftDir = -1; }
+
+    bool timeDue = (nowMs >= p.nextActionMs);
+    if (timeDue || (bassHit && random(0, BLK_MAX_PIECES) == 0)) {
+      if (p.shape != 0) p.rot = (uint8_t)((p.rot + 1) % 4);   // Oは回転しても見た目が変わらないため対象外
+      if (random(0, 2) == 0) p.driftDir = (int8_t)random(-1, 2);
+      p.nextActionMs = nowMs + (unsigned long)random(900, 1600);
+    }
+
+    if (p.y > (float)SCENE_H) { p.active = false; continue; }   // 下端到達で消える（積み上げない）
+
+    for (uint8_t c = 0; c < blkCellCount(p.shape); c++) {
+      int8_t col, row; blkGetCell(p.shape, p.rot, c, col, row);
+      int cx = (int)p.x + col * BLK_CELL;
+      int cy = (int)(p.y + row * BLK_CELL);
+      if (cy + BLK_CELL <= BLK_TOP) continue;   // 完全に保護ライン上なら描かない
+      GFX.fillRect(cx, cy, BLK_CELL - 2, BLK_CELL - 2, p.color);
+      vizOutlineRect(cx, cy, BLK_CELL - 2, BLK_CELL - 2);   // Lighting併用時のみ縁取り（既存ヘルパ）
+    }
+  }
+
+  GFX.clearClipRect();   // 顔描画・他の描画に影響しないよう必ず解除する（Kaleidoscopeと同じ作法）
+
+  // ── 顔（ブロック→顔 の描画順で最後に描く。ブロックが顔を覆い隠さないようにする）──
+  if (!gLightingActive) {
+    if (!gEyeSlotActive) {
+      GFX.fillCircle(90  + eyeOffsetX, 90 + eyeOffsetY, 22, WHITE);
+      GFX.fillCircle(230 + eyeOffsetX, 90 + eyeOffsetY, 22, WHITE);
+    }
+    GFX.fillEllipse(noseX, noseY, 20, 14, WHITE);
+    GFX.fillRect(135, 149, 51, 36, WHITE);   // 既存drawVisualizerFaceParts()の口消去矩形と同一範囲
+    drawVisualizerFaceParts(needsInit);
+  }
+}
+
+// ============================================================================
 // Visualizer Manager
 //
 // 【Visualizerを追加する手順（このファイル内で完結）】
@@ -13434,6 +13662,7 @@ const VizRenderFn VIZ_RENDER_FN[VIZ_MODE_COUNT] = {
   vizRenderRhythm,      // VIZ_MODE_RHYTHM
   vizRenderKaleidoscope,// VIZ_MODE_KALEIDO
   vizRenderAnalogVu,    // VIZ_MODE_AVU
+  vizRenderMegaBlocks,  // VIZ_MODE_BLOCKS
 };
 
 // 各Visualizerの描画周期(ms)。既存EQは従来どおり80ms。
@@ -13442,7 +13671,7 @@ const VizRenderFn VIZ_RENDER_FN[VIZ_MODE_COUNT] = {
 // Analog VUは針の動きを機械式メーターらしく滑らかに見せるため60ms（約16.7fps）とする。
 // 1フレームの描画は8メーター×約30プリミティブ＝約240プリミティブで、
 // Mirror Wave（81列×最大3回≒243回）と同程度のオーダーに収まる。
-const uint16_t VIZ_INTERVAL_MS[VIZ_MODE_COUNT] = { 0, 80, 70, 70, 40, 70, 60 };
+const uint16_t VIZ_INTERVAL_MS[VIZ_MODE_COUNT] = { 0, 80, 70, 70, 40, 70, 60, 70 };
 
 // ====================================================
 // Visualizer 有効判定と切替
