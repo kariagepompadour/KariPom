@@ -734,8 +734,8 @@ const VizModeInfo VIZ_MODES[VIZ_MODE_COUNT] = {
     "実物の万華鏡のような、6分割の回転対称・鏡映対称模様を描くビジュアライザーです。点・短い線・小さな三角形・リングなど最大12個のシンプルな図形を、60度ごとの回転と鏡映で12方向へ複製し、黒背景にネオン／宝石調の色鮮やかな幾何学模様を作ります。低音のバンドは中心寄り、高音のバンドは外周寄りに図形を配置し、音量の滑らかな変化で全体がゆっくり回転速度を変え、無音時も止まらずゆっくり回り続けます。低域の急な立ち上がりで新しい図形が一瞬明るく生成されます。ピクセル単位の重い三角関数は使わず、初期化時に求めた6方向の回転定数と少数の図形座標だけで模様を作るため負荷は軽めです。顔・上部48pxの扱いは他のVisualizerと同じです。" },
   { "avu", "Analog VU",
     "1970〜80年代のオーディオアンプ／ミキサーに並んでいたアナログVUメーターを、左右2chではなく『8バンドFFTそれぞれに1個ずつ』割り当てた8連アナログ・スペクトラムメーターです。上部48pxを除く画面へ4個×2段で配置し、上段左からband0〜band3、下段左からband4〜band7＝左上から右下へ低域→高域になります。クリーム色の盤面・黒い主目盛り・右端の赤いピークゾーン・赤い針・濃色の外枠という実機的な意匠で、背景は黒い機器パネル調です。8本の針は完全に独立して振れ、低音の強い曲は左上側、ボーカル中心は中央寄り、ハイハット等は右下側がよく動きます。針は立ち上がりに素早く追従し、下降時だけ機械式メーターらしい慣性でゆっくり戻ります。各バンドの絶対値と8バンド内での相対的な強弱の両方を使うため、小音量でも帯域ごとの違いが残り、音量を上げれば全体の振れ幅も大きくなります。顔・上部48pxの扱いは他のVisualizerと同じです。" },
-  { "blocks", "Mega Blocks（仮称）",
-    "落ち物パズルを連想させる大型ブロックが、かりポムの顔の周囲を少数（最大4個）落下・回転・左右移動するビジュアライザーです。8-Lane Rhythmのような固定8レーンの縦流しではなく、各ブロックが画面内を独立して自由に動きます。ブロックの一辺は目の直径・口の幅と同程度の大きさで、細かい粒を大量に流す表現にはしていません。音の強さで落下速度が、低音の立ち上がりでブロックの出現・90度回転・左右移動の向き変えが起こります。FFTの8バンドを画面の8列へ直接対応させる方式は採用していません。下端に到達したブロックは積み上がらず消え、新しいブロックが上部から出現します。黒背景の上にブロックを描いた後、既存のdrawVisualizerFaceParts()を最後に描くため、かりポムの顔は常にブロックの手前に表示されます。名称は実機での見え方を確認してから正式決定する想定の仮称です。" },
+  { "blocks", "Tetromino Dance",
+    "落ち物パズルを連想させる大型ブロックが、かりポムの顔の周囲を少数（最大4個）落下・回転・移動するビジュアライザーです。8-Lane Rhythmのような固定8レーンの縦流しではなく、各ブロックが画面内を独立して自由に動きます。ブロックの一辺は目の直径・口の幅と同程度の大きさで、細かい粒を大量に流す表現にはしていません。回転は瞬間切り替えではなく、ブロック中心を軸に数フレームかけてクルッと回るアニメーションです。普段はまっすぐ落下し、ときどき数フレームかけて真横へ滑るように移動してからまた落下する、落ち物パズル特有の動きを再現しています。音の強さで落下速度が、低音の立ち上がりで回転・真横移動の発生が変化します。FFTの8バンドを画面の8列へ直接対応させる方式は採用していません。下端に到達したブロックは積み上がらず消え、新しいブロックが上部から出現します。他の白背景Visualizerと同じ白背景の上にブロックを描いた後、既存のdrawVisualizerFaceParts()を最後に描くため、かりポムの顔は常にブロックの手前に表示されます。" },
 };
 
 // 現在のVisualizerモード（Wi-Fi / LINE IN / 将来のBluetooth 共通・NVS永続化）
@@ -13416,81 +13416,100 @@ void vizRenderAnalogVu(bool needsInit) {
 }
 
 // ============================================================================
-// Visualizer #7 : Mega Blocks（仮称）── 大型落ち物ブロック（v1.0 / 2026-07-31）
+// Visualizer #7 : Tetromino Dance（旧仮称 Mega Blocks）── 大型落ち物ブロック
+//                 v2.0 / 2026-07-31（実機確認後の修正版）
 //
 // ■ 位置づけ（8-Lane Rhythmとは無関係の独立モード）
 //   8-Lane Rhythmが「固定8レーン×時間履歴」という音ゲー的な流れる譜面なのに対し、
 //   本Visualizerは「少数（最大BLK_MAX_PIECES個）の大型ブロックが画面内を自由に
-//   落下・90度回転・左右移動する」という別系統の表現にする。FFTの8バンドを
-//   画面のX座標へ直接対応させる方式（列マッピング）は採用しない。
-//   ブロックの出現位置・色は「どのバンドが立ち上がったか」からは決めるが、
-//   X座標そのものはバンド番号と無関係（random()による疎な配置）にすることで、
-//   低音が強い曲でも画面左に偏らないようにしている。
+//   落下・回転・移動する」という別系統の表現にする。FFTの8バンドを画面のX座標へ
+//   直接対応させる方式（列マッピング）は採用しない。ブロックの色は「どのバンドが
+//   立ち上がったか」から決めるが、X座標そのものはバンド番号と無関係
+//   （random()による疎な配置）にすることで、低音が強い曲でも画面左に偏らない
+//   ようにしている。
+//
+// ■ v2.0での変更点（実機確認結果を反映）
+//   1) 背景を黒→白に変更。他の白背景Visualizer（Graphic EQ/8-Lane Rhythm/
+//      Mirror Wave）と同じ扱いにし、黒背景専用だった「顔まわりの白下地」処理
+//      （黒地でないと不要）を撤去した。
+//   2) 回転を「瞬間切替」から「連続アニメーション」へ変更。ピースを外接矩形の
+//      左上ではなく中心(cx,cy)で管理し、現在角度angleが目標角度targetAngle
+//      （常に90°=PI/2単位）へBLK_ROT_STEPずつ毎フレーム近づく。描画時は
+//      各セルの中心・4頂点をangleぶん回転行列で変換してfillTriangle×2枚
+//      （矩形1枚）で塗るため、0/90/180/270度の4テーブルは不要になり、
+//      形状は「回転前の基準姿勢」を1つ持つだけでよい。中心(cx,cy)は回転で
+//      動かないため、ブロックが飛ばずその場でクルッと回って見える。
+//   3) 「落下途中の真横移動」を、常時ドリフトとは別の離散イベントとして追加。
+//      普段cxは変化せず純粋に落下のみ。ときどき（タイマー or bass立ち上がり
+//      抽選）1〜2セル分の目標Xを決め、BLK_SLIDE_DUR_MS程度かけて
+//      smoothstep補間でcxを移動、到達したら再び純粋な落下に戻る。
+//      常時斜めに流れる古いdriftDirは廃止した。
+//   4) 名称を仮称「Mega Blocks」から正式名称「Tetromino Dance」へ変更
+//      （VIZ_MODESのlabel/noteのみ変更。内部id "blocks" は互換性のため維持）。
 //
 // ■ サイズの基準（このファイルの既存定数から算出。数値の決め打ちはしない）
 //   ・目（黒目）の半径 EYE_RADIUS = 20px → 直径40px
 //   ・口の外接ボックス FACE_MOUTH_W=90 / FACE_MOUTH_H=105
 //   目と口のおおよそ中間に位置する40pxを1セルの一辺（BLK_CELL）として採用し、
-//   ブロックは1〜3セルで構成する（最大でも3セル×40px=120px角未満）。
-//   8-Lane Rhythmのバー（34×16px）よりも明確に大きく、かつ口(90〜105px)を
-//   大きく超えない範囲に収まる。
+//   ブロックは3〜4セルで構成する。8-Lane Rhythmのバー（34×16px）よりも
+//   明確に大きく、口(90〜105px)を大きく超えない範囲に収まる。
 //
-// ■ 形状と回転
-//   O（2×2セル全埋め・回転不変）／I（3セル一直線・横⇔縦の2状態）／
-//   L（2×2セルの1隅を欠いたトロミノ・4方向）の3種類。実物のテトリミノの
-//   厳密な再現ではなく、「90度単位で見た目が変わる大型ブロック」を安価な
-//   静的テーブル（座標オフセットのみ・三角関数不要）で表現する。
+// ■ 形状
+//   O（2×2セル全埋め）／I（3セル一直線）／L（2×2セルの1隅を欠いたトロミノ）の
+//   3種類。回転は基準姿勢1つに対する連続回転行列で表現するため、形状テーブル
+//   自体は4方向ぶん持たない（v1.0からの簡略化）。
 //
 // ■ 音への反応（既存処理を再利用。新しい解析は追加しない）
-//   ・落下速度      … gViz.level（全帯域平均）で加速。Kaleidoscope等と同じ
-//                     ゆっくりした追従（減衰付き平滑）を用いる。
-//   ・出現           … gViz.band[i]の立ち上がり検出は8-Lane Rhythm/Kaleidoscopeと
-//                     同じ「直前値からの急上昇＋クールダウン」方式をバンドごとに
-//                     判定し、立ち上がったバンドの色（vizSpectrumColor）を
-//                     そのブロックの色として使う（列位置には使わない）。
-//   ・90度回転・左右移動の向き変え … bassの立ち上がり（KaleidoscopeのkalBassAvg
-//                     と同じ考え方の局所平均比較）をきっかけに、既存ブロックへ
-//                     ランダムに1つ適用する。
+//   ・落下速度        … gViz.level（全帯域平均）で加速。Kaleidoscope等と同じ
+//                       ゆっくりした追従（減衰付き平滑）を用いる。
+//   ・出現            … gViz.band[i]の立ち上がり検出は8-Lane Rhythm/
+//                       Kaleidoscopeと同じ「直前値からの急上昇＋クールダウン」
+//                       方式をバンドごとに判定し、立ち上がったバンドの色
+//                       （vizSpectrumColor）をそのブロックの色として使う
+//                       （列位置には使わない）。
+//   ・回転／真横移動の開始 … bassの立ち上がり（KaleidoscopeのkalBassAvgと
+//                       同じ考え方の局所平均比較）またはタイマーをきっかけに、
+//                       既存ブロックのどれか1つへランダムに適用する。
 //
 // ■ 積み上げなし
-//   下端（BLK_BOTTOM=SCENE_H）へ到達したブロックはそのまま非アクティブ化して
-//   消え、次の出現までは何も描かれない。盤面を保持する目的の配列は持たない。
+//   下端（SCENE_H）を完全に通過したブロックはそのまま非アクティブ化して消え、
+//   次の出現までは何も描かれない。盤面を保持する目的の配列は持たない。
 //
 // ■ 顔（維持）
-//   Kaleidoscope／Analog VUと同じ「黒背景→ブロック→白下地→
-//   drawVisualizerFaceParts()」の順で最後に顔を描くため、ブロックが顔の
-//   手前に重なって顔を隠すことはない。顔の描画仕様・表情処理は無変更。
+//   白背景→ブロック→drawVisualizerFaceParts() の順で最後に顔を描くため、
+//   ブロックが顔の手前に重なって顔を隠すことはない。顔の描画仕様・表情処理は
+//   無変更。
 // ============================================================================
 #define BLK_TOP          SCENE_TOP        // 48。他Visualizerと同じ保護ライン
 #define BLK_CELL         40                // 1セル(px)。EYE_RADIUS(20)の直径と同じ大きさを基準にする
 #define BLK_MAX_PIECES   4                 // 少数のみ同時表示
-#define BLK_MAX_CELLS    3                 // 1ピース最大3セル
+#define BLK_MAX_CELLS    4                 // 1ピース最大セル数（O=4）
+// どの形状・どの回転角でも、ピース中心からセル最遠角までの距離はこれを超えない
+// （I字形×連続回転時の最大値 約63pxを切り上げ）。画面外はみ出し防止の共通マージンに使う。
+#define BLK_HALF_EXTENT  64
+#define BLK_ROT_STEP     0.2618f           // 1フレームあたりの回転角(rad)。(PI/2)/6＝6フレームで90°
+#define BLK_SLIDE_MIN_MS 300
+#define BLK_SLIDE_MAX_MS 500
 
-// 形状定義：{shape}{rotation} ごとに最大3セルの(col,row)オフセット。未使用は{9,9}。
-// O … 回転しても同じ2×2（4セル使うためBLK_MAX_CELLSの例外として4セルテーブルを別に持つ）。
-static const int8_t BLK_SHAPE_O[4][2]  = { {0,0},{1,0},{0,1},{1,1} };
-// I … 3セル一直線。rot 0/2=横、rot 1/3=縦。
-static const int8_t BLK_SHAPE_I[4][BLK_MAX_CELLS][2] = {
-  { {0,0},{1,0},{2,0} }, { {0,0},{0,1},{0,2} },
-  { {0,0},{1,0},{2,0} }, { {0,0},{0,1},{0,2} },
-};
-// L … 2×2の1隅を欠いたトロミノ。4方向で欠ける隅が変わる。
-static const int8_t BLK_SHAPE_L[4][BLK_MAX_CELLS][2] = {
-  { {0,0},{1,0},{0,1} },   // 右下(1,1)が欠け
-  { {0,0},{1,0},{1,1} },   // 左下(0,1)が欠け
-  { {1,0},{0,1},{1,1} },   // 左上(0,0)が欠け
-  { {0,0},{0,1},{1,1} },   // 右上(1,0)が欠け
-};
+// 形状定義：回転前の基準姿勢のみを持つ（0/90/180/270の4テーブルは不要）。
+// (col,row)はセル単位のグリッド座標。
+static const int8_t BLK_SHAPE_O[4][2] = { {0,0},{1,0},{0,1},{1,1} };   // 2×2
+static const int8_t BLK_SHAPE_I[3][2] = { {0,0},{1,0},{2,0} };          // 3×1（横向き基準）
+static const int8_t BLK_SHAPE_L[3][2] = { {0,0},{1,0},{0,1} };          // 2×2の右下(1,1)が欠け
 
 struct BlkPiece {
   bool     active;
-  float    x, y;         // 外接ボックス左上のピクセル座標
-  float    vy;           // 落下速度(px/frame)
-  int8_t   driftDir;      // -1/0/+1
+  float    cx, cy;        // ピース中心のピクセル座標（回転軸）
+  float    vy;            // 落下速度(px/frame)
   uint8_t  shape;         // 0=O,1=I,2=L
-  uint8_t  rot;           // 0..3
+  float    angle;         // 現在の描画角度(rad)。連続値
+  float    targetAngle;   // 回転アニメーションの目標角度(rad)
   uint16_t color;
-  unsigned long nextActionMs;   // 次に回転/移動方向を見直す時刻
+  unsigned long nextRotMs;     // 次に回転開始を検討する時刻
+  bool     sliding;             // 真横移動アニメーション中か
+  float    slideStartX, slideTargetX;
+  unsigned long slideStartMs, slideDurMs;
+  unsigned long nextSlideMs;    // 次に真横移動の開始を検討する時刻
 };
 static BlkPiece blkPieces[BLK_MAX_PIECES];
 static bool     blkReady = false;
@@ -13503,19 +13522,35 @@ static unsigned long blkBandCooldownUntil[VIZ_SRC_BAND_COUNT] = {0,0,0,0,0,0,0,0
 static unsigned long blkLastSpawnMs = 0;
 
 // ピースが占めるセル数（O=4、I/L=3）。
-static inline uint8_t blkCellCount(uint8_t shape) { return (shape == 0) ? 4 : BLK_MAX_CELLS; }
+static inline uint8_t blkCellCount(uint8_t shape) { return (shape == 0) ? 4 : 3; }
 
-// shape/rotに対応するセルオフセットへアクセス（Oは回転無視）。
-static inline void blkGetCell(uint8_t shape, uint8_t rot, uint8_t idx, int8_t& col, int8_t& row) {
-  if (shape == 0) { col = BLK_SHAPE_O[idx][0]; row = BLK_SHAPE_O[idx][1]; return; }
-  const int8_t (*tbl)[BLK_MAX_CELLS][2] = (shape == 1) ? BLK_SHAPE_I : BLK_SHAPE_L;
-  // tbl は BLK_SHAPE_I/L の先頭要素（[BLK_MAX_CELLS][2]型）を指すポインタなので、
-  // tbl[rot] で回転インデックスへ進める（*tblで一段余分にデリファレンスしない）。
-  col = tbl[rot][idx][0];
-  row = tbl[rot][idx][1];
+// 基準姿勢でのセル(col,row)を取得。
+// BLK_SHAPE_O/I/L はいずれも [N][2] 型なので、どれも const int8_t(*)[2] へ
+// 同じように decay する（キャスト不要）。
+static inline void blkGetCell(uint8_t shape, uint8_t idx, int8_t& col, int8_t& row) {
+  const int8_t (*o)[2] = (shape == 0) ? BLK_SHAPE_O : (shape == 1) ? BLK_SHAPE_I : BLK_SHAPE_L;
+  col = o[idx][0];
+  row = o[idx][1];
 }
 
-// ピースを空いているスロットへ新規生成する。x/形状/回転/ドリフト方向はrandom()、
+// 基準姿勢での外接ボックスセル数（O=2×2、I=3×1、L=2×2）。
+static inline void blkShapeDims(uint8_t shape, uint8_t& wCells, uint8_t& hCells) {
+  if (shape == 1) { wCells = 3; hCells = 1; }
+  else            { wCells = 2; hCells = 2; }   // O・L は共通の2×2箱
+}
+
+// Lighting併用時だけ、回転済みセル四角形へ簡易輪郭（白1本線）を付ける。
+// 既存vizOutlineRect（軸並行矩形専用・白外/黒内の二重輪郭）は回転四角形に
+// そのまま使えないため、視認性確保のための簡略版として白線のみにしている。
+static inline void blkOutlineQuad(int x0,int y0,int x1,int y1,int x2,int y2,int x3,int y3) {
+  if (!gLightingActive) return;
+  GFX.drawLine(x0,y0,x1,y1,WHITE);
+  GFX.drawLine(x1,y1,x2,y2,WHITE);
+  GFX.drawLine(x2,y2,x3,y3,WHITE);
+  GFX.drawLine(x3,y3,x0,y0,WHITE);
+}
+
+// ピースを空いているスロットへ新規生成する。x/形状/回転初期値はrandom()、
 // 色だけ「立ち上がったバンド」から決める（列位置には使わない＝8列直結を避ける）。
 static void blkSpawn(uint16_t color) {
   int slot = -1;
@@ -13523,25 +13558,22 @@ static void blkSpawn(uint16_t color) {
   if (slot < 0) return;   // 空きが無ければ今回は諦める（強制的な入れ替えはしない）
 
   uint8_t shape = (uint8_t)random(0, 3);   // 0=O,1=I,2=L
-  uint8_t rot   = (uint8_t)random(0, 4);
-  int wCells = 1, hCells = 1;
-  for (uint8_t c = 0; c < blkCellCount(shape); c++) {
-    int8_t col, row; blkGetCell(shape, rot, c, col, row);
-    if (col + 1 > wCells) wCells = col + 1;
-    if (row + 1 > hCells) hCells = row + 1;
-  }
-  int wPx = wCells * BLK_CELL, hPx = hCells * BLK_CELL;
+  unsigned long nowMs = millis();
 
   BlkPiece& p = blkPieces[slot];
-  p.active   = true;
-  p.x        = (float)random(0, SCENE_W - wPx + 1);
-  p.y        = (float)(BLK_TOP - hPx);   // 画面上端のすぐ外から落ちてくる
-  p.vy       = 0.6f;
-  p.driftDir = (int8_t)random(-1, 2);    // -1,0,1
-  p.shape    = shape;
-  p.rot      = rot;
-  p.color    = color;
-  p.nextActionMs = millis() + (unsigned long)random(900, 1600);
+  p.active      = true;
+  p.cx          = (float)random(BLK_HALF_EXTENT, SCENE_W - BLK_HALF_EXTENT + 1);
+  p.cy          = (float)(BLK_TOP - BLK_HALF_EXTENT);   // 画面上端のすぐ外から落ちてくる
+  p.vy          = 0.6f;
+  p.shape       = shape;
+  p.angle       = 0.0f;
+  p.targetAngle = 0.0f;
+  p.color       = color;
+  p.nextRotMs   = nowMs + (unsigned long)random(900, 1700);
+  p.sliding     = false;
+  p.slideStartX = p.slideTargetX = p.cx;
+  p.slideStartMs = p.slideDurMs = 0;
+  p.nextSlideMs  = nowMs + (unsigned long)random(1200, 2200);
 }
 
 void vizRenderMegaBlocks(bool needsInit) {
@@ -13560,16 +13592,16 @@ void vizRenderMegaBlocks(bool needsInit) {
 
   unsigned long nowMs = millis();
 
-  // ── 背景：黒（Lighting併用時は既存Lighting背景をそのまま活かし何も塗らない）──
-  if (!gLightingActive) GFX.fillRect(0, BLK_TOP, SCENE_W, SCENE_H - BLK_TOP, BLACK);
+  // ── 背景：白（他の白背景Visualizerと同じ扱い。Lighting併用時は既存Lighting
+  //    背景をそのまま活かし何も塗らない）。ブロックが毎フレーム動くため、
+  //    Kaleidoscopeと同様に「差分ではなく毎フレーム全面を塗り直す」方式にする。──
+  if (!gLightingActive) GFX.fillRect(0, BLK_TOP, SCENE_W, SCENE_H - BLK_TOP, WHITE);
   GFX.setClipRect(0, BLK_TOP, SCENE_W, SCENE_H - BLK_TOP);   // 上部48pxの情報表示は汚さない
 
-  // ── 落下速度：level（全帯域平均）の緩やかな追従。Kaleidoscope同様、音量では
-  //    回転や移動の「主役」は変えず、あくまで落下の速さだけに反映する。──
+  // ── 落下速度：level（全帯域平均）の緩やかな追従 ──
   blkLevelSmooth += (s.level - blkLevelSmooth) * 0.10f;
 
-  // ── バンドごとの立ち上がり検出 → 出現（8-Lane Rhythm/Kaleidoscopeと同じ
-  //    「直前値からの急上昇＋クールダウン」方式。列位置には使わず色にのみ使う）──
+  // ── バンドごとの立ち上がり検出 → 出現（色にのみ使用。列位置には使わない）──
   for (uint8_t i = 0; i < n && i < VIZ_SRC_BAND_COUNT; i++) {
     int lvl  = (int)lroundf(s.band[i] * 100.0f * vizBandGain(i, n));
     if (lvl > 100) lvl = 100;
@@ -13591,8 +13623,7 @@ void vizRenderMegaBlocks(bool needsInit) {
     }
   }
 
-  // ── bassの立ち上がり → 既存ブロックのどれか1つへ90度回転／移動方向転換を適用
-  //    （KaleidoscopeのkalBassAvgと同じ考え方の局所平均比較）──
+  // ── bassの立ち上がり検出（Kaleidoscopeと同じ局所平均比較）──
   blkBassAvg += (s.bass - blkBassAvg) * 0.15f;
   bool bassHit = (s.bass > blkBassAvg * 1.3f + 0.04f && nowMs >= blkBeatCooldownUntil);
   if (bassHit) blkBeatCooldownUntil = nowMs + 200;
@@ -13602,42 +13633,93 @@ void vizRenderMegaBlocks(bool needsInit) {
     BlkPiece& p = blkPieces[i];
     if (!p.active) continue;
 
-    p.y += p.vy * (1.0f + blkLevelSmooth * 2.2f);
-    p.x += (float)p.driftDir * 0.35f;
-    if (p.x < 0) { p.x = 0; p.driftDir = 1; }
-    if (p.x > SCENE_W - BLK_CELL) { p.x = SCENE_W - BLK_CELL; p.driftDir = -1; }
+    // 1) 落下（縦方向のみ。真横移動は下のスライド処理が別途cxを動かす）
+    p.cy += p.vy * (1.0f + blkLevelSmooth * 2.2f);
 
-    bool timeDue = (nowMs >= p.nextActionMs);
-    if (timeDue || (bassHit && random(0, BLK_MAX_PIECES) == 0)) {
-      if (p.shape != 0) p.rot = (uint8_t)((p.rot + 1) % 4);   // Oは回転しても見た目が変わらないため対象外
-      if (random(0, 2) == 0) p.driftDir = (int8_t)random(-1, 2);
-      p.nextActionMs = nowMs + (unsigned long)random(900, 1600);
+    // 2) 回転アニメーション：目標角度へBLK_ROT_STEPずつ近づく（中心固定）
+    if (p.angle != p.targetAngle) {
+      float diff = p.targetAngle - p.angle;
+      if (fabsf(diff) <= BLK_ROT_STEP) p.angle = p.targetAngle;
+      else p.angle += (diff > 0 ? BLK_ROT_STEP : -BLK_ROT_STEP);
+      if (p.angle == p.targetAngle) {
+        // 浮動小数の際限ない増加を防ぐため、一致したタイミングで2πぶん折り返す
+        while (p.angle >= 6.2831853f) { p.angle -= 6.2831853f; p.targetAngle -= 6.2831853f; }
+      }
+    } else {
+      bool rotTimeDue = (nowMs >= p.nextRotMs);
+      // Oは回転しても見た目がほぼ変わらないため、新規回転の対象からは外す
+      // （既に回転中なら上のアニメーションはそのまま最後まで完了させる）。
+      if (p.shape != 0 && (rotTimeDue || (bassHit && random(0, BLK_MAX_PIECES) == 0))) {
+        p.targetAngle = p.angle + 1.5707963f;   // +90°
+        p.nextRotMs   = nowMs + (unsigned long)random(900, 1700);
+      }
     }
 
-    if (p.y > (float)SCENE_H) { p.active = false; continue; }   // 下端到達で消える（積み上げない）
+    // 3) 真横移動（スライド）：普段は横に動かず、ときどき1〜2セル分だけ
+    //    smoothstep補間で移動し、終わったらまた純粋な落下へ戻る。
+    if (p.sliding) {
+      unsigned long elapsed = nowMs - p.slideStartMs;
+      float t = (p.slideDurMs > 0) ? (float)elapsed / (float)p.slideDurMs : 1.0f;
+      if (t >= 1.0f) { p.cx = p.slideTargetX; p.sliding = false; }
+      else {
+        float e = t * t * (3.0f - 2.0f * t);   // smoothstep
+        p.cx = p.slideStartX + (p.slideTargetX - p.slideStartX) * e;
+      }
+    } else if (nowMs >= p.nextSlideMs) {
+      // 毎回スライドするわけではなく、常時漂う表現にならないよう半分は見送る
+      if (random(0, 2) == 0) {
+        int   dir    = (random(0, 2) == 0) ? -1 : 1;
+        float dist   = (float)random(1, 3) * BLK_CELL;   // 1〜2セル分
+        float target = p.cx + (float)dir * dist;
+        if (target < BLK_HALF_EXTENT)              target = (float)BLK_HALF_EXTENT;
+        if (target > SCENE_W - BLK_HALF_EXTENT)    target = (float)(SCENE_W - BLK_HALF_EXTENT);
+        if (fabsf(target - p.cx) > 4.0f) {   // 画面端で動けない場合はスキップ
+          p.sliding      = true;
+          p.slideStartX  = p.cx;
+          p.slideTargetX = target;
+          p.slideStartMs = nowMs;
+          p.slideDurMs   = (unsigned long)random(BLK_SLIDE_MIN_MS, BLK_SLIDE_MAX_MS);
+        }
+      }
+      p.nextSlideMs = nowMs + (unsigned long)random(1200, 2200);
+    }
+
+    // 4) 下端を完全に通過したら消える（積み上げない）
+    if (p.cy - BLK_HALF_EXTENT > (float)SCENE_H) { p.active = false; continue; }
+
+    // 5) 描画：各セルを中心(cx,cy)まわりにangleぶん回転させた四角形として塗る
+    float cosA = cosf(p.angle), sinA = sinf(p.angle);
+    uint8_t wCells, hCells;
+    blkShapeDims(p.shape, wCells, hCells);
+    float halfCellPx = (float)(BLK_CELL - 2) / 2.0f;   // セル間に1px隙間を残す
 
     for (uint8_t c = 0; c < blkCellCount(p.shape); c++) {
-      int8_t col, row; blkGetCell(p.shape, p.rot, c, col, row);
-      int cx = (int)p.x + col * BLK_CELL;
-      int cy = (int)(p.y + row * BLK_CELL);
-      if (cy + BLK_CELL <= BLK_TOP) continue;   // 完全に保護ライン上なら描かない
-      GFX.fillRect(cx, cy, BLK_CELL - 2, BLK_CELL - 2, p.color);
-      vizOutlineRect(cx, cy, BLK_CELL - 2, BLK_CELL - 2);   // Lighting併用時のみ縁取り（既存ヘルパ）
+      int8_t col, row; blkGetCell(p.shape, c, col, row);
+      // セル中心の「回転前・ピース中心基準」ローカル座標
+      float lcx = ((float)col - (float)(wCells - 1) / 2.0f) * (float)BLK_CELL;
+      float lcy = ((float)row - (float)(hCells - 1) / 2.0f) * (float)BLK_CELL;
+
+      // セルの4頂点（ローカル座標）を求め、まとめて回転→平行移動する。
+      float lx[4] = { lcx - halfCellPx, lcx + halfCellPx, lcx + halfCellPx, lcx - halfCellPx };
+      float ly[4] = { lcy - halfCellPx, lcy - halfCellPx, lcy + halfCellPx, lcy + halfCellPx };
+      int wx[4], wy[4];
+      for (int k = 0; k < 4; k++) {
+        float rx = lx[k] * cosA - ly[k] * sinA;
+        float ry = lx[k] * sinA + ly[k] * cosA;
+        wx[k] = (int)lroundf(p.cx + rx);
+        wy[k] = (int)lroundf(p.cy + ry);
+      }
+      GFX.fillTriangle(wx[0], wy[0], wx[1], wy[1], wx[2], wy[2], p.color);
+      GFX.fillTriangle(wx[0], wy[0], wx[2], wy[2], wx[3], wy[3], p.color);
+      blkOutlineQuad(wx[0], wy[0], wx[1], wy[1], wx[2], wy[2], wx[3], wy[3]);
     }
   }
 
   GFX.clearClipRect();   // 顔描画・他の描画に影響しないよう必ず解除する（Kaleidoscopeと同じ作法）
 
-  // ── 顔（ブロック→顔 の描画順で最後に描く。ブロックが顔を覆い隠さないようにする）──
-  if (!gLightingActive) {
-    if (!gEyeSlotActive) {
-      GFX.fillCircle(90  + eyeOffsetX, 90 + eyeOffsetY, 22, WHITE);
-      GFX.fillCircle(230 + eyeOffsetX, 90 + eyeOffsetY, 22, WHITE);
-    }
-    GFX.fillEllipse(noseX, noseY, 20, 14, WHITE);
-    GFX.fillRect(135, 149, 51, 36, WHITE);   // 既存drawVisualizerFaceParts()の口消去矩形と同一範囲
-    drawVisualizerFaceParts(needsInit);
-  }
+  // ── 顔（ブロック→顔 の描画順で最後に描く。ブロックが顔を覆い隠さないように
+  //    する。白背景のためKaleidoscope/Analog VUのような黒背景用の白下地は不要）──
+  if (!gLightingActive) drawVisualizerFaceParts(needsInit);
 }
 
 // ============================================================================
