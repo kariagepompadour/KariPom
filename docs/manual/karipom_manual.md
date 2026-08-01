@@ -1234,4 +1234,4 @@ A. はい。かりポムはGitHubで公開されている、今も継続的に�
 ---
 
 かりポム ユーザーマニュアル Ver. 4.6
-© KariPom Project
+Copyright (c) 2026 Kariage POMPADOUR Entertainment Corporation

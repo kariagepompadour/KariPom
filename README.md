@@ -54,4 +54,4 @@ CoreS3の実機がなくても、PCだけでかりポムの口パク体験を楽
 
 ---
 
-© 2026 KariPom Project
+Copyright (c) 2026 Kariage POMPADOUR Entertainment Corporation

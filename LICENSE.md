@@ -6,7 +6,7 @@
 
 対象：`cores3-main/`・`pico2-pcm1808/`・`mac-companion/` に含まれるすべてのソースコード。
 
-Copyright (c) 2026 KariPom Project
+Copyright (c) 2026 Kariage POMPADOUR Entertainment Corporation
 
 以下の条件のもとで、本ソースコードの使用・複製・改変を無償で許可します。
 
@@ -33,7 +33,7 @@ Copyright (c) 2026 KariPom Project
 
 対象：`3d_models/` のすべての3Dデータ、`docs/` のすべての文書・図・写真、その他リポジトリ内の画像類。
 
-[クリエイティブ・コモンズ 表示 - 非営利 4.0 国際（CC BY-NC 4.0）](https://creativecommons.org/licenses/by-nc/4.0/deed.ja) が適用されます。適切なクレジット（「KariPom Project」および本リポジトリへのリンク）を表示すれば、非営利目的に限り、共有・改変が可能です。3Dモデルや公開データそのものの販売はできません。
+[クリエイティブ・コモンズ 表示 - 非営利 4.0 国際（CC BY-NC 4.0）](https://creativecommons.org/licenses/by-nc/4.0/deed.ja) が適用されます。適切なクレジット（「Kariage POMPADOUR Entertainment Corporation」または「KariPom」および本リポジトリへのリンク）を表示すれば、非営利目的に限り、共有・改変が可能です。3Dモデルや公開データそのものの販売はできません。
 
 ## 3. 名称・ロゴについて
 

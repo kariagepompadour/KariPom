@@ -938,4 +938,4 @@ DC測定（工程7〜9）では、**測定値がいくつであっても、そ�
 
 かりポム Karipom Ear 設計・製作マニュアル Ver. 2.1
 （Ver. 2.1：5.3に完成版Picoファームウェアのファイルパス`pico2-pcm1808/karipom_pico2/karipom_pico2.ino`を明記。内容の変更なし）
-© KariPom Project
+Copyright (c) 2026 Kariage POMPADOUR Entertainment Corporation
