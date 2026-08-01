@@ -1,6 +1,6 @@
 ---
 title: "かりポム Karipom Ear 設計・製作マニュアル"
-subtitle: "PCM1808＋Pico2拡張／LINE OUT増設／Bluetooth入力（MH-M18） — Design & Build Manual Ver. 2.0"
+subtitle: "PCM1808＋Pico2拡張／LINE OUT増設／Bluetooth入力（MH-M18） — Design & Build Manual Ver. 2.1"
 date: "2026年8月"
 lang: ja
 ---
@@ -311,7 +311,7 @@ CoreS3 Port C GNDピン ──── 共通GND（Pico・PCM1808・マイク）
 ## 5.3 書き込み手順
 
 1. **Pico 2 HをBOOTSELモードにする** — Pico 2 Hの**BOOTSELボタンを押したまま**USBケーブルをパソコンに接続し、接続できたらボタンを離します。「RPI-RP2」という名前のドライブが表示されればOKです。
-2. Arduino IDEを起動し、書き込みたいスケッチ（.inoファイル）を開きます。
+2. Arduino IDEを起動し、書き込むスケッチを開きます。**現在の完成版ファームウェアは、GitHubリポジトリの `pico2-pcm1808/karipom_pico2/karipom_pico2.ino` です。**（スケッチ内部のヘッダコメントには開発当時の名称「Karipom_Ear_Pico_Step2_UART_Echo」が残っていますが、これは第7章のStep 2段階で完成形に到達したことによる歴史的な名残で、中身はこのファイルが完成版です）
 3. ツール → ボードで「Raspberry Pi Pico 2」を選択します。
 4. ツール → ポートで、「UF2 Board」または「RPI-RP2」を選択します（この時点では通常のシリアルポート表示はまだ出ません）。
 5. 書き込みボタンを押します。数秒で「Done uploading.」と表示されれば成功です。Pico 2 Hは自動的に再起動します。
@@ -936,5 +936,6 @@ DC測定（工程7〜9）では、**測定値がいくつであっても、そ�
 
 ---
 
-かりポム Karipom Ear 設計・製作マニュアル Ver. 2.0
+かりポム Karipom Ear 設計・製作マニュアル Ver. 2.1
+（Ver. 2.1：5.3に完成版Picoファームウェアのファイルパス`pico2-pcm1808/karipom_pico2/karipom_pico2.ino`を明記。内容の変更なし）
 © KariPom Project

@@ -12,3 +12,6 @@ karipom_previous.log
 # Pythonの実行時キャッシュ
 __pycache__/
 *.pyc
+
+# Companionの実行時設定（初回起動時に自動生成される。作者環境のIPを含むため公開しない）
+mac-companion/karipom_config.json
