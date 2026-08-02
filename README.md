@@ -20,6 +20,7 @@
 | `pico2-pcm1808/` | Karipom Ear拡張用のRaspberry Pi Pico 2ファームウェア。**完成版は `pico2-pcm1808/karipom_pico2/karipom_pico2.ino` です**（スケッチ内部ヘッダの「Step2」は開発当時の名称です） |
 | `mac-companion/` | PC側アプリ「KariPom Companion」（Python／Windows・macOS・Linux対応） |
 | `3d_models/` | 筐体の3Dプリントデータ（`karipom.3mf` ＋ `stl/` にSTL 9点） |
+| `sdcard/` | microSDカードにコピーして使う公開用データ（`faces/` の表情PNG、`sounds/` の音声配置ガイド） |
 | `docs/manual/` | かりポム ユーザーマニュアル |
 | `docs/pcm1808_pico2/` | Karipom Ear 設計・製作マニュアル（正式版） |
 | `docs/karipom_ear/` | Karipom Ear開発時の仕様書・確認手順書などの開発記録 |
@@ -35,6 +36,17 @@
 ## 3Dモデル
 
 `3d_models/karipom.3mf`（全パーツ一体のプロジェクトファイル）と、`3d_models/stl/` の9パーツ（body／chest／hip／pelvis／spinal_cord／left_shoulder／right_shoulder／ears／feet）を公開しています。色は自由に選べます。部品構成の詳細はユーザーマニュアル第5章をご覧ください。
+
+## SDカード用データ
+
+かりポムの動作にはmicroSDカードが必要です（詳しくはユーザーマニュアル第17章「SDカード管理」をご覧ください）。本リポジトリの `sdcard/` フォルダには、そのmicroSDカードで使う公開用の付属データを収録しています。
+
+利用する際は、`sdcard` フォルダそのものではなく、フォルダの**中身**（`faces/`・`sounds/`）を、フォルダ構成を保ったままmicroSDカードのルートへコピーしてください。
+
+- `faces/` — Face Gallery・ランダムFace（睡眠時・独り言時）などで使える公開用の表情PNG13点
+- `sounds/` — 音声ファイルの配置方法を説明する `README.md`（WAVファイル自体は収録していません）
+
+音声合成サービスや音声素材ごとのライセンス・再配布条件を本リポジトリへ持ち込まないため、WAV音声ファイル（固定音声・独り言用とも）は同梱していません。音声を使いたい場合は、お好みの音声合成ソフト等でWAVファイルをご自身でご用意ください。固定音声として必要なファイル名や、独り言音声の配置場所については [`sdcard/sounds/README.md`](sdcard/sounds/README.md) をご覧ください。音声ファイルが無くても本体のプログラムは停止せず動作を継続し、該当する音声再生のみ行われません。
 
 ## 姉妹プロジェクト：KariPom Desktop
 
