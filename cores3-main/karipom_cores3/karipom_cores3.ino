@@ -558,19 +558,18 @@ const unsigned long SLEEP_FACE_DURATION = 180000;  // 3分
 // ====================================================
 // スリープ中 Face 表示（NTP未取得時の時計代替）
 //
-// NTP取得済み  → 従来通り drawClock()
-// NTP未取得   → /faces のPNGをランダム表示し、SLEEP_FACE_ROTATE_MS ごとに切り替え
-//
 // mutterFaceActive（呟き演出）とは完全に別管理。
 // 呟き終了処理（drawFace()/showEvent("N")）はスリープ中に呼ばれないため
 // 干渉しないが、フラグを分けることで将来の変更にも安全。
 //
-// SLEEP_FACE_ROTATE_MS: Face切り替え間隔（デフォルト45秒）。
-//   短くしすぎるとSD読み込みが頻繁になるため30秒以上推奨。
+// SLEEP_FACE_ROTATE_MS: Sleep Lighting Carousel（Face Gallery ⇔ 目×Lighting）の
+//   表示切替周期。実機確認の結果、既定45秒では短すぎたため3分へ変更した
+//   （2026-08-04）。Lighting自体のアニメーション更新周期(LIGHT_COMPOSITE_MS)とは
+//   別物で、こちらは「何を表示するか」を選び直す周期だけを指す。
 // ====================================================
 bool sleepFaceActive   = false;        // スリープ中にFace画像を表示中
-unsigned long lastSleepFaceRotateTime = 0;  // 最後にFace画像を切り替えた時刻
-const unsigned long SLEEP_FACE_ROTATE_MS = 45000;  // Face切り替え間隔（45秒）
+unsigned long lastSleepFaceRotateTime = 0;  // 最後にFace画像を切り替えた時刻（現在は未使用の名残）
+const unsigned long SLEEP_FACE_ROTATE_MS = 180000;  // Sleep Carousel切替周期（3分）
 
 // Face表示試行時刻管理
 // SDなし・PNGなしで showSleepFace() が失敗しても毎loop呼ばれないよう制御する。
@@ -958,6 +957,48 @@ bool lightingHeaderDark() {
   if (bg >= 0) return (LIGHT_HEADER[bg] == HEADER_DARK);
   return (cfg_lightingMask != 0);   // 背景なし＋オーバーレイのみ → 暗い会場＝黒
 }
+
+// ====================================================
+// 🌙 Sleep Lighting Carousel（眺めて楽しいSleep表示）v1.0
+//
+// Sleep中（SLEEP_FACE_DURATION経過後）に、既存の「目」3種（時計／Eye Slot／
+// 閉じ目）と既存Lighting（Eye Slotを除く）を独立ランダムに組み合わせて表示する。
+// 実体は handleSleepMode() 側（updateSleepLightingCarousel）と
+// Lighting Framework側（sleepComposeEyeLightFrame、#ifdef FFT_DISPLAY_TEST内）に分かれる。
+//
+// 【重要】cfg_lightingMask・cfg_lightingManualMask・cfg_lightingRandomOn・
+// gLightingActive・screenFxLighting・Visualizer関連状態には一切書き込まない。
+// ここで使うのはすべてSleep専用のローカル状態であり、起床後にユーザーの
+// Lighting設定・通常Lighting/Visualizerの動作へ影響しない設計とする。
+// ====================================================
+enum SleepEyeKind : uint8_t {
+  SLEEP_EYE_CLOCK   = 0,   // 時計の目（既存Sleep時計顔の数字をそのまま利用）
+  SLEEP_EYE_EYESLOT = 1,   // Eye Slotの目（既存lightRenderEyeSlot()のリールを再利用）
+  SLEEP_EYE_CLOSED  = 2,   // 閉じた目（既存drawSleepEyes()の線をそのまま利用）
+  SLEEP_EYE_KIND_COUNT
+};
+
+bool     sleepCarouselStarted      = false;  // SLEEP_FACE_DURATION経過後にtrue（1回だけ遷移）
+unsigned long sleepCarouselNextSwitchMs = 0;  // 次にパターン(Gallery/目+Lighting)を選び直す時刻。0=即選択
+int8_t   sleepLastPattern          = -1;     // 直近パターン（現状は連続回避に使わない。ログ用に保持）
+
+// 「目×Lighting」表示中かどうか。updateNose()の直接描画フォールバック抑止と
+// drawBattery()の配色判定にだけ使う、Sleep専用の狭いスコープのフラグ。
+// Sleep突入時・起床時に必ずfalseへ戻す（handleSleepTransition/wakeUp参照）。
+bool     sleepLightingComposeActive = false;
+bool     sleepPanelDark             = false; // 現在の背景Lightingヘッダーテーマ（true=黒）
+
+uint8_t  sleepEyeKind        = SLEEP_EYE_CLOCK;
+uint8_t  sleepBgLightMode    = LIGHT_AURORA;
+int8_t   sleepLastEyeKind    = -1;   // 直前に選ばれた目（連続回避用）
+int8_t   sleepLastBgLightMode = -1;  // 直前に選ばれた背景Lighting（連続回避用）
+bool     sleepLightNeedsInit = true; // 背景Lightingの選択が変わった直後はtrue（全面init）
+
+// 「目×Lighting」表示中の顔パーツ（時計の目／閉じ目／鼻／鼻口線／口）に使う
+// 黒本体＋白縁取りの、白縁ぶんの太さ（実機確認 2026-08-04）。
+// 背景Lightingの明暗によらず一定の視認性を確保するための値。
+// 既存の鼻の白ハロー（黒18x12楕円に対し白20x14楕円＝各辺+2px＝直径+4px）を基準にした。
+const int SLEEP_OUTLINE_PX = 4;
 
 // ====================================================
 // 💡 Lighting 共通 Brightness（v1.3）— Framework全体の明るさ
@@ -2281,6 +2322,9 @@ bool lightingScreenActive() {
 #ifdef FFT_DISPLAY_TEST
 // Lighting合成モードの統一終了処理（定義は #ifdef FFT_DISPLAY_TEST 側・前方宣言）。
 void exitLightingCompositeMode(bool redrawTopPanel);
+// Sleep Lighting Carousel（定義は #ifdef FFT_DISPLAY_TEST 側・LIGHT_RENDER_FN[]の後）。
+// handleSleepMode()（本ファイル前方）から呼ぶための前方宣言。
+void updateSleepLightingCarousel();
 #endif
 
 // フェイルセーフ用タイムアウト
@@ -3533,7 +3577,16 @@ void sceneRenderFace(int x, int y, int w, int h) {
 }
 
 // 太い線
-void drawThickLine(int x0, int y0, int x1, int y1, int thickness, uint32_t color) {
+// 2026-08-05: color引数をuint32_t→int32_tへ変更（根本原因の1行修正）。
+// M5GFXのWHITE/BLACK等の色定数はconstexpr int（=int32_t）で、RGB565値をそのまま
+// 保持している。GFX.fillCircle(...)はテンプレートで色の型ごとに解釈を切り替えており、
+// int32_t型はRGB565としてそのまま解釈されるが、uint32_t型はRGB888として解釈され
+// 変換されてしまう。旧シグネチャ（uint32_t color）にWHITE(0xFFFF)を渡すと、
+// 0x0000FFFFがRGB888として解釈されR=0,G=255,B=255＝水色になっていた
+// （BLACK=0x0000はどちらの解釈でも黒のため、これまで顕在化していなかった）。
+// int32_tへ変更することで、本関数を通るWHITE/BLACK等すべての色が
+// GFX.fillCircle/fillEllipse等への直接指定と同じRGB565解釈になり、正しい色で描画される。
+void drawThickLine(int x0, int y0, int x1, int y1, int thickness, int32_t color) {
   int dx = x1 - x0;
   int dy = y1 - y0;
   int steps = max(abs(dx), abs(dy));
@@ -3671,14 +3724,30 @@ void drawPetEyes() {
   faceShapePetEyes();
 }
 
+// 閉じた目の線だけを描く（消去なし・GFX経由）。drawSleepEyes()（単色白背景・消去あり）と
+// Sleep Lighting Carousel（背景Lighting毎フレーム描き直し・消去不要）の両方から呼べるよう
+// 線の座標・太さをここへ一本化した（見た目・座標は既存drawSleepEyes()と完全に同じ）。
+// thicknessは省略時7（従来どおり）。Sleep Carouselの白縁取り版から太さ違いで再利用するために
+// 引数化したが、既存呼び出し側（drawSleepEyes()）は省略時の挙動が完全に同じなので無影響。
+void drawClosedEyeLines(uint32_t color, int thickness = 7) {
+  drawThickLine(72, 94, 108, 94, thickness, color);
+  drawThickLine(212, 94, 248, 94, thickness, color);
+}
+
+// 閉じた目を黒＋白縁取りで描く（Sleep Lighting Carousel「目×Lighting」専用）。
+// 白（太め）を先に描き、同じ座標に黒（既存の太さ7）を重ねることで縁取りにする。
+void drawClosedEyeLinesOutlined() {
+  drawClosedEyeLines(WHITE, 7 + SLEEP_OUTLINE_PX);
+  drawClosedEyeLines(BLACK, 7);
+}
+
 void drawSleepEyes() {
   addLog("DRAW SLEEP EYES");
 
   // 消去範囲を y=55〜125 に制限（鼻上端に被らないよう）
   // 旧: fillRect(55, 55, 210, 70) → y=55〜125 でギリギリ。明示的に75に制限。
   CoreS3.Display.fillRect(55, 55, 210, 70, WHITE);
-  drawThickLine(72, 94, 108, 94, 7, BLACK);
-  drawThickLine(212, 94, 248, 94, 7, BLACK);
+  drawClosedEyeLines(BLACK);
 
   drawIpStatusOnly();
 }
@@ -3928,36 +3997,84 @@ void drawClock() {
   drawBattery();
 }
 
-void updateClockText() {
+// 目の位置に「時:分」を描くだけ（消去なし・GFX経由・色指定可）。
+// updateClockText()（単色白背景・消去あり・CoreS3.Display直描き）から呼ばれる。
+// 数字の座標・書式をここへ一本化した（見た目は既存と完全に同じ）。
+// getLocalTime()に失敗した場合は何も描かない（時計未表示のまま）＝既存仕様を踏襲。
+void drawClockEyeDigits(uint32_t color) {
   struct tm timeinfo;
+  if (!getLocalTime(&timeinfo, 0)) return;
 
+  char hourBuf[4];
+  char minBuf[4];
+  sprintf(hourBuf, "%02d", timeinfo.tm_hour);
+  sprintf(minBuf, "%02d", timeinfo.tm_min);
+
+  GFX.setTextColor(color);
+  GFX.setTextSize(4);
+
+  // 左目：時（太字風）
+  GFX.drawString(hourBuf, 68, 68);
+  GFX.drawString(hourBuf, 69, 68);
+  GFX.drawString(hourBuf, 70, 68);
+
+  // 中央：コロン
+  GFX.drawString(":", 148, 68);
+  GFX.drawString(":", 149, 68);
+  GFX.drawString(":", 150, 68);
+
+  // 右目：分（太字風）
+  GFX.drawString(minBuf, 198, 68);
+  GFX.drawString(minBuf, 199, 68);
+  GFX.drawString(minBuf, 200, 68);
+}
+
+void updateClockText() {
   CoreS3.Display.fillRect(45, 58, 235, 60, WHITE);
+  drawClockEyeDigits(BLACK);
+}
 
-  if (getLocalTime(&timeinfo, 0)) {
-    char hourBuf[4];
-    char minBuf[4];
-
-    sprintf(hourBuf, "%02d", timeinfo.tm_hour);
-    sprintf(minBuf, "%02d", timeinfo.tm_min);
-
-    CoreS3.Display.setTextColor(BLACK);
-    CoreS3.Display.setTextSize(4);
-
-    // 左目：時（太字風）
-    CoreS3.Display.drawString(hourBuf, 68, 68);
-    CoreS3.Display.drawString(hourBuf, 69, 68);
-    CoreS3.Display.drawString(hourBuf, 70, 68);
-
-    // 中央：コロン
-    CoreS3.Display.drawString(":", 148, 68);
-    CoreS3.Display.drawString(":", 149, 68);
-    CoreS3.Display.drawString(":", 150, 68);
-
-    // 右目：分（太字風）
-    CoreS3.Display.drawString(minBuf, 198, 68);
-    CoreS3.Display.drawString(minBuf, 199, 68);
-    CoreS3.Display.drawString(minBuf, 200, 68);
+// 白縁取り＋黒本体で1文字列を描く（Sleep Lighting Carousel「目×Lighting」専用）。
+// 周囲へ白でオフセット描画してから同じ位置に黒本体を重ね、縁取り文字にする。
+// 太さはSLEEP_OUTLINE_PX/2（顔パーツの白縁取りと統一）。
+static void drawOutlinedGlyph(const String& text, int x, int y) {
+  const int r = SLEEP_OUTLINE_PX / 2;
+  GFX.setTextColor(WHITE);
+  for (int dx = -r; dx <= r; dx++) {
+    for (int dy = -r; dy <= r; dy++) {
+      if (dx == 0 && dy == 0) continue;
+      GFX.drawString(text, x + dx, y + dy);
+    }
   }
+  GFX.setTextColor(BLACK);
+  GFX.drawString(text, x, y);
+}
+
+// 時計の目を黒＋白縁取りで描く（Sleep Lighting Carousel「目×Lighting」専用）。
+// drawClockEyeDigits()と全く同じ座標・書式（時・コロン・分、各太字風に3回オフセット描画）を
+// 踏襲し、1回ごとの描画をdrawOutlinedGlyph()に置き換えただけ（形・位置・サイズは無変更）。
+void drawClockEyeDigitsOutlined() {
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo, 0)) return;
+
+  char hourBuf[4];
+  char minBuf[4];
+  sprintf(hourBuf, "%02d", timeinfo.tm_hour);
+  sprintf(minBuf, "%02d", timeinfo.tm_min);
+
+  GFX.setTextSize(4);
+
+  drawOutlinedGlyph(hourBuf, 68, 68);
+  drawOutlinedGlyph(hourBuf, 69, 68);
+  drawOutlinedGlyph(hourBuf, 70, 68);
+
+  drawOutlinedGlyph(":", 148, 68);
+  drawOutlinedGlyph(":", 149, 68);
+  drawOutlinedGlyph(":", 150, 68);
+
+  drawOutlinedGlyph(minBuf, 198, 68);
+  drawOutlinedGlyph(minBuf, 199, 68);
+  drawOutlinedGlyph(minBuf, 200, 68);
 }
 
 void updateZzz() {
@@ -4093,6 +4210,22 @@ static void faceShapeNoseAndVMouth() {
   drawThickLine(noseX, noseY + 22, noseX + 20, noseY + 32, 6, BLACK);
 }
 
+// 鼻・鼻から口への線・口を黒＋白縁取りで描く（Sleep Lighting Carousel「目×Lighting」専用）。
+// 形状・座標は既存faceShapeNoseAndVMouth()と完全に同じ。白縁（各形状をSLEEP_OUTLINE_PXぶん
+// 太く/大きくしたもの）を白で先に描いてから、黒本体は既存faceShapeNoseAndVMouth()を
+// そのまま呼んで重ねるだけ（通常Faceの鼻・口描画＝faceShapeNoseAndVMouth()自体は無改造）。
+static void drawNoseAndMouthOutlined() {
+  const int o = SLEEP_OUTLINE_PX;
+  // 実機確認2026-08-05: 鼻の白backingだけは通常Lighting側（drawVisualizerFaceParts）
+  // と同程度の太さ（固定20×14）に合わせる。口・鼻口線のbackingは従来どおりSLEEP_OUTLINE_PXのまま。
+  GFX.fillEllipse(noseX, noseY + gFaceNoseOffset, 20, 14, WHITE);
+  drawThickLine(noseX, noseY + gFaceNoseOffset + 8, noseX, noseY + 22, 6 + o, WHITE);
+  drawThickLine(noseX, noseY + 22, noseX - 20, noseY + 32, 6 + o, WHITE);
+  drawThickLine(noseX, noseY + 22, noseX + 20, noseY + 32, 6 + o, WHITE);
+
+  faceShapeNoseAndVMouth();
+}
+
 // おしゃべり口（鼻＋縦線＋赤い楕円）。ゆらぎは drawMouthOpen() が抽選した値を使う。
 static void faceShapeNoseAndTalkMouth() {
   GFX.fillEllipse(noseX, noseY + gFaceNoseOffset, 18, 12, BLACK);
@@ -4111,6 +4244,12 @@ void updateNose(int newOffset) {
   gFaceMouthTalk  = false;   // 従来どおり、鼻の再描画は口を逆Y口へ戻す
 
   lastNoseDrawTime = millis();  // 実際に鼻を描いた時刻（NOSE STALL診断用）
+
+  // Sleep Lighting Carousel（目×Lighting表示）が動作中は、ここで直接液晶へ描かない。
+  // 状態(gFaceNoseOffset)の更新だけ行い、実際の描画は次回のSleep合成サイクル
+  // （sleepComposeEyeLightFrame）が背景Lightingごと描き直す際にまとめて反映する。
+  // ここで直接描いてしまうと、Lighting背景の上に白い矩形の穴が開いてしまうため。
+  if (sleepLightingComposeActive) return;
 
   if (sceneFaceOnCanvas()) { sceneRenderFace(FACE_MOUTH_X, FACE_MOUTH_Y, FACE_MOUTH_W, FACE_MOUTH_H); return; }
 
@@ -4361,7 +4500,12 @@ void drawBattery() {
 
   // 上端パネルのテーマに合わせて電池アイコンの配色も切り替える（v1.6）。
   // 採用中の背景Lightingのヘッダーテーマ（白/黒）に従う。
-  bool panelBlack = lightingScreenActive() && lightingHeaderDark();
+  // Sleep Lighting Carousel中（sleepLightingComposeActive=true）だけは、
+  // Sleep側が独自に選んだ背景Lightingのテーマ(sleepPanelDark)を使う。
+  // それ以外（false）は従来の判定式と完全に同じ結果になる。
+  bool panelBlack = sleepLightingComposeActive
+                       ? sleepPanelDark
+                       : (lightingScreenActive() && lightingHeaderDark());
   uint16_t iconFg = panelBlack ? WHITE : BLACK;
 
   // 背景を消してから描画（他の表示を汚さないよう右上エリアのみ）
@@ -4935,6 +5079,21 @@ void wakeUp(String wakeReason) {
   sleepFaceActive = false;
   lastSleepFaceRotateTime = 0;
   lastSleepFaceAttemptTime = 0;
+
+  // Sleep Lighting Carousel（目×Lighting）の状態を起床時に確実にクリアする。
+  // sleepLightingComposeActiveをここでfalseに戻すことで、以降のupdateNose()は
+  // 通常どおりの経路（sceneFaceOnCanvas()）に戻る。gEyeSlotActive/eyeOffsetX/Yも
+  // Eye Slotの目を使っていた場合に備えて明示的にリセットする（通常のLighting合成側でも
+  // 毎フレームリセットされるため必須ではないが、Sleep側の後始末として明示しておく）。
+  sleepLightingComposeActive = false;
+  sleepCarouselStarted       = false;
+  sleepCarouselNextSwitchMs  = 0;
+  sleepLastEyeKind           = -1;
+  sleepLastBgLightMode       = -1;
+  sleepLastPattern           = -1;
+  gEyeSlotActive = false;
+  eyeOffsetX = 0;
+  eyeOffsetY = 0;
 
   // 連続確認カウンタをリセット
   sleepJoyConfirmStart = 0;
@@ -5604,7 +5763,15 @@ bool resolveMutterPath(char* outPath, size_t outSize) {
 
 // 指定パスの mutter wav を再生し、変顔中なら通常顔へ戻す。
 void playMutterPath(const char* path) {
+  // mutterのWAV再生そのものはユーザーのInteractionではないため、
+  // Sleepタイマー(lastInteractionTime)を更新させない。
+  // yawn()と同じsave→再生→restoreパターンを踏襲し、共通処理のplayWavFromSD()
+  // 自体（lastInteractionTime更新を含む）は無改造のまま利用する。
+  // 手動mutter（ジョイスティック押し込み等）による正当なInteraction更新は、
+  // 呼び出し元（例：ジョイスティック押し込み処理）が別途行っているため維持される。
+  unsigned long savedInteractionTime = lastInteractionTime;
   playWavFromSD(path);
+  lastInteractionTime = savedInteractionTime;
 
   // 変顔演出中だった場合、WAV終了後に通常顔へ戻す
   if (mutterFaceActive) {
@@ -5868,37 +6035,20 @@ bool handleSleepMode(bool touchedHead,
 
   if (!sleepMode) return false;
 
-  static unsigned long lastSleepClockUpdate = 0;
-
-  if (!clockShownInSleep && !sleepFaceActive && millis() - sleepStartTime > SLEEP_FACE_DURATION) {
-    if (timeEverSynced) {
-      // NTPまたはMac TIME_SYNCで一度でも同期済み → 時計表示
-      drawClock();
-      clockShownInSleep = true;
-    } else {
-      // 一度も同期できていない → /faces からランダムFace表示にフォールバック
-      // 失敗時は SLEEP_FACE_RETRY_MS 後に再試行（毎loop呼ばれるのを防ぐ）
-      if (millis() - lastSleepFaceAttemptTime > SLEEP_FACE_RETRY_MS) {
-        lastSleepFaceAttemptTime = millis();
-        showSleepFace();
-        // 成功時: sleepFaceActive=true になる
-        // 失敗時: sleepFaceActive=false のまま、次の試行は SLEEP_FACE_RETRY_MS 後
-      }
-    }
+  // ── 眺めて楽しいSleep表示（Sleep Lighting Carousel）──
+  // 入眠直後 SLEEP_FACE_DURATION（3分）は、既存どおり静止した閉じ目のまま何もしない
+  // （drawSleepScreen()による入眠演出はここでは一切変更しない）。
+  // 3分経過後に一度だけカルーセルを開始し、以後は SLEEP_FACE_ROTATE_MS（3分）ごとに
+  // 「Face Gallery」か「目×Lighting」かをランダムに切り替え続ける。
+  if (!sleepCarouselStarted && millis() - sleepStartTime > SLEEP_FACE_DURATION) {
+    sleepCarouselStarted = true;
+    sleepCarouselNextSwitchMs = 0;   // 次回呼び出しで即座に最初のパターンを選ばせる
+    addLog("SLEEP CAROUSEL START");
   }
 
-  // スリープ中Face表示: SLEEP_FACE_ROTATE_MS ごとに別の画像へ切り替え
-  if (sleepFaceActive && millis() - lastSleepFaceRotateTime > SLEEP_FACE_ROTATE_MS) {
-    addLog("SLEEP FACE ROTATE");
-    showSleepFace();  // 再度ランダム選択（lastSleepFaceRotateTime も内部でリセット）
-  }
-
-  if (clockShownInSleep && millis() - lastSleepClockUpdate > 1000) {
-    lastSleepClockUpdate = millis();
-    updateClockText();
-    drawBattery();
+  if (sleepCarouselStarted) {
+    updateSleepLightingCarousel();
     yield();  // WDT対策：長時間スリープ中もタスクスケジューラに制御を返す
-    // updateZzz() はここではなく末尾で毎ループ呼ぶ（アニメーション維持のため）
   }
 
   bool wakeReady = (long)(millis() - alertUntil) >= 0;
@@ -5948,7 +6098,9 @@ bool handleSleepMode(bool touchedHead,
   // 2026/07/15: Face Gallery画像表示中(sleepFaceActive=true)はZZZを重ねない。
   // 画像は必ずしも寝顔ではないため。通常の寝顔（drawSleepScreen/drawClock）表示中は
   // sleepFaceActive=falseのため従来通り毎ループ描画され、アニメーションは維持される。
-  if (!sleepFaceActive) {
+  // Sleep Lighting Carousel（Face Gallery／目×Lighting）表示中はZzzを出さない仕様
+  // （2026-08-04実機確認：Zzzは入眠直後3分間の静止閉じ目でのみ表示する）。
+  if (!sleepFaceActive && !sleepLightingComposeActive) {
     updateZzz();
   }
 
@@ -6867,6 +7019,16 @@ bool handleSleepTransition() {
     sleepFaceActive    = false;
     lastSleepFaceRotateTime = 0;
     lastSleepFaceAttemptTime = 0;
+
+    // Sleep Lighting Carousel（目×Lighting）の状態を新しいSleepセッション用にリセットする。
+    // cfg_lightingMask等の共有Lighting設定はここでは一切触れない（そもそも参照していない）。
+    sleepCarouselStarted        = false;
+    sleepCarouselNextSwitchMs   = 0;
+    sleepLightingComposeActive  = false;
+    sleepLastEyeKind            = -1;
+    sleepLastBgLightMode        = -1;
+    sleepLastPattern            = -1;
+    sleepLightNeedsInit         = true;
 
     hasPrevious = false;
     cameraMotionCount = 0;
@@ -11931,33 +12093,37 @@ void drawVisualizerFaceParts(bool forceClear) {
     eyeOffsetX = savedEX; eyeOffsetY = savedEY;
   }
 
-  // 鼻（drawFace()/updateNose(0)と同座標）
-  if (gLightingActive) GFX.fillEllipse(noseX, noseY, 20, 14, WHITE);
+  // 鼻・鼻口の縦線・口（黒/赤本体は不変。白backingを先に全部描いてから黒/赤本体を
+  // まとめて後から描く方式に統一 — Sleep Lighting Carouselのdraw NoseAndMouthOutlined()
+  // と同じ考え方。白同士・黒(赤)同士がそれぞれ先に一体化してから重なるため、
+  // 鼻→縦線→口が継ぎ目なく連続して見える（旧実装は鼻の黒本体を先に確定させてから
+  // 縦線backingを後追いで足していたため、backingが鼻の黒本体の一部を上書きして
+  // 分断して見える不具合があった。今回は白backingを全パーツぶん先に描き切ってから
+  // 黒/赤本体を描くことでこれを解消）。鼻のハローだけは実機確認の結果、太すぎたため
+  // 従来どおり固定20×14に戻した（縦線backingの上端はnoseY+3付近まで届くため、
+  // 20×14＝下端noseY+14でも縦線と重なり、連続性は維持される）。線・しゃべり口の
+  // backingの太さ・拡張量はSleep Carouselと同じSLEEP_OUTLINE_PXを流用。黒/赤本体の
+  // drawThickLine/fillEllipse呼び出し（座標・太さ・形状・色）は元のコードと完全に
+  // 同一で一切変更していない。
+  const int o = SLEEP_OUTLINE_PX;
+  if (gLightingActive) {
+    GFX.fillEllipse(noseX, noseY, 20, 14, WHITE);
+    if (mouthOpen) {
+      drawThickLine(noseX, noseY + 8, noseX, noseY + 25, 6 + o, WHITE);
+      GFX.fillEllipse(noseX, noseY + 26, 19, 13, WHITE);  // 実機確認2026-08-05: 赤い口backingのみ縮小
+    } else {
+      drawThickLine(noseX, noseY +  8, noseX,      noseY + 22, 6 + o, WHITE);
+      drawThickLine(noseX, noseY + 22, noseX - 20, noseY + 32, 6 + o, WHITE);
+      drawThickLine(noseX, noseY + 22, noseX + 20, noseY + 32, 6 + o, WHITE);
+    }
+  }
+
   GFX.fillEllipse(noseX, noseY, 18, 12, BLACK);
 
-  // 口：既存口パク処理には手を入れず、状態フラグを「読むだけ」で追従する。
-  // 2026-07-30/31: 口の視認性向上のため、閉口時の「斜め（笑顔ライン）」部分に
-  // のみ白backingを追加した。ただしHypnotic Vortex限定の対応であり、既存
-  // Lighting（Disco/Aurora/Tempest Tunnel等）の見た目は一切変更しない。
-  // そのため gLightingActive 単体ではなく gLightActiveBgMode（このフレームで
-  // 実際に採用された背景Lighting）が LIGHT_VORTEX である時だけ backing を出す
-  // （Expanding Hole/Moire Breathingは不採用となり削除済みのため対象から外した）。
-  // 縦の芯（noseY+8〜+22）には意図的にbackingを付けていない：鼻ハロー
-  // （fillEllipse rx20,ry14＝下端は noseY+14 まで）に隣接しており、backingを
-  // 足すと2つの白い縁が接触・融合して「鼻と口が白い塊に見える」問題が
-  // 過去に発生したため。斜め部分の白backingはnoseY+22から始まり、鼻ハロー
-  // 下端(noseY+14)との間に約3pxの隙間が実座標上で確保できることを確認済み
-  // （drawThickLine終端の丸みを含めても接触しない）。黒本体の座標・形状は
-  // 一切変更していない（backingは黒线より前に描く白い下敷きの追加のみ）。
-  bool vortexBg = gLightingActive && (gLightActiveBgMode == LIGHT_VORTEX);
   if (mouthOpen) {
     drawThickLine(noseX, noseY + 8, noseX, noseY + 25, 6, BLACK);
     GFX.fillEllipse(noseX, noseY + 26, 18, 12, RED);
   } else {
-    if (vortexBg) {
-      drawThickLine(noseX, noseY + 22, noseX - 20, noseY + 32, 10, WHITE);
-      drawThickLine(noseX, noseY + 22, noseX + 20, noseY + 32, 10, WHITE);
-    }
     drawThickLine(noseX, noseY +  8, noseX,      noseY + 22, 6, BLACK);
     drawThickLine(noseX, noseY + 22, noseX - 20, noseY + 32, 6, BLACK);
     drawThickLine(noseX, noseY + 22, noseX + 20, noseY + 32, 6, BLACK);
@@ -15695,9 +15861,12 @@ static void eslotDrawReel(float reelPos, int centerX, int centerY, const uint8_t
   lightFillRect(winX, centerY + ESLOT_ROW_H / 2,     winW, 1, lineCol);
 }
 
-void lightRenderEyeSlot(bool needsInit, bool fullRepaint) {
-  (void)fullRepaint;
-  gEyeSlotActive = true;   // このフレームでEye Slotが背景として採用されたことを他関数へ伝える
+// Eye Slotの状態更新＋リール本体の描画だけを行う（背景の白塗りを含まない）。
+// 通常Lighting（lightRenderEyeSlot、下記）とSleep Lighting Carousel（目としての再利用）の
+// 両方から呼べるよう、状態遷移・フラッシュ演出・リール描画をここへ一本化した。
+// ロジックは従来のlightRenderEyeSlot()と完全に同一（本体をそのまま移動しただけ）。
+void eslotUpdateAndDrawReels(bool needsInit) {
+  gEyeSlotActive = true;   // このフレームでEye Slotが目として採用されたことを他関数へ伝える
   unsigned long now = millis();
 
   if (needsInit) {
@@ -15786,9 +15955,6 @@ void lightRenderEyeSlot(bool needsInit, bool fullRepaint) {
     }
   }
 
-  // ── 背景：通常の顔と同じ白背景を毎フレーム塗り直す（鼻・口・まゆ毛はLayer2が描く）──
-  lightFillRect(0, ESLOT_TOP, 320, 240 - ESLOT_TOP, WHITE);
-
   // ── 揃った場合だけ、結果表示の最初の一瞬だけ控えめなフラッシュを入れる ──
   if (eslotState == ESLOT_ST_RESULT && eslotMatch) {
     unsigned long since = now - eslotResultAt;
@@ -15821,6 +15987,13 @@ void lightRenderEyeSlot(bool needsInit, bool fullRepaint) {
   // ── リール本体：黒目のあった位置（eyeOffsetX/Yを反映）を中心に描く ──
   eslotDrawReel(eslotReelPos[0], 90  + eyeOffsetX, 90 + eyeOffsetY, ESLOT_STRIP_L);
   eslotDrawReel(eslotReelPos[1], 230 + eyeOffsetX, 90 + eyeOffsetY, ESLOT_STRIP_R);
+}
+
+void lightRenderEyeSlot(bool needsInit, bool fullRepaint) {
+  (void)fullRepaint;
+  // ── 背景：通常の顔と同じ白背景を毎フレーム塗り直す（鼻・口・まゆ毛はLayer2が描く）──
+  lightFillRect(0, ESLOT_TOP, 320, 240 - ESLOT_TOP, WHITE);
+  eslotUpdateAndDrawReels(needsInit);
 }
 
 // ============================================================================
@@ -19468,6 +19641,170 @@ void updateScreenEffects() {
   bool hd = lightingHeaderDark();
   if (hd != prevHdrDark || !prevFxOn) { prevHdrDark = hd; showSensors(); }
   prevFxOn = true;
+}
+
+// ============================================================================
+// Sleep Lighting Carousel（眺めて楽しいSleep表示）実装本体
+//
+// handleSleepMode() 側（SLEEP_FACE_DURATION経過後）から
+// updateSleepLightingCarousel() を毎ループ呼ぶことで、
+//   ・SLEEP_FACE_ROTATE_MS（3分）ごとに「Face Gallery」か「目×Lighting」かを抽選
+//   ・「目×Lighting」の間は LIGHT_COMPOSITE_MS（既存90ms、通常Lighting合成と同じ周期）で
+//     背景Lightingと目・鼻口を統合Canvasへ合成して液晶へ転送する（Zzzは出さない。
+//     Zzzは入眠直後3分間の静止閉じ目でのみ表示する既存仕様のまま）
+// を行う。cfg_lightingMask 等の共有Lighting設定・Visualizer状態は一切変更しない。
+// ============================================================================
+
+// 背景Lighting候補を1つ選ぶ（Eye Slotは目として使うため除外／直前と同じ値は避ける）。
+uint8_t sleepPickBgLightMode() {
+  uint8_t pick;
+  do {
+    pick = (uint8_t)random(0, (long)LIGHT_MODE_COUNT);
+  } while (pick == LIGHT_EYESLOT || (int)pick == sleepLastBgLightMode);
+  sleepLastBgLightMode = (int8_t)pick;
+  return pick;
+}
+
+// 目の種類を1つ選ぶ（直前と同じ値は避ける）。
+// 時刻が一度も同期できていない端末では「時計の目」を候補から除外する
+// （既存のSleep時計フォールバック仕様＝未同期時は時計を表示しない、を踏襲）。
+uint8_t sleepPickEyeKind() {
+  uint8_t pick;
+  do {
+    pick = (uint8_t)random(0, (long)SLEEP_EYE_KIND_COUNT);
+  } while ((int)pick == sleepLastEyeKind || (pick == SLEEP_EYE_CLOCK && !timeEverSynced));
+  sleepLastEyeKind = (int8_t)pick;
+  return pick;
+}
+
+// 2026-08-04 実機確認により、Sleep Lighting Carousel（Face Gallery／目×Lighting）中は
+// Zzzを表示しない仕様に変更した（Zzzは入眠直後3分間の静止閉じ目でのみ表示する）。
+// そのため本カルーセル専用のZzz描画関数はここでは持たない。
+
+// 上端48pxの情報パネル（IP・電池）をSleep Lighting Carousel用に描く。
+// V/A/M等のセンサー値は既存Sleep表示（drawIpStatusOnly系）と同様に出さない
+// （showSensors()は使わない＝既存Sleepの見た目の方針を踏襲）。
+// 電池アイコンは既存drawBattery()をそのまま再利用する
+// （sleepLightingComposeActive経由で本カルーセルのテーマに追従する。drawBattery()参照）。
+void drawSleepTopPanel(bool dark) {
+  CoreS3.Display.fillRect(0, 0, 320, 48, dark ? BLACK : WHITE);
+
+  String ipText;
+  if (WiFi.getMode() == WIFI_AP) {
+    ipText = "IP " + WiFi.softAPIP().toString();
+  } else if (WiFi.status() == WL_CONNECTED) {
+    ipText = "IP " + WiFi.localIP().toString();
+  } else {
+    ipText = "IP OFFLINE";
+  }
+
+  CoreS3.Display.setTextSize(2);
+  CoreS3.Display.setTextColor(dark ? WHITE : PURPLE);
+  CoreS3.Display.drawString(ipText, 5, 26);
+
+  drawBattery();
+}
+
+// 目×背景Lighting の1フレーム分を統合Canvasへ合成して液晶へ転送する。
+// 既存の sceneComposeAndPush() と同じ「Canvas未確保なら直接液晶へ」フォールバックを
+// sceneBeginCompose()/sceneEndCompose()/scenePush() でそのまま踏襲する。
+// isLightingEnabled()等の音声セッション判定は経由しない（LIGHT_RENDER_FN[]を直接呼ぶ）。
+//
+// 顔パーツ（時計の目／閉じ目／鼻／鼻口線／口）は、背景Lightingの明暗によらず
+// 常に「黒本体＋白縁取り」で統一する（実機確認 2026-08-04。旧版は暗背景時だけ
+// 白反転していたが、背景色によって視認性に差が出たため統一した）。
+// Eye Slotの目だけは例外で、リール表示領域を常に白背景にする（既存Eye Slotの
+// リール内容・アニメーション自体は無改造）。
+// Zzzはここでは描かない（入眠直後3分間の静止閉じ目でのみ表示する既存仕様のまま）。
+void sleepComposeEyeLightFrame(bool bgNeedsInit) {
+  bool onCanvas = sceneBeginCompose();
+
+  // gViz（音声可視化の共通ステート）を無音方向へ自然減衰させるためだけに呼ぶ。
+  // Visualizerそのものは使わない。FFT受信・音声入力そのものには一切触れない。
+  vizUpdateState((uint32_t)millis());
+
+  // ── Layer0：背景Lighting（Eye Slotを除く既存Lightingのいずれか1つ）──
+  gEyeSlotActive = false;
+  eyeOffsetX = 0;
+  eyeOffsetY = 0;
+  LIGHT_RENDER_FN[sleepBgLightMode](bgNeedsInit, true);
+
+  // 上端48pxパネルの配色判定にはテーマ（黒/白）を引き続き使う（顔パーツの色には使わない）。
+  bool dark = (LIGHT_HEADER[sleepBgLightMode] == HEADER_DARK);
+  sleepPanelDark = dark;
+
+  // ── Layer1：目（3種のいずれか。背景の上に重ねて描く）──
+  switch (sleepEyeKind) {
+    case SLEEP_EYE_EYESLOT: {
+      // Eye Slotは例外：リール領域は背景Lightingのテーマに関わらず常に白背景にする
+      // （既存Eye Slotの見た目・アニメーション自体は無改造。窓の背後だけ白く敷く）。
+      int lx = 90 + eyeOffsetX, rx = 230 + eyeOffsetX, cy = 90 + eyeOffsetY;
+      GFX.fillRect(lx - ESLOT_WIN_HALF_W, cy - ESLOT_ROW_H, ESLOT_WIN_HALF_W * 2, ESLOT_ROW_H * 2, WHITE);
+      GFX.fillRect(rx - ESLOT_WIN_HALF_W, cy - ESLOT_ROW_H, ESLOT_WIN_HALF_W * 2, ESLOT_ROW_H * 2, WHITE);
+      eslotUpdateAndDrawReels(bgNeedsInit);
+      break;
+    }
+    case SLEEP_EYE_CLOSED:
+      drawClosedEyeLinesOutlined();
+      break;
+    case SLEEP_EYE_CLOCK:
+    default:
+      drawClockEyeDigitsOutlined();
+      break;
+  }
+
+  // ── 鼻・鼻口線・口（黒＋白縁取りで統一。既存faceShapeNoseAndVMouth()は無改造のまま利用）──
+  drawNoseAndMouthOutlined();
+
+  sceneEndCompose(onCanvas);
+  if (onCanvas) scenePush(0, SCENE_TOP, SCENE_W, SCENE_H - SCENE_TOP);
+
+  // 上端48pxはCanvas対象外の別領域なので、通常のLightingと同様ここで直接描く。
+  drawSleepTopPanel(dark);
+}
+
+// handleSleepMode() から毎ループ呼ぶ入口。
+//   ・SLEEP_FACE_ROTATE_MS（3分）ごとに「Face Gallery」か「目×Lighting」かを抽選
+//   ・パターン自体の連続回避はしない（Face Galleryと目×Lightingが連続することは許容する。
+//     目・背景Lightingそれぞれの直前重複だけを避ける＝既存Lighting Randomと同じ粒度）
+//   ・「目×Lighting」表示中は LIGHT_COMPOSITE_MS 周期で背景Lightingごと再描画する
+void updateSleepLightingCarousel() {
+  unsigned long now = millis();
+
+  if (sleepCarouselNextSwitchMs == 0 || (long)(now - sleepCarouselNextSwitchMs) >= 0) {
+    sleepCarouselNextSwitchMs = now + SLEEP_FACE_ROTATE_MS;
+
+    uint8_t pattern = (uint8_t)random(0, 2);   // 0=Face Gallery, 1=目×Lighting
+    sleepLastPattern = (int8_t)pattern;
+
+    if (pattern == 0) {
+      // パターン1：Face Gallery（既存showSleepFace()をそのまま利用。無改造）
+      sleepLightingComposeActive = false;
+      showSleepFace();
+      addLog("SLEEP CAROUSEL: gallery");
+    } else {
+      // パターン2：ランダムな目 × ランダムな背景Lighting
+      imageFaceMode = false;      // Face Gallery（画像表示）状態から抜ける
+      sleepFaceActive = false;
+      sceneInvalidate();          // 直前がPNG等の直接描画だった場合に備え、次のscenePushを全面にする
+      sleepEyeKind        = sleepPickEyeKind();
+      sleepBgLightMode    = sleepPickBgLightMode();
+      sleepLightNeedsInit = true;
+      sleepLightingComposeActive = true;
+      addLog("SLEEP CAROUSEL: eye=" + String((int)sleepEyeKind)
+           + " light=" + String(LIGHT_MODES[sleepBgLightMode].id));
+    }
+  }
+
+  if (sleepLightingComposeActive) {
+    static unsigned long lastDrawMs = 0;
+    bool needInit = sleepLightNeedsInit;
+    sleepLightNeedsInit = false;
+    if (needInit || (now - lastDrawMs) >= LIGHT_COMPOSITE_MS) {
+      lastDrawMs = now;
+      sleepComposeEyeLightFrame(needInit);
+    }
+  }
 }
 
 #endif  // FFT_DISPLAY_TEST
