@@ -37,6 +37,8 @@
 
 `3d_models/karipom.3mf`（全パーツ一体のプロジェクトファイル）と、`3d_models/stl/` の9パーツ（body／chest／hip／pelvis／spinal_cord／left_shoulder／right_shoulder／ears／feet）を公開しています。色は自由に選べます。部品構成の詳細はユーザーマニュアル第5章をご覧ください。
 
+Karipom Ear（PCM1808＋Pico2）を収納する筐体は`stl/`内の`karipom_hip.stl`です。LINE OUTを増設する場合向けに、3.5mmジャック用の開口を追加したオプション版 `karipom_hip_lineout.stl` も公開しています（増設しない場合は`karipom_hip.stl`のままで構いません）。詳しくはKaripom Ear設計・製作マニュアル第11章をご覧ください。
+
 ## SDカード用データ
 
 かりポムの動作にはmicroSDカードが必要です（詳しくはユーザーマニュアル第17章「SDカード管理」をご覧ください）。本リポジトリの `sdcard/` フォルダには、そのmicroSDカードで使う公開用の付属データを収録しています。
