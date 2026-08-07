@@ -3480,6 +3480,9 @@ void sceneDrawNormalFace();
 void scenePush(int x, int y, int w, int h);
 #ifdef FFT_DISPLAY_TEST
 void drawVisualizerFaceParts(bool forceClear);
+// Eye Slotのリールを「状態を進めずに」再描画する（実体はLighting Framework側）。
+// sceneComposeAndPush()がVisualizer描画直後の再描画に使う（後述）。
+void eslotDrawReelsFrame();
 // 統合描画パイプライン本体（実体は Lighting Framework 側＝ファイル末尾付近）。
 void sceneComposeAndPush(bool lightInit, bool lightFull,
                          bool vizOn, uint8_t vizMode, bool vizInit,
@@ -15955,6 +15958,22 @@ void eslotUpdateAndDrawReels(bool needsInit) {
     }
   }
 
+  eslotDrawReelsFrame();
+}
+
+// リール本体（＋揃った時の結果フラッシュ）を「現在の状態のまま」描くだけの関数。
+// 状態遷移・アニメーション更新（eslotState/eslotReelPos等）は一切行わない。
+// 2026-08-07追加：eslotUpdateAndDrawReels()末尾の描画部分をそのままこちらへ移設し、
+// eslotUpdateAndDrawReels()側からは本関数を呼ぶだけにした（描画コードの複製はしていない）。
+// 用途は2つ：
+//   ① eslotUpdateAndDrawReels()から呼ばれる通常経路（状態更新の直後に1回）
+//   ② Eye Slotが背景として選ばれている状態でVisualizerが全画面描画を行った直後、
+//      統合描画パイプライン（sceneComposeAndPush、後述）から「目だけ」を最前面へ
+//      描き直すための再呼び出し。状態を進めないため、1フレーム内で②が余分に
+//      呼ばれてもリールの回転速度やフラッシュのタイミングは変化しない。
+void eslotDrawReelsFrame() {
+  unsigned long now = millis();
+
   // ── 揃った場合だけ、結果表示の最初の一瞬だけ控えめなフラッシュを入れる ──
   if (eslotState == ESLOT_ST_RESULT && eslotMatch) {
     unsigned long since = now - eslotResultAt;
@@ -15987,6 +16006,26 @@ void eslotUpdateAndDrawReels(bool needsInit) {
   // ── リール本体：黒目のあった位置（eyeOffsetX/Yを反映）を中心に描く ──
   eslotDrawReel(eslotReelPos[0], 90  + eyeOffsetX, 90 + eyeOffsetY, ESLOT_STRIP_L);
   eslotDrawReel(eslotReelPos[1], 230 + eyeOffsetX, 90 + eyeOffsetY, ESLOT_STRIP_R);
+}
+
+// リール窓（左右2枚）の背後だけを不透明な白で塗る。
+// 2026-08-07追加：もともとSleep Lighting Carousel（sleepComposeEyeLightFrame、後述）が
+// 「窓の背後は背景Lighting／Brightnessのテーマに関わらず常に不透明な白にする」ために
+// 個別に持っていた処理（GFX.fillRectを直接2回呼ぶだけ）をそのままこちらへ切り出し、
+// Sleep Carousel側もこの関数を呼ぶよう統一した（実装の重複をなくし、Sleep Carousel発の
+// 既存ロジックを再利用する）。lightFillRect（Framework共通Brightness適用）ではなく
+// あえてGFX.fillRectを使う点もSleep Carousel側の元実装を踏襲している＝Eye Slotの窓は
+// 常にBrightnessの影響を受けない不透明な白、という既存仕様を変えていない。
+//
+// 用途：
+//   ① Sleep Lighting Carousel（sleepComposeEyeLightFrame）－ 従来どおり
+//   ② 通常LightingでEye Slot選択中、Visualizerが全画面描画した直後の再描画
+//     （sceneComposeAndPush、後述）－ Visualizerの色がリールの絵柄の隙間から
+//     透けて見えないよう、絵柄を描く前に窓を不透明化する。
+static inline void eslotFillWindowsWhite() {
+  int lx = 90 + eyeOffsetX, rx = 230 + eyeOffsetX, cy = 90 + eyeOffsetY;
+  GFX.fillRect(lx - ESLOT_WIN_HALF_W, cy - ESLOT_ROW_H, ESLOT_WIN_HALF_W * 2, ESLOT_ROW_H * 2, WHITE);
+  GFX.fillRect(rx - ESLOT_WIN_HALF_W, cy - ESLOT_ROW_H, ESLOT_WIN_HALF_W * 2, ESLOT_ROW_H * 2, WHITE);
 }
 
 void lightRenderEyeSlot(bool needsInit, bool fullRepaint) {
@@ -19531,9 +19570,42 @@ void sceneDrawFaceLayer() {
 //   1. Canvasへ背景を描画
 //   2. Lightingを描画
 //   3. Visualizerを描画
+//   3.5. Eye Slot選択中のみ：窓を不透明な白で塗り直してから目（リール）を
+//        Visualizerの上へ再描画
 //   4. 目・まつ毛・鼻・口を描画
 //   5. 完成したCanvasを液晶へ転送（y >= SCENE_TOP のみ／上端48pxは触らない）
 // Canvas未確保（PSRAM確保失敗）時は従来どおり液晶へ直接描画される。
+//
+// 2026-08-07追加（Eye Slot × Visualizer全画面描画の重なり対策）：
+//   Kaleidoscope／Analogue VU等、画面全体を塗りつぶすVisualizerがLayer3で
+//   描かれると、Layer2（Lighting）で既に描いていたEye Slotのリールがその下に
+//   埋もれて見えなくなってしまう。Visualizer個別に「目の領域だけ描かない」
+//   例外処理を足すのではなく、Eye Slotが背景として選ばれている間は共通して
+//   「Visualizer描画の直後・顔レイヤーの直前」にリールだけを最前面へ描き直す
+//   構造にした（描画順：Lighting背景 → Visualizer → Eye Slot → 顔）。
+//   gEyeSlotActiveはlightRenderEyeSlot()/eslotUpdateAndDrawReels()がEye Slot
+//   選択時にのみtrueにするフラグなので、Eye Slot以外のLighting・通常表示・
+//   Visualizer単体表示（Lighting OFF）ではfalseのまま＝一切影響しない。
+//   条件はgEyeSlotActive && vizOnのみで判定しており、7種類あるVisualizerの
+//   どれが選ばれていても同じ1行が共通に効く（Visualizerモード別の分岐は
+//   一切追加していない）。
+//
+// 2026-08-07追記（実機確認：リール背景が透けてVisualizerの色が見える不具合の修正）：
+//   最初の対策ではeslotDrawReelsFrame()（絵柄本体の描画のみ）しか呼んでおらず、
+//   絵柄と絵柄の隙間からVisualizerの描画がそのまま透けて見えてしまっていた。
+//   Sleep Lighting Carousel（sleepComposeEyeLightFrame、後述）が以前から「窓の
+//   背後を不透明な白で塗ってから絵柄を描く」処理を持っていたため、その実装を
+//   eslotFillWindowsWhite()として切り出し、Sleep Carousel側もこちらを呼ぶよう
+//   統一したうえで、Visualizer描画直後にも同じ関数を再利用する。
+//   eslotDrawReelsFrame()と同様、eslotFillWindowsWhite()も状態は一切進めない
+//   （単純な塗りつぶしのみ）ため、1フレームに2回呼んでも副作用は無い。
+//   再描画にはeslotFillWindowsWhite()＋eslotDrawReelsFrame()（どちらも状態を
+//   進めない純粋な描画のみの関数）を使うため、1フレームに2回呼んでもリールの
+//   アニメーション速度やフラッシュのタイミングは変化しない（＝新しい重複描画
+//   コードを増やさず、既存のEye Slot描画ロジックをそのまま再利用している）。
+//   顔レイヤー（鼻・口・まつ毛。時刻・バッテリー等の上端パネルはCanvas対象外で
+//   別経路のまま）は従来どおりLayer4として最後に描かれるため、他パーツの
+//   描画順は変わらない。
 void sceneComposeAndPush(bool lightInit, bool lightFull,
                          bool vizOn, uint8_t vizMode, bool vizInit,
                          int px, int py, int pw, int ph) {
@@ -19542,6 +19614,10 @@ void sceneComposeAndPush(bool lightInit, bool lightFull,
     sceneDrawLightingLayer(lightInit, lightFull);
   }
   sceneDrawVisualizerLayer(vizOn, vizMode, vizInit);           // 3
+  if (gEyeSlotActive && vizOn) {                               // 3.5
+    eslotFillWindowsWhite();   // 窓の背後を不透明な白で塗り直す（Visualizerの色が透けないように）
+    eslotDrawReelsFrame();     // その上へ絵柄本体を描く（従来どおり）
+  }
   sceneDrawFaceLayer();                                        // 4
   sceneEndCompose(onCanvas);
   if (onCanvas) scenePush(px, py, pw, ph);                     // 5
@@ -19738,9 +19814,8 @@ void sleepComposeEyeLightFrame(bool bgNeedsInit) {
     case SLEEP_EYE_EYESLOT: {
       // Eye Slotは例外：リール領域は背景Lightingのテーマに関わらず常に白背景にする
       // （既存Eye Slotの見た目・アニメーション自体は無改造。窓の背後だけ白く敷く）。
-      int lx = 90 + eyeOffsetX, rx = 230 + eyeOffsetX, cy = 90 + eyeOffsetY;
-      GFX.fillRect(lx - ESLOT_WIN_HALF_W, cy - ESLOT_ROW_H, ESLOT_WIN_HALF_W * 2, ESLOT_ROW_H * 2, WHITE);
-      GFX.fillRect(rx - ESLOT_WIN_HALF_W, cy - ESLOT_ROW_H, ESLOT_WIN_HALF_W * 2, ESLOT_ROW_H * 2, WHITE);
+      // 2026-08-07: 窓の白塗り処理はeslotFillWindowsWhite()へ共通化（実装は元のまま移設）。
+      eslotFillWindowsWhite();
       eslotUpdateAndDrawReels(bgNeedsInit);
       break;
     }
