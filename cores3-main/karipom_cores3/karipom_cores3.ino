@@ -807,7 +807,9 @@ enum LightingMode : uint8_t {
   //   Hypnotic Vortex の3種を試作したが、実機評価の結果 Hypnotic Vortex のみ正式採用。
   //   Expanding Hole / Moire Breathingは不採用となり、関連コードは全て削除済み
   //   （enum値も再利用しないよう欠番にはせず、LIGHT_VORTEXをそのままbit15に詰めた）。
-  // ↓ 将来ここへ追加（Defender / Scramble / Pong / Block Breaker / Fire / Neon / Bubbles …）
+  LIGHT_AQUARIUM = 16,        // Aquarium（背景・特定作品の模倣ではないKariPom独自表現の水槽風スクリーンセーバー）
+  LIGHT_FLYINGPOMPADOUR = 17, // Flying Pompadour（背景・1990年代スクリーンセーバーへのオマージュ。著作物のデザインは使わずKariPom独自の飛行体で表現）
+  // ↓ 将来ここへ追加（Defender / Scramble / Pong / Block Breaker / Fire / Neon …）
   // cfg_lightingMask は uint32_t（今後のLighting追加を見込んで正式採用。bit31=32番目まで拡張余地あり）。
   LIGHT_MODE_COUNT
 };
@@ -848,6 +850,10 @@ const LightModeInfo LIGHT_MODES[LIGHT_MODE_COUNT] = {
     "1960〜70年代のサイケデリック映像とトランスのVJを思わせる、強烈で予測不能な抽象映像です。眺める演出ではなく『目に飛び込んでくる』ことを狙っています。内部は3つの層でできています。MOTION（0.72〜1.44秒）は動きを目で追える主役で、色とりどりの輪が内側から次々生まれて迫りながら画面外へ抜けるExpanding Rings、回転しながら中心が移動し途中で突然逆回転する偏心スパイラル、2つの焦点がすれ違って干渉縞が崩壊・再生するモアレ、頂点が画面を横断しながら高速回転する不規則放射ウェッジ、回転しながら加速して飛び散る破片三角の5種類が、必ず全種類登場するよう順不同で回ります。FLASH（90〜270ms）は歪んだОPグリッド・巨大な不均一ドット・斜め細線・うねりストライプを静止の一撃として2〜5連射し、そのたびに配色世界が丸ごと入れ替わります。ACCENT（90〜180ms）はMOTIONの途中へ突然割り込み、補色反転・色面スタブ・画面を占有する巨大図形・スキャンライン断裂、そしてFace Galleryの顔が一瞬だけ映り込みます。割り込み中もMOTIONは裏で進み続けるため、戻ってきたときには渦が飛んでいます。MOTIONは終盤ほど加速し、最も盛り上がった瞬間に断ち切られて次の世界へ落ちます。対称や規則正しさは意図的に避け、中心の偏り・不均一な間隔・極端な大小・歪みで落ち着かなさを作っています。音声には一切反応せず、演出単体で成立します。表示領域は他のLighting同様、上部48pxの情報パネルを除く画面下側で、顔は常に最前面です。Brightness設定が効きます。" },
   { "vortex", "Hypnotic Vortex",
     "中心へ向かってテーパーする太い螺旋アーム6本（黒3本＋白3本が完全交互）を持つ、催眠の渦巻きを思わせる演出です。実際の回転はゆっくりですが、渦の分厚さと中心へのすぼまり方によって『中心へ吸い込まれる』『奥へ落ちていく』ように感じられます。中央が黒く塗りつぶされたワイヤーフレームのTempest Tunnel（既存Lighting）とは異なり、太い塗りつぶし面が画面の大部分を占める点が特徴です。白黒のみのシンプルな配色です。表示領域は他のLighting同様、上部48pxの情報パネルを除く画面下側で、顔は常に最前面です。Brightness設定が効きます。" },
+  { "aquarium", "Aquarium",
+    "往年の水槽スクリーンセーバーを思わせる、眺めていて心地よい水中Lightingです（特定ソフトウェアの画像・デザインを再現したものではなく、KariPom独自の表現です）。上ほど淡く下ほど沈む水の濃淡と、ゆっくり漂う淡い光の筋で深い水中を感じさせます。体色・体形・ヒレ・模様の異なる数種類の魚が3〜6匹、大きさ・泳ぐ高さ・速度をそれぞれ変えて左右どちらの向きにも泳ぎ、尾びれと各ヒレは常に小さくはためいて生きて泳いでいるように見えます。画面外へ抜けた魚は少し間を置いてから自然なタイミングで再登場します。下部には岩・水草・砂地を控えめに配置し、気泡が下から上へゆっくり立ちのぼります。動きはせわしなくせず、ぼんやり眺めていられる速度感を重視しています。Brightness設定が効きます。" },
+  { "flyingpompadour", "Flying Pompadour",
+    "1990年代の名作スクリーンセーバーへのオマージュ演出です（元作品の画像・デザインはそのまま使用せず、羽の生えたKariPomらしい小型飛行体をモチーフにしたKariPom独自のデザインです）。夕暮れから夜へ沈む空を背景に、丸いフォルムとポンパドール状のシルエットを持つ小さな飛行体が斜め方向に画面を横切ります。複数体が一定間隔ではなくランダムなタイミングで現れ、大きさ・速度の異なる奥と手前の2層で奥行きを表現します。羽は4コマの羽ばたきアニメーションで動き、本体には陰影とハイライトを付けて立体感を出しています。見た瞬間にあの雰囲気を思わせつつも、グラフィックは完全にオリジナルです。Brightness設定が効きます。" },
 };
 
 // Lightingの複数選択状態（ビットマスク・NVS "lightMask" に保存）。0=全OFF。
@@ -920,6 +926,8 @@ const uint8_t LIGHT_LAYER[LIGHT_MODE_COUNT] = {
   LIGHT_LAYER_BG,    // LIGHT_MISSILE … 面
   LIGHT_LAYER_BG,    // LIGHT_PSYCHE  … 面
   LIGHT_LAYER_BG,    // LIGHT_VORTEX  … 面
+  LIGHT_LAYER_BG,    // LIGHT_AQUARIUM … 面
+  LIGHT_LAYER_BG,    // LIGHT_FLYINGPOMPADOUR … 面
 };
 const uint8_t LIGHT_HEADER[LIGHT_MODE_COUNT] = {
   HEADER_LIGHT,      // LIGHT_DISCO  … 明るい原色の床 → 上端は白背景が読みやすい
@@ -942,6 +950,8 @@ const uint8_t LIGHT_HEADER[LIGHT_MODE_COUNT] = {
   // 暗い背景／高彩度背景のどちらでも黒帯＋明色文字が最も読めるので DARK で固定する。
   HEADER_DARK,       // LIGHT_PSYCHE  … 配色は激変するがヘッダーは黒固定
   HEADER_LIGHT,      // LIGHT_VORTEX  … 白背景に黒い螺旋アーム → 上端は白背景が読みやすい
+  HEADER_DARK,       // LIGHT_AQUARIUM … 深い水中の暗めの青緑背景 → 黒
+  HEADER_DARK,       // LIGHT_FLYINGPOMPADOUR … 夕暮れ〜夜空の暗い背景 → 黒
 };
 
 // 上端パネルを黒テーマにすべきか（採用中の背景Lightingのヘッダーに従う）。
@@ -2299,6 +2309,13 @@ bool isActiveAudioSession() {
   return false;
 }
 
+// Lighting本体の描画継続判定（定義は #ifdef FFT_DISPLAY_TEST 側）。2026-08-09追加：
+// 直下のlightingScreenActive()から、上端パネルの判定にも同じ猶予を適用するために呼ぶ
+// （前方宣言。理由は直下のlightingScreenActive()のコメント参照）。
+#ifdef FFT_DISPLAY_TEST
+bool lightingActiveWithGrace();
+#endif
+
 // 現在“本当にLighting画面を表示中か”（上端の黒い情報パネルを出す条件）。
 // screenFxLighting が状態遷移（スリープ／画像顔）をまたいで残っても、
 // ここで sleep/imageFace/音停止/マスク0 を見て確実に打ち消す。
@@ -2311,12 +2328,33 @@ bool isActiveAudioSession() {
 //   そのためMIC選択時のみFFT新鮮判定を免除し、他条件（sleep/imageFace/マスク0判定）は
 //   従来どおり適用する。Audio Visualizer側(isVisualizerFaceEnabled)は変更していないため、
 //   MIC選択時にVisualizerが表示されない既存仕様は維持される。
+//
+// 2026-08-09修正（実機確認：Lighting表示中に上部2行が一瞬白くなる不具合）:
+//   【原因】上端パネルの黒/白判定はここでAUDIO_SESSION_FRESH_MS(500ms)の
+//   FFT新鮮判定のみで行っていたが、Lighting本体の描画継続判定
+//   （updateScreenEffects()が使うlightingActiveWithGrace()）には既に
+//   LIGHTING_FFT_GRACE_MS(3秒)の猶予があり、両者の基準がずれていた。
+//   UDP/LINE IN受信間隔が500ms〜3秒だけ空いた瞬間、Lighting本体（背景・
+//   隕石・トンネル等）は猶予内なので継続描画されるのに対し、上端パネルは
+//   猶予なしのこの関数がfalseを返し、handleSensorDisplay()の独立した
+//   300ms周期タイマーがshowSensors()を呼んだ瞬間に上端2行だけ白く
+//   塗り直されてしまっていた（Aquarium/Flying Pompadour固有ではなく、
+//   Tempest Tunnel等の既存Lightingでも同じ経路で起きうる一般的な不具合）。
+//   【対策】AUDIO_SESSION_FRESH_MS以内なら従来どおり即trueとし、それを
+//   超えた場合のみlightingActiveWithGrace()と同じ猶予判定にフォールバック
+//   する。これにより上端パネルとLighting本体の「表示継続中か」の判定が
+//   完全に一致し、白フラッシュが発生しなくなる。sleep/imageFace/マスク0の
+//   判定・MICの扱い・showSensors()/drawBattery()の呼び出し方は変更していない。
 bool lightingScreenActive() {
   if (!(screenFxLighting && !sleepMode && !imageFaceMode && cfg_lightingMask != 0)) return false;
   if (audioSource == AUDIO_SRC_MIC) return true;
-  return (audioSource == AUDIO_SRC_UDP || audioSource == AUDIO_SRC_LINEIN) &&
-         lastFftPacketTime != 0 &&
-         (millis() - lastFftPacketTime) <= AUDIO_SESSION_FRESH_MS;
+  if (!(audioSource == AUDIO_SRC_UDP || audioSource == AUDIO_SRC_LINEIN)) return false;
+  if (lastFftPacketTime != 0 && (millis() - lastFftPacketTime) <= AUDIO_SESSION_FRESH_MS) return true;
+#ifdef FFT_DISPLAY_TEST
+  return lightingActiveWithGrace();
+#else
+  return false;
+#endif
 }
 
 #ifdef FFT_DISPLAY_TEST
@@ -16371,6 +16409,14 @@ static uint16_t astrColor[ASTR_COUNT];
 static int16_t astrStarX[ASTR_STAR_COUNT], astrStarY[ASTR_STAR_COUNT];
 static uint16_t astrStarCol[ASTR_STAR_COUNT];
 
+// 2026-08-09追加：最背面のカラフルな1ドット星（ギャラクシアン／ムーンクレスタ等の
+// 80年代アーケードゲームを思わせる宇宙背景へのオマージュ）。既存の控えめな灰色の
+// 星（astrStarX等）や隕石・自機・弾とは別要素で、黒背景の直後・他の要素より必ず
+// 先に描く（最背面）。位置・色は起動時に一度だけ決め、以後は固定のまま使い回す。
+#define ASTR_CSTAR_COUNT 20
+static int16_t  astrCStarX[ASTR_CSTAR_COUNT], astrCStarY[ASTR_CSTAR_COUNT];
+static uint16_t astrCStarCol[ASTR_CSTAR_COUNT];
+
 static float astrCraftX, astrCraftY;
 static float astrCraftVX = 0.0f, astrCraftVY = 0.0f;
 static float astrCraftTargetX, astrCraftTargetY;
@@ -16430,6 +16476,16 @@ void buildAsteroidTable() {
     astrStarX[i] = (int16_t)(astrRand01() * 320.0f);
     astrStarY[i] = (int16_t)((float)ASTR_TOP + astrRand01() * (240.0f - (float)ASTR_TOP));
     astrStarCol[i] = (astrRand() & 1u) ? STAR_COL_DIM : STAR_COL_FAINT;
+  }
+
+  // 最背面のカラフルな星（80年代アーケード風。赤・白・黄・緑の4色を基本とする）
+  {
+    const uint16_t ASTR_CSTAR_PALETTE[4] = { RED, WHITE, YELLOW, GREEN };
+    for (int i = 0; i < ASTR_CSTAR_COUNT; i++) {
+      astrCStarX[i]   = (int16_t)(astrRand01() * 320.0f);
+      astrCStarY[i]   = (int16_t)((float)ASTR_TOP + astrRand01() * (240.0f - (float)ASTR_TOP));
+      astrCStarCol[i] = ASTR_CSTAR_PALETTE[astrRand() % 4];
+    }
   }
 
   // 自機の初期化（画面中央付近からスタートし、すぐに新しい目標点を選ぶ）
@@ -16505,6 +16561,11 @@ void lightRenderAsteroid(bool needsInit, bool fullRepaint) {
 
   // ── 背景：完全な黒で塗りつぶし（Brightness適用のため lightFillRect を使用）──
   lightFillRect(0, ASTR_TOP, 320, 240 - ASTR_TOP, 0x0000);
+
+  // ── 最背面のカラフルな星（80年代アーケード風。既存の隕石・自機・弾・灰色の星より必ず先に描く）──
+  for (int i = 0; i < ASTR_CSTAR_COUNT; i++) {
+    lightFillRect(astrCStarX[i], astrCStarY[i], 1, 1, astrCStarCol[i]);
+  }
 
   // ── 星（控えめ・主役ではない）──
   for (int i = 0; i < ASTR_STAR_COUNT; i++) {
@@ -16704,6 +16765,14 @@ static float tunPulsePhase = 0.0f;
 static float tunHueDeg     = 0.0f;
 static unsigned long tunLastMs = 0;     // dt計算用（前回フレーム時刻）
 
+// 2026-08-09追加：最背面のカラフルな1ドット星（ギャラクシアン／ムーンクレスタ等の
+// 80年代アーケードゲームを思わせる宇宙背景へのオマージュ）。トンネル本体（リング・
+// スポーク・自機・発光体・弾）とは別要素で、黒背景の直後・他の要素より必ず先に描く
+// （最背面）。位置・色は起動時に一度だけ決め、以後は固定のまま使い回す。
+#define TUN_CSTAR_COUNT 20
+static int16_t  tunCStarX[TUN_CSTAR_COUNT], tunCStarY[TUN_CSTAR_COUNT];
+static uint16_t tunCStarCol[TUN_CSTAR_COUNT];
+
 static const float TUN_ROT_SPEED   = 6.2831853f / 15000.0f;  // 1周 約15秒
 static const float TUN_FLOW_SPEED  = (float)TUN_RINGS / 4500.0f;  // 1周期 約4.5秒
 static const float TUN_PULSE_SPEED = 6.2831853f / 3200.0f;   // 1周期 約3.2秒
@@ -16776,6 +16845,16 @@ void buildTunnelTable() {
   tunPulsePhase = tunRand01() * 6.2831853f;
   tunHueDeg     = tunRand01() * 360.0f;
   tunLastMs = 0;
+
+  // 最背面のカラフルな星（80年代アーケード風。赤・白・黄・緑の4色を基本とする）
+  {
+    const uint16_t TUN_CSTAR_PALETTE[4] = { RED, WHITE, YELLOW, GREEN };
+    for (int i = 0; i < TUN_CSTAR_COUNT; i++) {
+      tunCStarX[i]   = (int16_t)(tunRand01() * 320.0f);
+      tunCStarY[i]   = (int16_t)((float)TUN_TOP + tunRand01() * (240.0f - (float)TUN_TOP));
+      tunCStarCol[i] = TUN_CSTAR_PALETTE[tunRand() % 4];
+    }
+  }
 
   // 自機の初期化
   tunCraftAngle       = TUN_CRAFT_ARC_CENTER;
@@ -16861,6 +16940,11 @@ void lightRenderTunnel(bool needsInit, bool fullRepaint) {
 
   // ── 背景：完全な黒で塗りつぶし ──
   lightFillRect(0, TUN_TOP, 320, 240 - TUN_TOP, 0x0000);
+
+  // ── 最背面のカラフルな星（80年代アーケード風。既存のリング・自機・発光体・弾より必ず先に描く）──
+  for (int i = 0; i < TUN_CSTAR_COUNT; i++) {
+    lightFillRect(tunCStarX[i], tunCStarY[i], 1, 1, tunCStarCol[i]);
+  }
 
   float pulse = 1.0f + sinf(tunPulsePhase) * TUN_PULSE_AMPL;
 
@@ -18012,6 +18096,16 @@ static MslEnemy mslEnemy[MSL_MAX_ENEMY];
 static MslBurst mslBurst[MSL_BURST_COUNT];
 static uint32_t mslRng = 0xC001D00Du;
 
+// 2026-08-09追加：最背面のカラフルな1ドット星（ギャラクシアン／ムーンクレスタ等の
+// 80年代アーケードゲームを思わせる宇宙背景へのオマージュ）。黒い空(MSL_SKY_COL)の
+// 範囲だけに配置し、既存の基地・敵ミサイル・照準・迎撃・爆発より必ず先に描く
+// （最背面）。位置・色は一度だけ決め、以後は固定のまま使い回す（mslResetState()の
+// 対象には含めない＝Lighting再開のたびに位置が変わらず安定して見える）。
+#define MSL_CSTAR_COUNT 16
+static int16_t  mslCStarX[MSL_CSTAR_COUNT], mslCStarY[MSL_CSTAR_COUNT];
+static uint16_t mslCStarCol[MSL_CSTAR_COUNT];
+static bool     mslStarReady = false;
+
 // 地上基地（左・中央・右）。原作を連想させる程度の小さな印なので座標は固定でよい。
 static const int MSL_BASE_X[3] = { 54, 160, 266 };
 
@@ -18041,6 +18135,19 @@ static void mslSpawnEnemy(uint8_t i) {
   e.progress = 0.0f;
   e.speed = 0.0028f + mslRand01() * 0.0022f;   // 個体差のある飛来速度
   e.active = true;
+}
+
+// 最背面のカラフルな星を一度だけ生成する（黒い空の範囲のみ。赤・白・黄・緑の4色）。
+// mslResetState()（Lighting再開のたびに呼ばれる）とは独立させ、星の位置が
+// 毎回変わらず安定して見えるようにしている。
+static void mslBuildStars() {
+  const uint16_t MSL_CSTAR_PALETTE[4] = { RED, WHITE, YELLOW, GREEN };
+  for (int i = 0; i < MSL_CSTAR_COUNT; i++) {
+    mslCStarX[i]   = (int16_t)(mslRand01() * 320.0f);
+    mslCStarY[i]   = (int16_t)((float)MSL_TOP + mslRand01() * (float)(MSL_GROUND_Y - MSL_TOP));
+    mslCStarCol[i] = MSL_CSTAR_PALETTE[mslRand() % 4];
+  }
+  mslStarReady = true;
 }
 
 static void mslResetState() {
@@ -18146,6 +18253,7 @@ static void mslDrawBurst(uint8_t i, unsigned long now) {
 
 void lightRenderMissile(bool needsInit, bool fullRepaint) {
   (void)fullRepaint;
+  if (!mslStarReady) mslBuildStars();
   if (needsInit) mslResetState();
 
   unsigned long now = millis();
@@ -18153,6 +18261,12 @@ void lightRenderMissile(bool needsInit, bool fullRepaint) {
   // ── 背景：黒い空＋黄色い地面（原作の第一印象を再現するシンプルな2色構成）──
   lightFillRect(0, MSL_TOP, 320, MSL_GROUND_Y - MSL_TOP, MSL_SKY_COL);
   lightFillRect(0, MSL_GROUND_Y, 320, 240 - MSL_GROUND_Y, MSL_GROUND_COL);
+
+  // ── 最背面のカラフルな星（80年代アーケード風。黒い空にのみ配置し、既存の基地・
+  //     敵ミサイル・照準・迎撃・爆発より必ず先に描く）──
+  for (int i = 0; i < MSL_CSTAR_COUNT; i++) {
+    lightFillRect(mslCStarX[i], mslCStarY[i], 1, 1, mslCStarCol[i]);
+  }
 
   // ── 地上基地（左・中央・右）──
   for (uint8_t k = 0; k < 3; k++) mslDrawBase(MSL_BASE_X[k]);
@@ -19374,6 +19488,814 @@ void lightRenderVortex(bool needsInit, bool fullRepaint) {
 }
 
 // ============================================================================
+// Lighting #17 : Aquarium
+//
+// ■ コンセプト
+//   往年の水槽スクリーンセーバー「Marine Aquarium」を思い出させる、眺めていて
+//   楽しい水中演出。ただし配色・魚のデザイン・背景要素はすべてKariPom独自に
+//   起こしたもので、元ソフトウェアの画像・データは一切使用していない。
+//
+// ■ 2026-08-09 実機フィードバックによる改訂（v1.1）
+//   実機評価で「魚が小さすぎてミジンコのように見える」という指摘を受け、
+//   魚を大幅に大型化する方向へ変更した。多数の小さな魚を泳がせるのではなく、
+//   AQU_FISH_COUNT=3（同時に見えるのは2〜3匹程度）に絞り、他のLighting
+//   （Fighter Duelのキャラクター）程度の存在感を目安に1匹ごとを丁寧に作り込む。
+//   背景（グラデーション・光の筋・岩・水草・砂地・気泡）は好評だったため
+//   ほぼ無改造のまま維持し、今回は魚の大きさとグラフィックのみを変更した。
+//
+// ■ 背景
+//   上（水面に近い）ほど淡く、下（深い）ほど沈んだ青緑になる帯状グラデーション
+//   で「深い水中」を表現する。加えてごくわずかに明るい光の筋を2本、ゆっくり
+//   左右に揺らしながら重ねることで水の揺らぎ感を出す。下部には岩・水草・
+//   砂地を控えめに配置し、主役である魚の視認性を妨げないよう彩度・明度を抑える。
+//
+// ■ 魚
+//   体形・ヒレ・模様が一目で違うと分かる4種の魚種（縦に高いエンゼルフィッシュ風、
+//   横長で側線の通る回遊魚風、大きな扇尾を持つベタ／グッピー風、丸胴に横帯の
+//   クマノミ風）をあらかじめ定義し、出現のたびにその中から1種＋個体差（色相・
+//   大きさ・速度・泳ぐ高さ・左右どちらへ泳ぐか）を乱数で決める。頭から尾へ
+//   すぼまる胴の輪郭・エラ・2トーン以上の体色・ハイライトと陰影・種ごとの
+//   模様を持たせ、単純な楕円＋三角形に見えないよう作り込む。尾びれは常に
+//   左右へはためき、背びれ・胸びれもわずかに揺れるため静止画的に見えない。
+//   画面外へ完全に出たら即座に反対側へワープさせるのではなく、いったん
+//   非表示にしてランダムな待ち時間（1〜4秒程度）を置いてから再登場させることで、
+//   全個体が一斉に湧き直す不自然さを避けている。
+//
+// ■ 気泡
+//   下から上へゆっくり上昇する小さな円をハイライト付きで描き、水面
+//   （画面上端＝SCENE_TOP）へ到達したら底からランダムなX位置で再スタートする。
+//
+// ■ 負荷対策
+//   ・魚の形状は種プリセット4種＋個体差の乱数（出現時に1度だけ決定）で作り、
+//     毎フレームは位置・角度・はためき位相の更新と1匹あたり十数個の
+//     プリミティブ描画のみ。同時に泳ぐ魚を3匹に絞ったことで、1匹の描画が
+//     増えても全体の描画コストは従来と同程度に収まる。
+//   ・動的メモリ確保なし（すべて固定長static配列）。
+//   ・背景グラデーションは12本のfillRectのみ（1ピクセル単位の演算はしない）。
+//   ・上部48px（情報パネル）には一切描画しない。SCENE_TOP(=48)を下限にし、
+//     他のLightingと同じGFX.setClipRect()による防御も併用する。
+// ============================================================================
+#define AQU_TOP            SCENE_TOP
+#define AQU_FISH_COUNT     3              // 大型化に伴い、同時表示は2〜3匹程度に絞った
+#define AQU_SPECIES_COUNT  4
+#define AQU_BUBBLE_COUNT   10
+#define AQU_WEED_COUNT     3
+#define AQU_WEED_BLADES    3
+#define AQU_WEED_SEGS      5
+#define AQU_ROCK_COUNT     2
+#define AQU_SAND_DOT_COUNT 14
+
+static uint32_t aquRng = 0x9E3779B9u;
+static inline uint32_t aquRand()   { aquRng = aquRng * 1664525u + 1013904223u; return aquRng; }
+static inline float    aquRand01() { return (float)(aquRand() & 0xFFFF) / 65535.0f; }
+static inline uint16_t aquRgb(uint8_t r, uint8_t g, uint8_t b) {
+  return (uint16_t)(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3));
+}
+static inline uint8_t aquClamp255(int v) { return (uint8_t)(v > 255 ? 255 : (v < 0 ? 0 : v)); }
+
+static bool aquReady = false;
+
+// 魚種プリセット（体形比率・尾びれサイズ・模様タイプ・ヒレの構え・泳ぐ速さが種ごとに異なる。
+// サイズはscale=1.0基準の値で、実際の描画サイズはaquFishScale[]（1.05〜1.90）を掛けたもの）。
+//   pattern    … 0=無地(2トーン) 1=縦縞 2=斑点 3=横帯1本(白フチ付き) 4=側線(頭から尾の一直線)
+//   longFins   … true: 背びれ・尻びれが体から大きくトレイン状に伸びる（エンゼルフィッシュ風）
+//   tailStyle  … 0=フォーク型（通常） 1=大きな扇型（ベタ／グッピー風）
+//   speedMul   … 種による泳ぐ速さの違い（1.0基準）
+struct AquSpecies { float bodyLen, bodyHi, tailSize; uint8_t pattern; bool longFins; uint8_t tailStyle; float speedMul; };
+static const AquSpecies AQU_SPECIES[AQU_SPECIES_COUNT] = {
+  // 0: 縦に高い熱帯魚（エンゼルフィッシュ風）… 体高が高く、背びれ・尻びれが長く尾を引く
+  { 26.0f, 32.0f, 16.0f, 1, true,  0, 0.85f },
+  // 1: 横長の魚（回遊魚風）… 細長い胴で頭が尖り、側線が頭から尾まで一直線に通る
+  { 36.0f, 15.0f, 15.0f, 4, false, 0, 1.15f },
+  // 2: 大きな尾びれを持つ魚（ベタ／グッピー風）… 胴は小さめだが尾が体より大きく優雅に広がる
+  { 20.0f, 14.0f, 28.0f, 0, false, 1, 0.75f },
+  // 3: 丸みの強い魚（クマノミ風）… ずんぐりした丸胴に太い白フチ付き横帯
+  { 21.0f, 21.0f, 11.0f, 3, false, 0, 0.95f },
+};
+
+// 魚の状態（固定長static配列。動的確保なし）
+static bool     aquFishActive[AQU_FISH_COUNT];
+static uint8_t  aquFishSpecies[AQU_FISH_COUNT];
+static float    aquFishX[AQU_FISH_COUNT], aquFishBaseY[AQU_FISH_COUNT];
+static int8_t   aquFishDir[AQU_FISH_COUNT];            // +1=右向き / -1=左向き
+static float    aquFishSpeed[AQU_FISH_COUNT];          // px/フレーム
+static float    aquFishScale[AQU_FISH_COUNT];          // 1.05〜1.90（大型化後の個体差）
+static float    aquFishBobPhase[AQU_FISH_COUNT], aquFishBobFreq[AQU_FISH_COUNT], aquFishBobAmp[AQU_FISH_COUNT];
+static float    aquFishTailPhase[AQU_FISH_COUNT];
+static uint16_t aquFishHue[AQU_FISH_COUNT];             // 個体差の色相シード
+static unsigned long aquFishRespawnAt[AQU_FISH_COUNT];
+
+// 気泡
+static float aquBubbleX[AQU_BUBBLE_COUNT], aquBubbleY[AQU_BUBBLE_COUNT];
+static float aquBubbleR[AQU_BUBBLE_COUNT], aquBubbleSpeed[AQU_BUBBLE_COUNT], aquBubbleSway[AQU_BUBBLE_COUNT];
+
+// 水草（AQU_WEED_COUNT株 × AQU_WEED_BLADES本）
+static float    aquWeedBaseX[AQU_WEED_COUNT];
+static float    aquWeedHeight[AQU_WEED_COUNT][AQU_WEED_BLADES];
+static float    aquWeedPhase[AQU_WEED_COUNT][AQU_WEED_BLADES];
+static uint16_t aquWeedColor[AQU_WEED_COUNT][AQU_WEED_BLADES];
+
+// 岩
+static float aquRockX[AQU_ROCK_COUNT], aquRockY[AQU_ROCK_COUNT], aquRockR[AQU_ROCK_COUNT];
+
+// 砂地のテクスチャ用固定ドット
+static int16_t aquSandX[AQU_SAND_DOT_COUNT], aquSandY[AQU_SAND_DOT_COUNT];
+
+static void aquSpawnFish(int i) {
+  aquFishSpecies[i] = (uint8_t)(aquRand() % AQU_SPECIES_COUNT);
+  const AquSpecies &sp = AQU_SPECIES[aquFishSpecies[i]];
+
+  aquFishDir[i]   = (aquRand() & 1u) ? 1 : -1;
+  aquFishScale[i] = 1.05f + aquRand01() * 0.85f;                          // 1.05〜1.90：Fighter Duel程度の存在感を狙った大型化
+  aquFishSpeed[i] = (0.20f + aquRand01() * 0.16f) * sp.speedMul;          // ぼんやり眺められる速度（種ごとに差をつける）
+
+  float scale = aquFishScale[i];
+  // 縦方向の必要マージンは種の特徴（トレイン状のヒレ／大きな扇尾）によって大きく異なるため、
+  // 種ごとに見積もって、画面上下でヒレが極端に切れないようにする。
+  float finVert   = sp.longFins ? sp.bodyHi * 0.9f : (sp.tailStyle == 1 ? sp.tailSize * 0.85f : sp.tailSize * 0.25f);
+  float vertHalf  = (sp.bodyHi * 0.5f + finVert) * scale;
+  float availY    = (240.0f - (float)AQU_TOP) - 2.0f * vertHalf - 12.0f;
+  if (availY < 0.0f) availY = 0.0f;
+  aquFishBaseY[i] = (float)AQU_TOP + vertHalf + 6.0f + aquRand01() * availY;
+
+  aquFishBobPhase[i]  = aquRand01() * 6.2831853f;
+  aquFishBobFreq[i]   = 0.7f + aquRand01() * 0.5f;
+  aquFishBobAmp[i]    = 3.0f + aquRand01() * 4.0f;
+  aquFishTailPhase[i] = aquRand01() * 6.2831853f;
+  aquFishHue[i]       = (uint16_t)(aquRand() % 256);
+
+  float margin = (sp.bodyLen * 0.5f + sp.tailSize + 16.0f) * scale;
+  aquFishX[i] = (aquFishDir[i] > 0) ? -margin : (320.0f + margin);
+  aquFishActive[i] = true;
+}
+
+void buildAquariumTable() {
+  for (int i = 0; i < AQU_FISH_COUNT; i++) {
+    aquSpawnFish(i);
+    aquFishX[i] = aquRand01() * 320.0f;   // 起動直後は既に画面内にばらけさせる（一斉出現を避ける）
+    aquFishRespawnAt[i] = 0;
+  }
+  for (int i = 0; i < AQU_BUBBLE_COUNT; i++) {
+    aquBubbleX[i]     = aquRand01() * 320.0f;
+    aquBubbleY[i]     = (float)AQU_TOP + aquRand01() * (240.0f - (float)AQU_TOP);
+    aquBubbleR[i]     = 1.0f + aquRand01() * 2.0f;
+    aquBubbleSpeed[i] = 0.25f + aquRand01() * 0.35f;
+    aquBubbleSway[i]  = aquRand01() * 6.2831853f;
+  }
+  for (int w = 0; w < AQU_WEED_COUNT; w++) {
+    aquWeedBaseX[w] = 30.0f + (float)w * (260.0f / (float)AQU_WEED_COUNT) + aquRand01() * 20.0f;
+    for (int b = 0; b < AQU_WEED_BLADES; b++) {
+      aquWeedHeight[w][b] = 26.0f + aquRand01() * 20.0f;
+      aquWeedPhase[w][b]  = aquRand01() * 6.2831853f;
+      aquWeedColor[w][b]  = (b & 1) ? aquRgb(34, 110, 70) : aquRgb(24, 84, 54);
+    }
+  }
+  for (int r = 0; r < AQU_ROCK_COUNT; r++) {
+    aquRockX[r] = 60.0f + (float)r * (200.0f / (float)AQU_ROCK_COUNT) + aquRand01() * 30.0f;
+    aquRockY[r] = 236.0f;
+    aquRockR[r] = 14.0f + aquRand01() * 8.0f;
+  }
+  for (int s = 0; s < AQU_SAND_DOT_COUNT; s++) {
+    aquSandX[s] = (int16_t)(aquRand01() * 320.0f);
+    aquSandY[s] = (int16_t)(234.0f + aquRand01() * 5.0f);
+  }
+  aquReady = true;
+}
+
+static void aquDrawBackground(unsigned long now) {
+  const int BANDS = 12;
+  int total = 240 - AQU_TOP;
+  int bandH = total / BANDS;
+  for (int b = 0; b < BANDS; b++) {
+    float t = (float)b / (float)(BANDS - 1);      // 0(上・淡い)〜1(下・深い)
+    uint8_t r  = aquClamp255((int)(10 + (1.0f - t) * 12.0f));
+    uint8_t g  = aquClamp255((int)(70 - t * 40.0f));
+    uint8_t bl = aquClamp255((int)(95 - t * 45.0f));
+    int y0 = AQU_TOP + b * bandH;
+    int h  = (b == BANDS - 1) ? (240 - y0) : bandH;
+    lightFillRect(0, y0, 320, h, aquRgb(r, g, bl));
+  }
+  // わずかに明るい光の筋を2本、ゆっくり左右へ揺らして重ねる（水の揺らぎ）
+  float t1 = (float)now / 1000.0f;
+  for (int k = 0; k < 2; k++) {
+    float sway = sinf(t1 * 0.35f + (float)k * 2.4f) * 24.0f;
+    float baseX = 80.0f + (float)k * 150.0f + sway;
+    uint16_t col = aquRgb(46, 108, 118);
+    GFX.fillTriangle((int)baseX, AQU_TOP, (int)(baseX + 20), AQU_TOP, (int)(baseX - 34), 240, lightBright(col));
+  }
+}
+
+static void aquDrawRocksAndSand() {
+  for (int r = 0; r < AQU_ROCK_COUNT; r++) {
+    float cx = aquRockX[r], cy = aquRockY[r], rad = aquRockR[r];
+    uint16_t base = aquRgb(58, 66, 78);
+    uint16_t hi   = aquRgb(88, 98, 112);
+    GFX.fillCircle((int)cx,               (int)cy,               (int)rad,         lightBright(base));
+    GFX.fillCircle((int)(cx - rad*0.6f),  (int)(cy - rad*0.1f),  (int)(rad*0.7f),  lightBright(base));
+    GFX.fillCircle((int)(cx + rad*0.55f), (int)(cy - rad*0.05f), (int)(rad*0.65f), lightBright(base));
+    GFX.fillCircle((int)(cx - rad*0.2f),  (int)(cy - rad*0.75f), (int)(rad*0.35f), lightBright(hi));
+  }
+  lightFillRect(0, 234, 320, 240 - 234, aquRgb(70, 78, 60));
+  for (int s = 0; s < AQU_SAND_DOT_COUNT; s++) {
+    lightFillRect(aquSandX[s], aquSandY[s], 1, 1, aquRgb(90, 96, 74));
+  }
+}
+
+static void aquDrawWeeds(unsigned long now) {
+  float t = (float)now / 1000.0f;
+  for (int w = 0; w < AQU_WEED_COUNT; w++) {
+    for (int b = 0; b < AQU_WEED_BLADES; b++) {
+      float baseX = aquWeedBaseX[w] + (float)(b - 1) * 6.0f;
+      float h      = aquWeedHeight[w][b];
+      float phase  = aquWeedPhase[w][b];
+      int px = (int)baseX, py = 238;
+      for (int s = 1; s <= AQU_WEED_SEGS; s++) {
+        float ft   = (float)s / (float)AQU_WEED_SEGS;
+        float sway = sinf(t * 0.9f + phase + ft * 2.2f) * (4.0f * ft);
+        int nx = (int)(baseX + sway);
+        int ny = (int)(238.0f - h * ft);
+        lightDrawLine(px, py, nx, ny, aquWeedColor[w][b]);
+        px = nx; py = ny;
+      }
+    }
+  }
+}
+
+static void aquUpdateAndDrawBubbles(unsigned long now) {
+  float t = (float)now / 1000.0f;
+  for (int i = 0; i < AQU_BUBBLE_COUNT; i++) {
+    aquBubbleY[i] -= aquBubbleSpeed[i];
+    if (aquBubbleY[i] < (float)AQU_TOP - 4.0f) {
+      aquBubbleY[i]     = 238.0f;
+      aquBubbleX[i]     = aquRand01() * 320.0f;
+      aquBubbleR[i]     = 1.0f + aquRand01() * 2.0f;
+      aquBubbleSpeed[i] = 0.25f + aquRand01() * 0.35f;
+    }
+    float sway = sinf(t * 1.4f + aquBubbleSway[i]) * 3.0f;
+    int bx = (int)(aquBubbleX[i] + sway);
+    int by = (int)aquBubbleY[i];
+    int r  = (int)aquBubbleR[i];
+    GFX.fillCircle(bx, by, r, lightBright(aquRgb(190, 222, 228)));
+    GFX.fillCircle(bx - (r > 1 ? 1 : 0), by - (r > 1 ? 1 : 0), 1, lightBright(WHITE));
+  }
+}
+
+// 1匹分の魚を描く（体色・体形・ヒレ・模様は種プリセット＋個体差の乱数で決まる）。
+// 2026-08-09改訂：実機評価で「小さすぎて魚に見えない」との指摘を受け、種ごとの
+// シルエットの違い・胴の自然な輪郭（頭の鼻先〜尾へのすぼまり）・エラ・ハイライト／
+// 陰影・種別の模様を持たせ、単純な楕円＋三角形に見えないよう作り込んだ。
+static void aquDrawFish(int i) {
+  const AquSpecies &sp = AQU_SPECIES[aquFishSpecies[i]];
+  float scale = aquFishScale[i];
+  int   dir   = aquFishDir[i];
+  float x = aquFishX[i];
+  float y = aquFishBaseY[i] + sinf(aquFishBobPhase[i]) * aquFishBobAmp[i];
+
+  float bodyLen = sp.bodyLen  * scale;
+  float bodyHi  = sp.bodyHi   * scale;
+  float tailLen = sp.tailSize * scale;
+
+  uint16_t seed = aquFishHue[i];
+  uint8_t rr = aquClamp255(110 + (int)(seed % 110));
+  uint8_t gg = aquClamp255(70  + (int)((seed >> 2) % 140));
+  uint8_t bb = aquClamp255(130 + (int)((seed >> 4) % 110));
+  uint16_t bodyTop    = aquRgb(rr, gg, bb);                                                     // 背側（濃いめ）
+  uint16_t bodyBelly  = aquRgb(aquClamp255(rr + 70), aquClamp255(gg + 60), aquClamp255(bb + 50)); // 腹側（明るい）
+  uint16_t bodyShadow = aquRgb(aquClamp255(rr - 50), aquClamp255(gg - 40), aquClamp255(bb - 40)); // 陰影
+  uint16_t finCol     = aquRgb((uint8_t)(rr * 0.55f), (uint8_t)(gg * 0.55f), (uint8_t)(bb * 0.65f));
+  uint16_t gillCol    = aquRgb(aquClamp255(rr - 35), aquClamp255(gg - 25), aquClamp255(bb - 25));
+  uint16_t markCol    = (sp.pattern == 3) ? aquRgb(25, 20, 20) : aquRgb(250, 248, 240);
+  uint16_t hiliteCol  = aquRgb(aquClamp255(rr + 110), aquClamp255(gg + 110), aquClamp255(bb + 100));
+
+  float tailWag = sinf(aquFishTailPhase[i]) * 0.6f;
+  float finWag  = sinf(aquFishTailPhase[i] * 0.75f + 1.0f) * 0.2f;
+
+  float headX     = x + (bodyLen * 0.5f) * dir;
+  float tailBaseX = x - (bodyLen * 0.5f) * dir;
+
+  // ── 尾びれ（種によりフォーク型／大きな扇型を切り替える。体より先に描き付け根に隠す）──
+  if (sp.tailStyle == 1) {
+    // 大きな扇型（3枚の重ね三角で優雅な広がりを表現。ベタ／グッピー風）
+    for (int lobe = -1; lobe <= 1; lobe++) {
+      float lobeAng = (float)lobe * 0.42f + tailWag * 0.5f;
+      float tx = tailBaseX - dir * tailLen * (1.05f + fabsf(tailWag) * 0.15f);
+      float ty = y + sinf(lobeAng) * tailLen * 0.85f;
+      GFX.fillTriangle((int)tailBaseX, (int)(y - 3), (int)tailBaseX, (int)(y + 3), (int)tx, (int)ty,
+                        lightBright(lobe == 0 ? finCol : bodyShadow));
+    }
+  } else {
+    float tTipX = tailBaseX - dir * tailLen * (1.0f + fabsf(tailWag) * 0.25f);
+    float tTopY = y - tailLen * 0.55f + tailWag * tailLen * 0.55f;
+    float tBotY = y + tailLen * 0.55f + tailWag * tailLen * 0.55f;
+    GFX.fillTriangle((int)tailBaseX, (int)y, (int)tTipX, (int)tTopY, (int)tailBaseX, (int)(y - bodyHi * 0.12f), lightBright(finCol));
+    GFX.fillTriangle((int)tailBaseX, (int)y, (int)tTipX, (int)tBotY, (int)tailBaseX, (int)(y + bodyHi * 0.12f), lightBright(finCol));
+  }
+
+  // ── 尻びれ／トレイン尻びれ（longFins種は体下から大きく尾を引く。エンゼルフィッシュ風）──
+  if (sp.longFins) {
+    int analX    = (int)(x - dir * bodyLen * 0.05f);
+    int analBotY = (int)(y + bodyHi * 0.5f + bodyHi * 0.85f + finWag * 8.0f);
+    GFX.fillTriangle(analX - (int)(bodyLen * 0.16f), (int)(y + bodyHi * 0.42f),
+                      analX + (int)(bodyLen * 0.10f), (int)(y + bodyHi * 0.42f),
+                      analX, analBotY, lightBright(finCol));
+  }
+
+  // ── 尾への付け根（体から尾びれへなだらかにすぼめ、自然な輪郭にする）──
+  GFX.fillTriangle((int)tailBaseX, (int)(y - bodyHi * 0.38f), (int)tailBaseX, (int)(y + bodyHi * 0.38f),
+                    (int)(tailBaseX - dir * bodyLen * 0.22f), (int)y, lightBright(bodyTop));
+
+  // ── 体（背側は濃く、腹側は明るい2トーン）──
+  GFX.fillEllipse((int)x, (int)y, (int)(bodyLen * 0.5f), (int)(bodyHi * 0.5f), lightBright(bodyTop));
+  GFX.fillEllipse((int)x, (int)(y + bodyHi * 0.20f), (int)(bodyLen * 0.44f), (int)(bodyHi * 0.30f), lightBright(bodyBelly));
+
+  // ── 鼻先（頭側を少しすぼめて自然な顔つきにする）──
+  GFX.fillTriangle((int)headX, (int)(y - bodyHi * 0.30f), (int)headX, (int)(y + bodyHi * 0.30f),
+                    (int)(headX + dir * bodyLen * 0.16f), (int)y, lightBright(bodyTop));
+
+  // ── 背側のハイライト（艶）と腹側の陰影の細い筋 ──
+  lightDrawLine((int)(x - bodyLen * 0.28f), (int)(y - bodyHi * 0.30f), (int)(x + bodyLen * 0.18f), (int)(y - bodyHi * 0.36f), hiliteCol);
+  lightDrawLine((int)(x - bodyLen * 0.24f), (int)(y + bodyHi * 0.40f), (int)(x + bodyLen * 0.20f), (int)(y + bodyHi * 0.42f), bodyShadow);
+
+  // ── エラ（頭の付け根に弧状の線を1本、やや濃い色で）──
+  int gillX = (int)(headX - dir * bodyLen * 0.22f);
+  lightDrawLine(gillX, (int)(y - bodyHi * 0.38f), gillX - dir * (int)(bodyHi * 0.10f), (int)(y + bodyHi * 0.38f), gillCol);
+
+  // ── 模様（種ごとに縦縞／側線／横帯／斑点）──
+  if (sp.pattern == 1) {          // 縦縞（3〜4本）
+    for (int s = -1; s <= 2; s++) {
+      int sx = (int)(x + ((float)s - 0.5f) * bodyLen * 0.20f);
+      lightDrawLine(sx, (int)(y - bodyHi * 0.46f), sx, (int)(y + bodyHi * 0.46f), markCol);
+    }
+  } else if (sp.pattern == 2) {   // 斑点
+    for (int s = 0; s < 5; s++) {
+      float ang = (float)s * 1.25f + (float)seed;
+      int sx = (int)(x + cosf(ang) * bodyLen * 0.24f);
+      int sy = (int)(y + sinf(ang) * bodyHi * 0.24f);
+      GFX.fillCircle(sx, sy, (int)(2.2f * scale) + 1, lightBright(markCol));
+    }
+  } else if (sp.pattern == 3) {   // 横帯1本（クマノミ風。白フチ付き）
+    int sx = (int)x;
+    lightFillRect(sx - (int)(3 * scale) - 1, (int)(y - bodyHi * 0.48f), (int)(6 * scale) + 2, (int)(bodyHi * 0.96f), aquRgb(250, 248, 240));
+    lightFillRect(sx - (int)(3 * scale),     (int)(y - bodyHi * 0.46f), (int)(6 * scale),     (int)(bodyHi * 0.92f), markCol);
+  } else if (sp.pattern == 4) {   // 側線（頭から尾まで通る一直線）
+    lightDrawLine((int)headX, (int)y, (int)tailBaseX, (int)y, markCol);
+  }
+
+  // ── 背びれ（longFins種はさらに大きく体から伸びる）──
+  int dorsalX    = (int)(x - dir * bodyLen * 0.08f);
+  float dorsalH  = bodyHi * (sp.longFins ? 1.35f : 0.75f);
+  int dorsalTopY = (int)(y - bodyHi * 0.5f - dorsalH + finWag * 10.0f);
+  GFX.fillTriangle(dorsalX - (int)(bodyLen * 0.16f), (int)(y - bodyHi * 0.40f),
+                    dorsalX + (int)(bodyLen * 0.10f), (int)(y - bodyHi * 0.40f),
+                    dorsalX, dorsalTopY, lightBright(finCol));
+
+  // ── 胸びれ（体側面。はっきり視認できる大きさにする）──
+  int pecX = (int)(headX - dir * bodyLen * 0.22f);
+  int pecY = (int)(y + bodyHi * 0.12f);
+  GFX.fillTriangle(pecX, pecY,
+                    pecX - dir * (int)(bodyLen * 0.20f), pecY + (int)(bodyHi * 0.55f + finWag * 8.0f),
+                    pecX - dir * (int)(bodyLen * 0.06f), pecY, lightBright(finCol));
+
+  // ── 目（小さな黒い目のみ。2026-08-09再々改訂：Aquariumはキャラクター表現ではなく
+  //     リアルな熱帯魚・観賞魚を目標とする方針のため、白目・白フチは完全に廃止し、
+  //     黒目＋任意の1ドットハイライトのみのシンプルな表現へ変更した。サイズは
+  //     直前の縮小済みサイズを基準に維持している）──
+  int eyeX = (int)(headX - dir * bodyLen * 0.10f);
+  int eyeY = (int)(y - bodyHi * 0.10f);
+  int eyeRFull = (int)(bodyHi * 0.17f) + 1;
+  int eyeR = eyeRFull / 2;
+  if (eyeR < 1) eyeR = 1;
+  GFX.fillCircle(eyeX, eyeY, eyeR, lightBright(BLACK));         // 黒目のみ
+  GFX.fillCircle(eyeX + (dir > 0 ? 1 : -1), eyeY - 1, 1, lightBright(WHITE));  // ごく小さなハイライト（1ドット）
+}
+
+static void aquUpdateFish(int i, unsigned long now, float dt) {
+  if (!aquFishActive[i]) {
+    if (aquFishRespawnAt[i] != 0 && (long)(now - aquFishRespawnAt[i]) >= 0) {
+      aquSpawnFish(i);
+      aquFishRespawnAt[i] = 0;
+    }
+    return;
+  }
+  aquFishX[i]         += aquFishSpeed[i] * aquFishDir[i];
+  aquFishBobPhase[i]  += dt * aquFishBobFreq[i];
+  aquFishTailPhase[i] += dt * 3.0f;   // 尾びれは体より速くはためく
+
+  const AquSpecies &sp = AQU_SPECIES[aquFishSpecies[i]];
+  float margin  = (sp.bodyLen * 0.5f + sp.tailSize + 16.0f) * aquFishScale[i];  // aquSpawnFish()と同じ見積もり
+  bool offRight = (aquFishDir[i] > 0 && aquFishX[i] > 320.0f + margin);
+  bool offLeft  = (aquFishDir[i] < 0 && aquFishX[i] < -margin);
+  if (offRight || offLeft) {
+    aquFishActive[i]     = false;
+    aquFishRespawnAt[i]  = now + 1200UL + (unsigned long)(aquRand01() * 3200.0f);  // 1〜4秒程度で自然な再登場
+  }
+}
+
+void lightRenderAquarium(bool needsInit, bool fullRepaint) {
+  (void)fullRepaint;
+  if (!aquReady) buildAquariumTable();
+
+  static unsigned long aquPrevMs = 0;
+  unsigned long now = millis();
+  if (needsInit || aquPrevMs == 0) aquPrevMs = now;
+  float dt = (now - aquPrevMs) / 1000.0f;
+  if (dt > 0.5f) dt = 0.5f;
+  aquPrevMs = now;
+
+  GFX.setClipRect(0, AQU_TOP, 320, 240 - AQU_TOP);
+
+  aquDrawBackground(now);
+  aquDrawRocksAndSand();
+  aquDrawWeeds(now);
+  aquUpdateAndDrawBubbles(now);
+
+  for (int i = 0; i < AQU_FISH_COUNT; i++) {
+    aquUpdateFish(i, now, dt);
+    if (aquFishActive[i]) aquDrawFish(i);
+  }
+
+  GFX.clearClipRect();   // 顔描画・他の描画に影響しないよう必ず解除する
+}
+
+// ============================================================================
+// Lighting #18 : Flying Pompadour
+//
+// ■ コンセプト
+//   1990年代Macの名作スクリーンセーバー「Flying Toasters」を思い出させる
+//   オマージュ演出。トースターの代わりに「羽の生えたCoreS3風かりポム」が
+//   飛ぶという、KariPom独自のオマージュにしている。元作品の画像・データは
+//   一切使わないが、右上→左下への飛行・左右の大きな羽・羽ばたき・複数体の
+//   流れ・遠近感という原作の構図と動きは意識的に踏襲している。
+//
+// ■ 2026-08-09 実機フィードバックによる改訂（v1.1）
+//   実機評価で「本体が何か分かりにくい」「羽が頭上から生えて見える」
+//   「飛行方向がFlying Toastersと逆」との指摘を受け、以下を変更した。
+//     ・本体をCoreS3を連想させる小型直方体デバイス（正面に黒いディスプレイ・
+//       ベゼル・側面/底面の厚み）へ変更し、ディスプレイにKariPomらしい顔を表示。
+//     ・羽を本体の左右側面から生やす配置に修正（頭上からではない）。
+//     ・飛行方向を右上→左下へ反転（原作Flying Toastersと同じ向き）。
+//     ・遠景/中景/前景の3段階で大きさ・速度をはっきり分け、前景個体は本体の
+//       ディテール（画面の顔・ベゼル・左右の羽）がしっかり視認できる大きさにした。
+//   背景（夕暮れ〜夜空のグラデーション・星・雲）は変更していない。
+//
+// ■ 背景
+//   夕暮れから夜へ沈んでいく空を帯状グラデーションで表現し、控えめに瞬く星、
+//   ゆっくり左へ流れる雲のシルエットを重ねて奥行きを出す。
+//
+// ■ 飛行体
+//   最大FLYP_SLOT_COUNT体を同時に管理し、非アクティブなスロットはランダムな
+//   待ち時間の後に個別に出現する（一定間隔ではなくランダム感のある出現）。
+//   遠景/中景/前景の3層を持ち、奥ほど小さく・遅く、手前ほど大きく・速いことで
+//   奥行きを表現する。画面右上外側から現れ、斜め左下へ横切って画面外（左または
+//   下）へ抜ける（Flying Toastersと同じ向き）。羽は4コマの羽ばたきアニメーション
+//   を持ち、本体は正面・側面・底面の3面と陰影・ハイライトで立体感を出す。
+//   パレットは4種のKariPomらしいパステルカラーからランダムに選ぶ。
+//
+// ■ 負荷対策
+//   ・雲・星は出現時に1度だけ乱数で決めた固定長static配列を使い回す。
+//   ・1体あたりの描画は本体3面・ディスプレイ・顔・羽2枚・航跡の
+//     二十プリミティブ前後のみで、ピクセル単位の演算はしない。
+//   ・動的メモリ確保なし。
+//   ・上部48px（情報パネル）には一切描画しない。SCENE_TOP(=48)を下限にし、
+//     他のLightingと同じGFX.setClipRect()による防御も併用する。
+// ============================================================================
+#define FLYP_TOP          SCENE_TOP
+#define FLYP_SLOT_COUNT   6
+#define FLYP_LAYER_COUNT  3     // 0=遠景(小・遅) / 1=中景 / 2=前景(大・速)
+#define FLYP_PALETTE_COUNT 4
+#define FLYP_STAR_COUNT   10
+#define FLYP_CLOUD_COUNT  3
+
+static uint32_t flypRng = 0x51ED270Bu;
+static inline uint32_t flypRand()   { flypRng = flypRng * 1664525u + 1013904223u; return flypRng; }
+static inline float    flypRand01() { return (float)(flypRand() & 0xFFFF) / 65535.0f; }
+static inline uint16_t flypRgb(uint8_t r, uint8_t g, uint8_t b) {
+  return (uint16_t)(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3));
+}
+
+static bool flypReady = false;
+
+// 羽ばたき4コマ（羽先の上下オフセット倍率。0=最下点…1=最上点の往復）
+static const float FLYP_WING_FRAMES[4] = { -1.0f, -0.25f, 0.5f, 1.0f };
+
+// KariPomらしいパステルカラーパレット（本体シェル／側面・底面の陰影／ディスプレイの
+// ベゼル／羽／羽の陰影）。CoreS3風本体のシェルカラーとして使う。
+struct FlypPalette { uint16_t body, bodyShade, bezel, wing, wingShade; };
+static FlypPalette flypPaletteRt[FLYP_PALETTE_COUNT];   // 実行時（起動後1回）にflypBuildPalette()が確定するパレット本体
+
+// 飛行体スロット
+static bool     flypActive[FLYP_SLOT_COUNT];
+static uint8_t  flypLayer[FLYP_SLOT_COUNT];      // 0=遠景(奥・小・遅) / 1=中景 / 2=前景(手前・大・速)
+static uint8_t  flypPaletteIdx[FLYP_SLOT_COUNT];
+static float    flypX[FLYP_SLOT_COUNT], flypY[FLYP_SLOT_COUNT];
+static float    flypVX[FLYP_SLOT_COUNT], flypVY[FLYP_SLOT_COUNT];
+static float    flypScale[FLYP_SLOT_COUNT];
+static float    flypWingPhase[FLYP_SLOT_COUNT];
+static unsigned long flypNextSpawnAt[FLYP_SLOT_COUNT];
+
+// 星・雲（背景装飾）
+static int16_t  flypStarX[FLYP_STAR_COUNT], flypStarY[FLYP_STAR_COUNT];
+static unsigned long flypStarNextBlinkAt[FLYP_STAR_COUNT];
+static bool     flypStarBright[FLYP_STAR_COUNT];
+static float    flypCloudX[FLYP_CLOUD_COUNT], flypCloudY[FLYP_CLOUD_COUNT], flypCloudR[FLYP_CLOUD_COUNT];
+static float    flypCloudSpeed[FLYP_CLOUD_COUNT];
+
+static void flypBuildPalette() {
+  // 4色ともKariPomの世界観に合う淡いパステルの本体シェル＋やや濃い側面／ベゼル／羽の配色。
+  flypPaletteRt[0] = { flypRgb(238, 232, 222), flypRgb(180, 172, 160), flypRgb(120, 108, 118), flypRgb(255, 196, 206), flypRgb(206, 150, 160) }; // アイボリー
+  flypPaletteRt[1] = { flypRgb(214, 232, 248), flypRgb(158, 182, 206), flypRgb(96,  108, 130), flypRgb(190, 222, 240), flypRgb(140, 176, 198) }; // ペールブルー
+  flypPaletteRt[2] = { flypRgb(224, 246, 224), flypRgb(166, 202, 172), flypRgb(100, 128, 110), flypRgb(210, 236, 190), flypRgb(158, 196, 140) }; // ミント
+  flypPaletteRt[3] = { flypRgb(236, 224, 246), flypRgb(180, 164, 206), flypRgb(122, 108, 138), flypRgb(224, 200, 240), flypRgb(176, 152, 202) }; // ラベンダー
+}
+
+static void flypSpawn(int i) {
+  uint8_t layer = (uint8_t)(flypRand() % FLYP_LAYER_COUNT);   // 遠景/中景/前景をほぼ均等に抽選
+  flypLayer[i]      = layer;
+  flypPaletteIdx[i] = (uint8_t)(flypRand() % FLYP_PALETTE_COUNT);
+
+  static const float SCALE_LO[FLYP_LAYER_COUNT] = { 0.55f, 0.95f, 1.45f };
+  static const float SCALE_HI[FLYP_LAYER_COUNT] = { 0.80f, 1.30f, 1.95f };
+  // 2026-08-09: 実機評価で「前回より速く感じる」との指摘を受け、全層一律で約0.67倍
+  // （1/1.5）に減速した。層ごとの速度差の比率自体は変更していない。
+  static const float SPEED_LO[FLYP_LAYER_COUNT] = { 0.37f, 0.57f, 0.77f };
+  static const float SPEED_HI[FLYP_LAYER_COUNT] = { 0.53f, 0.77f, 1.03f };
+  flypScale[i] = SCALE_LO[layer] + flypRand01() * (SCALE_HI[layer] - SCALE_LO[layer]);
+  float baseSpeed = SPEED_LO[layer] + flypRand01() * (SPEED_HI[layer] - SPEED_LO[layer]);
+
+  // 右上→左下（Flying Toastersへのオマージュとして重要な向き）。水平からやや下向きの角度。
+  float angDeg = 25.0f + flypRand01() * 25.0f;    // 25°〜50°
+  float ang = angDeg * 3.14159265f / 180.0f;
+  flypVX[i] = -cosf(ang) * baseSpeed;
+  flypVY[i] =  sinf(ang) * baseSpeed;
+
+  float margin = 30.0f * flypScale[i];
+  flypX[i] = 320.0f + margin + flypRand01() * 40.0f;             // 右上外側から出現
+  flypY[i] = (float)FLYP_TOP + 6.0f + flypRand01() * 70.0f;
+  flypWingPhase[i] = flypRand01() * 6.2831853f;
+  flypActive[i] = true;
+}
+
+void buildFlyingPompadourTable() {
+  flypBuildPalette();
+  for (int i = 0; i < FLYP_SLOT_COUNT; i++) {
+    flypActive[i] = false;
+    // 起動直後は全体が一斉に湧かないよう、出現タイミングをそれぞれずらす。
+    flypNextSpawnAt[i] = millis() + (unsigned long)(flypRand01() * 3500.0f);
+  }
+  for (int s = 0; s < FLYP_STAR_COUNT; s++) {
+    flypStarX[s] = (int16_t)(flypRand01() * 320.0f);
+    flypStarY[s] = (int16_t)((float)FLYP_TOP + flypRand01() * 90.0f);   // 空の上寄りだけに置く
+    flypStarBright[s] = (flypRand() & 1u) != 0;
+    flypStarNextBlinkAt[s] = millis() + 400UL + (unsigned long)(flypRand01() * 2200.0f);
+  }
+  for (int c = 0; c < FLYP_CLOUD_COUNT; c++) {
+    flypCloudX[c]     = flypRand01() * 320.0f;
+    flypCloudY[c]     = (float)FLYP_TOP + 70.0f + flypRand01() * 90.0f;
+    flypCloudR[c]      = 20.0f + flypRand01() * 16.0f;
+    flypCloudSpeed[c] = 0.08f + flypRand01() * 0.10f;
+  }
+  flypReady = true;
+}
+
+static void flypDrawBackground(unsigned long now) {
+  const int BANDS = 10;
+  int total = 240 - FLYP_TOP;
+  int bandH = total / BANDS;
+  for (int b = 0; b < BANDS; b++) {
+    float t = (float)b / (float)(BANDS - 1);   // 0(上・夕焼け)〜1(下・夜)
+    uint8_t r = (uint8_t)(60  + (1.0f - t) * 70.0f);
+    uint8_t g = (uint8_t)(40  + (1.0f - t) * 35.0f);
+    uint8_t bl= (uint8_t)(70  + (1.0f - t) * 40.0f + t * 20.0f);
+    int y0 = FLYP_TOP + b * bandH;
+    int h  = (b == BANDS - 1) ? (240 - y0) : bandH;
+    lightFillRect(0, y0, 320, h, flypRgb(r, g, bl));
+  }
+
+  // 星（控えめに瞬く）
+  for (int s = 0; s < FLYP_STAR_COUNT; s++) {
+    if ((long)(now - flypStarNextBlinkAt[s]) >= 0) {
+      flypStarBright[s] = !flypStarBright[s];
+      flypStarNextBlinkAt[s] = now + 400UL + (unsigned long)(flypRand01() * 2200.0f);
+    }
+    uint16_t col = flypStarBright[s] ? flypRgb(255, 250, 230) : flypRgb(140, 130, 150);
+    lightFillRect(flypStarX[s], flypStarY[s], 1, 1, col);
+  }
+
+  // 雲のシルエット（ゆっくり左へ流れ、画面端でラップアラウンド）
+  for (int c = 0; c < FLYP_CLOUD_COUNT; c++) {
+    flypCloudX[c] -= flypCloudSpeed[c];
+    if (flypCloudX[c] < -flypCloudR[c] * 2.2f) flypCloudX[c] = 320.0f + flypCloudR[c];
+    float cx = flypCloudX[c], cy = flypCloudY[c], r = flypCloudR[c];
+    uint16_t col = flypRgb(90, 70, 100);
+    GFX.fillCircle((int)cx,              (int)cy, (int)(r*0.7f), lightBright(col));
+    GFX.fillCircle((int)(cx - r*0.8f),   (int)(cy + r*0.15f), (int)(r*0.55f), lightBright(col));
+    GFX.fillCircle((int)(cx + r*0.85f),  (int)(cy + r*0.1f),  (int)(r*0.5f), lightBright(col));
+  }
+}
+
+// 1体分の飛行体を描く（CoreS3風の直方体本体・正面ディスプレイの顔・左右の羽・航跡）。
+// 2026-08-09改訂：実機評価で「本体が何か分かりにくい／羽が頭上から生えて見える」との
+// 指摘を受け、本体をCoreS3を連想させる小型直方体デバイスへ変更し、羽は本体の左右
+// 側面から生やす配置に修正した（頭上からではない）。ディスプレイにはKariPomらしい
+// 顔（表情バリエーション＋時々まばたき）を表示する。
+static void flypDrawFlyer(int i) {
+  const FlypPalette &pal = flypPaletteRt[flypPaletteIdx[i]];
+  float scale = flypScale[i];
+  float x = flypX[i], y = flypY[i];
+
+  int bw    = (int)(20.0f * scale);
+  int bh    = (int)(15.0f * scale);
+  int depth = (int)(6.0f * scale) + 1;   // 側面・底面の厚み表現
+
+  int bodyL = (int)(x - bw * 0.5f), bodyR = bodyL + bw;
+  int bodyT = (int)(y - bh * 0.5f), bodyB = bodyT + bh;
+
+  // ── 航跡（速度方向の後方へ、フェードする短い線を数本）──
+  float spd = sqrtf(flypVX[i]*flypVX[i] + flypVY[i]*flypVY[i]);
+  float dx = (spd > 0.0001f) ? flypVX[i] / spd : 1.0f;
+  float dy = (spd > 0.0001f) ? flypVY[i] / spd : -1.0f;
+  uint16_t trailCol = flypRgb(210, 200, 210);
+  for (int k = 1; k <= 3; k++) {
+    float tx = x - dx * (bw * 0.9f + k * 6.0f * scale);
+    float ty = y - dy * (bw * 0.9f + k * 6.0f * scale);
+    lightDrawLine((int)tx, (int)ty, (int)(tx - dx * 3.0f), (int)(ty - dy * 3.0f), trailCol);
+  }
+
+  // ── 羽ばたき量（4コマ）。羽を小型化したため振幅も従来よりやや控えめにする ──
+  int frame = (int)(fmodf(flypWingPhase[i], 6.2831853f) / 6.2831853f * 4.0f) & 3;
+  float wingLift = FLYP_WING_FRAMES[frame] * 5.0f * scale;
+
+  // ── 羽（本体の左右側面から生やす、鳩のような丸みと厚みのある翼）──
+  // 2026-08-09改訂：実機評価で「羽が本体に対して大きすぎる」「カモメのように細長い」
+  // との指摘を受け、サイズを従来のおよそ半分に縮小し、根元が最も大きく先端へ向かって
+  // 小さくなる3枚の羽根（丸いブロブ）を重ねる方式へ変更した。色を1枚おきに変えることで
+  // 「複数の羽根が分かれて見える」丸みのある鳥の翼らしい質感を出している。
+  float wingSpan = bw * 0.72f;   // 従来（bw*1.4）のおよそ半分
+  {   // 左羽（奥側。やや小さく暗め）
+    float ws = wingSpan * 0.92f;
+    float lift0 = wingLift * 0.22f, lift1 = wingLift * 0.55f, lift2 = wingLift * 0.85f;
+    int rx0 = bodyL - (int)(ws * 0.30f), ry0 = (int)(y - bh * 0.05f - lift0);
+    int rx1 = bodyL - (int)(ws * 0.62f), ry1 = (int)(y - bh * 0.18f - lift1);
+    int rx2 = bodyL - (int)(ws * 0.94f), ry2 = (int)(y - bh * 0.28f - lift2);
+    GFX.fillEllipse(rx0, ry0, (int)(bw * 0.32f) + 1, (int)(bh * 0.42f) + 1, lightBright(pal.wingShade));
+    GFX.fillEllipse(rx1, ry1, (int)(bw * 0.25f) + 1, (int)(bh * 0.31f) + 1, lightBright(pal.wing));
+    GFX.fillEllipse(rx2, ry2, (int)(bw * 0.17f) + 1, (int)(bh * 0.21f) + 1, lightBright(pal.wingShade));
+  }
+  {   // 右羽（手前側。標準色でやや大きい）
+    float ws = wingSpan;
+    float lift0 = wingLift * 0.25f, lift1 = wingLift * 0.65f, lift2 = wingLift * 1.0f;
+    int rx0 = bodyR + (int)(ws * 0.30f), ry0 = (int)(y - bh * 0.05f - lift0);
+    int rx1 = bodyR + (int)(ws * 0.62f), ry1 = (int)(y - bh * 0.18f - lift1);
+    int rx2 = bodyR + (int)(ws * 0.94f), ry2 = (int)(y - bh * 0.28f - lift2);
+    GFX.fillEllipse(rx0, ry0, (int)(bw * 0.36f) + 1, (int)(bh * 0.46f) + 1, lightBright(pal.wing));
+    GFX.fillEllipse(rx1, ry1, (int)(bw * 0.28f) + 1, (int)(bh * 0.34f) + 1, lightBright(pal.wingShade));
+    GFX.fillEllipse(rx2, ry2, (int)(bw * 0.19f) + 1, (int)(bh * 0.23f) + 1, lightBright(pal.wing));
+  }
+
+  // ── ウサ耳（2026-08-09追加、2026-08-10位置を再修正、2026-08-10色味を再調整。
+  //     位置・形・サイズは変更しない。実機確認で「背面にある耳が正面の白い画面と
+  //     ほぼ同じ明るさで奥行き感が弱い」との指摘を受け、耳の主色を本体正面シェル
+  //     （pal.body）より1段暗い pal.bodyShade（本体の側面・底面と同じ色。真っ黒には
+  //     しない）へ変更し、影の縞にはさらに濃い pal.bezel を使うことで「背面側にある
+  //     ため少し影になって見える」奥行きを強調した。中景・前景の先端には pal.body の
+  //     ごく軽いハイライトを1点だけ残している。デザイン・位置・サイズは変更していない）──
+  {
+    int cxBack   = (bodyL + bodyR) / 2 + depth;   // 側面・底面と同じ奥行き分だけ後方へずらした中心
+    int backTopY = bodyT - depth;                 // 本体上面の奥側（背面）の高さ
+    if (flypLayer[i] == 0) {
+      // 遠景：単純なシルエットのみ（軽量・簡略）。正面シェルより1段暗い色で奥行きを示す
+      int earW    = (int)(bw * 0.12f) + 1;
+      // 2026-08-10: 実機確認で耳が長すぎるとの指摘を受け、根元位置(earBaseY)は
+      // 変えず、高さのみ従来のおよそ2/3へ短縮した（先端側だけが根元に近づく）。
+      int earHFull = (int)(bh * 0.55f) + 1;
+      int earH = (int)(earHFull * 0.667f);
+      if (earH < 1) earH = 1;
+      int earGapX = (int)(bw * 0.18f) + 1;
+      int earBaseY = backTopY + 1;
+      lightFillRect(cxBack - earGapX - earW / 2, earBaseY - earH, earW, earH, pal.bodyShade);
+      lightFillRect(cxBack + earGapX - earW / 2, earBaseY - earH, earW, earH, pal.bodyShade);
+    } else {
+      // 中景・前景：先端に丸みを付け、片側に濃いめの影、反対側にごく軽いハイライトを入れる
+      int earW    = (int)(bw * 0.15f) + 1;
+      // 2026-08-10: 実機確認で耳が長すぎるとの指摘を受け、根元位置(earBaseY)は
+      // 変えず、高さのみ従来のおよそ2/3へ短縮した（先端側だけが根元に近づく）。
+      int earHFull = (int)(bh * 0.8f) + 2;
+      int earH = (int)(earHFull * 0.667f);
+      if (earH < 1) earH = 1;
+      int earGapX = (int)(bw * 0.20f) + 1;
+      int earBaseY = backTopY + 1;
+      int earTipY  = earBaseY - earH;
+      int shadeW   = 1;
+      for (int s = -1; s <= 1; s += 2) {
+        int ex = cxBack + s * earGapX;
+        lightFillRect(ex - earW / 2, earTipY, earW, earH, pal.bodyShade);
+        GFX.fillCircle(ex, earTipY, earW / 2, lightBright(pal.bodyShade));
+        lightFillRect(ex + s * (earW / 2 - shadeW), earTipY, shadeW, earH, pal.bezel);
+        GFX.fillCircle(ex - s * (earW / 2 - shadeW), earTipY, 1, lightBright(pal.body));
+      }
+    }
+  }
+
+  // ── 本体の側面・底面（厚みを表現する陰影パーツ。正面より先に描く）──
+  GFX.fillTriangle(bodyL, bodyB, bodyR, bodyB, bodyR + depth, bodyB - depth, lightBright(pal.bodyShade));
+  GFX.fillTriangle(bodyL, bodyB, bodyR + depth, bodyB - depth, bodyL + depth, bodyB - depth, lightBright(pal.bodyShade));
+  GFX.fillTriangle(bodyR, bodyT, bodyR, bodyB, bodyR + depth, bodyB - depth, lightBright(pal.bezel));
+  GFX.fillTriangle(bodyR, bodyT, bodyR + depth, bodyB - depth, bodyR + depth, bodyT - depth, lightBright(pal.bezel));
+
+  // ── 本体正面（CoreS3を連想させる小型直方体のシェル。上端・左端にエッジハイライト）──
+  // 耳の根元はこのfillRectより後方（画面奥）にあるため、ここで正面シェルを描くことで
+  // 耳の根元付近が自然に隠れ、耳が本体背面から生えているように見える。
+  GFX.fillRect(bodyL, bodyT, bw, bh, lightBright(pal.body));
+  lightDrawLine(bodyL, bodyT, bodyR, bodyT, WHITE);
+  lightDrawLine(bodyL, bodyT, bodyL, bodyB, WHITE);
+
+  // ── 正面ディスプレイ（ベゼル＋白画面＋KariPom本来の顔）──
+  // 2026-08-09改訂：実機評価で「独自の表情ではなく既存KariPomの顔にしてほしい」との
+  // 指摘を受け、黒画面＋白い目という独自デザインをやめ、白画面＋黒い目2つ・鼻・
+  // 鼻から口への縦線・口という、既存KariPomの基本的な顔構成をそのまま小型画面向けに
+  // 簡略化して再現した（表情バリエーション・まばたきは持たせない）。
+  int dispW = (int)(bw * 0.66f), dispH = (int)(bh * 0.66f);
+  int dispX = (bodyL + bodyR) / 2 - dispW / 2;
+  int dispY = (bodyT + bodyB) / 2 - dispH / 2;
+  GFX.fillRect(dispX - 1, dispY - 1, dispW + 2, dispH + 2, lightBright(pal.bezel));
+  GFX.fillRect(dispX, dispY, dispW, dispH, lightBright(WHITE));
+
+  // 2026-08-09改訂：実機評価で「目と鼻が大きく、顔パーツが中央に密集して見える」との
+  // 指摘を受け、目・鼻をおおむね半分の大きさへ縮小した。単純に顔全体を中央へ縮小
+  // するのではなく、白画面の余白を活かして目の間隔（eyeDx）は広めに保ち、各パーツの
+  // 縦の間隔も調整して、小さな目・鼻・縦線・口が自然に配置されるようにしている。
+  int eyeCx = dispX + dispW / 2;
+  int eyeCy = dispY + (int)(dispH * 0.32f);
+  int eyeDx = (int)(dispW * 0.30f) + 1;
+  int eyeR  = (int)(dispH * 0.075f) + 1;
+  GFX.fillCircle(eyeCx - eyeDx, eyeCy, eyeR, lightBright(BLACK));
+  GFX.fillCircle(eyeCx + eyeDx, eyeCy, eyeR, lightBright(BLACK));
+
+  // 遠景の小さな個体は「白い画面＋黒い目」だけで十分認識できるため、鼻・鼻口線・口は
+  // 潰れやすい遠景（layer==0）では省略し、中景・前景（layer>=1）でのみ描き足す。
+  if (flypLayer[i] >= 1) {
+    int noseCy  = eyeCy + (int)(dispH * 0.24f);
+    int noseRW  = (int)(dispW * 0.055f) + 1, noseRH = (int)(dispH * 0.05f) + 1;
+    GFX.fillEllipse(eyeCx, noseCy, noseRW, noseRH, lightBright(BLACK));
+    int lineBotY = noseCy + noseRH + (int)(dispH * 0.16f);
+    lightDrawLine(eyeCx, noseCy + noseRH, eyeCx, lineBotY, BLACK);
+    int mouthHalfW = (int)(dispW * 0.13f) + 1;
+    int mouthDropY = (int)(dispH * 0.09f) + 1;
+    lightDrawLine(eyeCx, lineBotY, eyeCx - mouthHalfW, lineBotY + mouthDropY, BLACK);
+    lightDrawLine(eyeCx, lineBotY, eyeCx + mouthHalfW, lineBotY + mouthDropY, BLACK);
+  }
+
+  // ── 小さなポート／インジケーター（電子機器らしいディテール）──
+  lightFillRect(bodyL + 2, bodyB - 3, (int)(bw * 0.18f) + 1, 2, flypRgb(120, 200, 140));
+  GFX.fillCircle(bodyR - 3, bodyT + 3, 1, lightBright(flypRgb(230, 210, 140)));
+}
+
+static void flypUpdateSlot(int i, unsigned long now, float dt) {
+  if (!flypActive[i]) {
+    if ((long)(now - flypNextSpawnAt[i]) >= 0) flypSpawn(i);
+    return;
+  }
+  flypX[i] += flypVX[i] * dt * 60.0f;
+  flypY[i] += flypVY[i] * dt * 60.0f;
+  flypWingPhase[i] += dt * (3.6f + (float)flypLayer[i] * 0.8f);   // 前景ほど羽ばたきも心持ち速く
+
+  // 右上→左下へ飛ぶため、画面左または画面下へ抜けたら非アクティブ化する。
+  float margin = 34.0f * flypScale[i];
+  bool offScreen = (flypX[i] < -margin) || (flypY[i] > 240.0f + margin);
+  if (offScreen) {
+    flypActive[i] = false;
+    // 一定間隔ではなくランダムな待ち時間の後に再出現させる
+    flypNextSpawnAt[i] = now + 300UL + (unsigned long)(flypRand01() * 2600.0f);
+  }
+}
+
+void lightRenderFlyingPompadour(bool needsInit, bool fullRepaint) {
+  (void)fullRepaint;
+  if (!flypReady) buildFlyingPompadourTable();
+
+  static unsigned long flypPrevMs = 0;
+  unsigned long now = millis();
+  if (needsInit || flypPrevMs == 0) flypPrevMs = now;
+  float dt = (now - flypPrevMs) / 1000.0f;
+  if (dt > 0.5f) dt = 0.5f;
+  flypPrevMs = now;
+
+  GFX.setClipRect(0, FLYP_TOP, 320, 240 - FLYP_TOP);
+
+  flypDrawBackground(now);
+
+  // 状態更新は1回だけ行い、描画だけを遠景→中景→前景の順にして奥行きの重なりを自然にする。
+  for (int i = 0; i < FLYP_SLOT_COUNT; i++) flypUpdateSlot(i, now, dt);
+  for (int pass = 0; pass < FLYP_LAYER_COUNT; pass++) {
+    for (int i = 0; i < FLYP_SLOT_COUNT; i++) {
+      if (flypActive[i] && (int)flypLayer[i] == pass) flypDrawFlyer(i);
+    }
+  }
+
+  GFX.clearClipRect();   // 顔描画・他の描画に影響しないよう必ず解除する
+}
+
+// ============================================================================
 // Lighting Manager（描画関数テーブル）
 //
 // enum LightingMode と同じ並び順。追加時はここへ関数を1行足すだけ。
@@ -19396,6 +20318,8 @@ const LightRenderFn LIGHT_RENDER_FN[LIGHT_MODE_COUNT] = {
   lightRenderMissile,         // LIGHT_MISSILE
   lightRenderPsychedelic,     // LIGHT_PSYCHE
   lightRenderVortex,          // LIGHT_VORTEX
+  lightRenderAquarium,        // LIGHT_AQUARIUM
+  lightRenderFlyingPompadour, // LIGHT_FLYINGPOMPADOUR
 };
 
 // LIGHT_LAYER[] / LIGHT_HEADER[] / lightingHeaderDark() / LIGHT_LAYER_BG・OVL /
