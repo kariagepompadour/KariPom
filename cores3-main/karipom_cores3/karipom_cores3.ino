@@ -17117,7 +17117,7 @@ void lightRenderTunnel(bool needsInit, bool fullRepaint) {
 }
 
 // ============================================================================
-// Lighting #11 : PAC-MAN Arcade（Retro Game Lighting 第1弾 1/3）
+// Lighting #11 : PAC-MAN Arcade（Retro Game Lighting 第1弾 1/3）（v2.0 / 2026-08-11）
 //
 // ■ コンセプト
 //   1980年代のドットイート迷路アクションを、実在ゲームのマップ・画像・
@@ -17126,19 +17126,34 @@ void lightRenderTunnel(bool needsInit, bool fullRepaint) {
 //   ゲームオーバーは無く、「勝手にパックマンが迷路を巡回し続けている」
 //   画面が目的です。
 //
-// ■ 構成
-//   ・迷路：20×12セル（1セル16px＝320×192＝ちょうどSCENE_TOP〜画面下端）。
-//     外周ループ通路＋中央の横断通路＋装飾用の壁ブロックのみのシンプル構成。
-//     壁の配置は本ファイル独自にデザインしたもの。
-//   ・自機：外周ループを一定速度で周回。進行方向に応じて口が開閉する
-//     アニメーションのみでパックマンらしさを表現（経路探索なし）。
-//   ・ドット／パワーエサ：通路上に配置。自機が通過すると消え、全消化
-//     または一定時間ごとに自動で復活し、無限ループを維持する。
-//   ・敵（オバケ）：3体。あらかじめ決めた安全な経路（外周ループの別位相
-//     ／中央通路の往復）だけを移動し、経路探索は行わない。
+// ■ v2.0：ユーザー設計の12行×20列迷路への置き換え（2026-08-11）
+//   v1系は「外周の1本ループ通路＋中央の横断通路」だけを実際の移動経路とし、
+//   それ以外は見た目だけの装飾壁だった。v2.0では、ユーザーが設計した
+//   PAC_MAZE[12][20]（1=壁 / 0=通路）を迷路データの正本として全面採用し、
+//   自機・オバケとも「現在セルの上下左右で通路になっている方向だけ」を
+//   候補として移動する、実際のグリッド隣接判定に基づく移動へ置き換えた
+//   （pacCellOpen() / pacChooseDir() 参照）。壁の見た目はPAC_MAZEの値を
+//   そのまま使うだけで、v1系と同じ二重矩形の壁タイル描画方式
+//   （WALL_EDGE＋WALL_COL）をそのまま流用している。
+//   グリッドサイズ（1セル16px・20列×12行＝320×192）はPAC_MAZEの意図に
+//   合わせて設計されているため、セルサイズ・列数・行数は変更していない。
+//   5行目（配列index=5）は左右端が通路になっており、ここだけ左右トンネル
+//   として扱う（画面外へ出た側と反対側のセルへ接続）。他の行は画面端を
+//   通過できない。
+//   中央付近の広い通路（6行目、col5〜14が連続して通路）は、PAC_MAZEの
+//   0セルをそのまま使ってオバケの初期配置に利用しているだけで、専用の
+//   ゴーストハウスや壁の追加は行っていない。
+//
+// ■ 移動方式（ゲームAIではなく、Lightingとして自然に動き続けるための簡易ロジック）
+//   各アクター（自機・オバケ×3）は「現在セル→隣接セルへの遷移」をprogress
+//   （0〜1）で滑らかに補間するだけの、v1系と同じ見た目の滑走スタイルを維持。
+//   遷移が完了した瞬間だけpacChooseDir()を呼び、(a)直進が可能ならそのまま
+//   直進、(b)不可能なら分岐先（後戻り以外）からランダムに1つ選択、
+//   (c)行き止まりなら後戻り、という最小限のルールで次の方向を決める。
+//   経路探索・追跡アルゴリズムの類は一切実装していない（要件どおり）。
 //
 // ■ 音との関係（測定器ではない）
-//   ・gViz.level（全体音量）で自機・敵の移動速度がわずかに上下する程度。
+//   ・gViz.level（全体音量）で自機・敵の移動速度がわずかに上下する程度（v1系から変更なし）。
 //
 // ■ 共通ルール遵守
 //   ・背景の矩形描画は lightFillRect を使用（Framework共通Brightnessが自動適用）
@@ -17148,32 +17163,62 @@ void lightRenderTunnel(bool needsInit, bool fullRepaint) {
 //   ・顔は他のLightingと同じくコンポジタが最前面に描く（本モード専用の
 //     顔非表示処理はしない＝ユーザー確認済み仕様）
 //   ・動的メモリ確保なし。固定長の静的配列／スカラー変数のみ
+//
+// ■ Arduino IDE 自動プロトタイプ生成対策
+//   Rainbow Washing Machine / Pixel Invasion追加時と同じ方針で、本ブロックも
+//   カスタムstruct/classを一切定義していない。新設した移動系ヘルパー
+//   （pacCellOpen/pacChooseDir/pacStepActor等）は、すべて int / int8_t / float /
+//   それらへのポインタ、といった組み込み型のみを引数に取るため、Arduino IDEの
+//   ctagsによる自動プロトタイプ生成が未知の型を参照する状況は発生しない。
 // ============================================================================
 #define PAC_CELL   16
 #define PAC_COLS   20
 #define PAC_ROWS   12                 // 20*16=320=SCENE_W, 12*16=192=SCENE_H-SCENE_TOP
 #define PAC_TOP    SCENE_TOP
-#define PAC_C0     1
-#define PAC_C1     18
-#define PAC_R0     1
-#define PAC_R1     10
-#define PAC_CROSS_ROW  5
-#define PAC_PATH_MAX   64
-#define PAC_CROSS_LEN  16             // 中央通路の内側セル数（col2..17）
-#define PAC_GHOSTS     3
+#define PAC_TUNNEL_ROW  5             // この行だけ左右端が通路＝左右トンネルとして接続する
+#define PAC_GHOSTS      3
 
+// ── 迷路データ（正本）。1=壁 / 0=通路。ユーザー設計の12行×20列レイアウトを
+//    そのまま使用し、値・配置は一切変更していない ──────────────────
+const uint8_t PAC_MAZE[PAC_ROWS][PAC_COLS] = {
+  {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,0,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,0,1},
+  {1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1},
+  {1,1,1,0,1,1,1,0,1,1,1,1,0,1,1,1,0,1,1,1},
+  {0,0,1,0,0,0,1,0,1,1,1,1,0,1,0,0,0,1,0,0},
+  {1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1},
+  {1,1,1,0,1,1,1,0,1,1,1,1,0,1,1,1,0,1,1,1},
+  {1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1},
+  {1,0,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,0,1},
+  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+};
+
+// 通路セルのドット消費状態（true=食べられて消えている）。壁セルの値は参照しない。
+static bool   pacDotEaten[PAC_ROWS][PAC_COLS];
 static bool   pacReady = false;
-static int8_t pacPathCol[PAC_PATH_MAX];
-static int8_t pacPathRow[PAC_PATH_MAX];
-static int    pacPathLen = 0;
-static bool   pacDotEaten[PAC_PATH_MAX];
-static bool   pacCrossEaten[PAC_CROSS_LEN];
 
-static float  pacPos   = 0.0f;        // 自機の経路上の連続位置（0..pacPathLen）
-static const float PAC_SPEED = 0.10f; // 1フレームあたりの進行セル数（needsInit以外では固定）
+// パワーエサ：迷路の四隅（外周通路の四隅）に4個。PAC_MAZE上で必ず通路である
+// ことを確認済み（col1/18・row1/10はいずれもPAC_MAZE==0）。
+#define PAC_POWER_COUNT 4
+static const uint8_t PAC_POWER_COL[PAC_POWER_COUNT] = { 1, 18, 1,  18 };
+static const uint8_t PAC_POWER_ROW[PAC_POWER_COUNT] = { 1, 1,  10, 10 };
 
-static float  pacGhostPos[PAC_GHOSTS];  // [0][1]は外周ループ基準、[2]は中央通路の0..1往復
-static int    pacGhostDir[PAC_GHOSTS];
+static const float PAC_SPEED = 0.10f;              // 自機：1フレームあたりの進行セル数（v1系から値は変更なし）
+static const float PAC_GHOST_SPEED[PAC_GHOSTS] = { 0.085f, 0.085f, 0.075f };  // v1系の速度感をできる限り踏襲
+
+// 自機の状態（現在セル・遷移進捗・現在の移動方向）
+static int    pacCol = 1, pacRow = 1;
+static float  pacProgress = 0.0f;
+static int8_t pacDirX = 0, pacDirY = 0;
+
+// オバケ3体の状態（配列。中央の広い通路＝row6のcol9/10/11から出発）
+static int    pacGhostCol[PAC_GHOSTS] = { 9, 10, 11 };
+static int    pacGhostRow[PAC_GHOSTS] = { 6, 6, 6 };
+static float  pacGhostProgress[PAC_GHOSTS];
+static int8_t pacGhostDirX[PAC_GHOSTS];
+static int8_t pacGhostDirY[PAC_GHOSTS];
 static const uint16_t PAC_GHOST_COL[PAC_GHOSTS] = {
   (uint16_t)(((230 & 0xF8) << 8) | ((40  & 0xFC) << 3) | (40  >> 3)),  // 赤
   (uint16_t)(((240 & 0xF8) << 8) | ((130 & 0xFC) << 3) | (210 >> 3)),  // ピンク
@@ -17182,80 +17227,110 @@ static const uint16_t PAC_GHOST_COL[PAC_GHOSTS] = {
 
 static unsigned long pacResetAt = 0;
 
+// 上下左右4方向のセルオフセット（プリミティブ配列のみ。カスタム型は使わない）
+static const int8_t PAC_DIRS[4][2] = { {1,0}, {-1,0}, {0,1}, {0,-1} };
+
+// 乱数：このLighting専用の小さなLCG（既存の他Lighting同様、共通化はしない）
+static uint32_t pacRng = 20260811u;
+static inline uint32_t pacRandNext() {
+  pacRng ^= pacRng << 13; pacRng ^= pacRng >> 17; pacRng ^= pacRng << 5; return pacRng;
+}
+
 static inline void pacCellXY(int col, int row, int* px, int* py) {
   *px = col * PAC_CELL + PAC_CELL / 2;
   *py = PAC_TOP + row * PAC_CELL + PAC_CELL / 2;
 }
 
-// 外周ループ通路のセル列を起動時に一度だけ生成する（時計回り）。
-static void pacBuildPath() {
-  pacPathLen = 0;
-  for (int c = PAC_C0; c <= PAC_C1; c++)              { pacPathCol[pacPathLen] = c;      pacPathRow[pacPathLen] = PAC_R0; pacPathLen++; }
-  for (int r = PAC_R0 + 1; r <= PAC_R1; r++)          { pacPathCol[pacPathLen] = PAC_C1; pacPathRow[pacPathLen] = r;      pacPathLen++; }
-  for (int c = PAC_C1 - 1; c >= PAC_C0; c--)          { pacPathCol[pacPathLen] = c;      pacPathRow[pacPathLen] = PAC_R1; pacPathLen++; }
-  for (int r = PAC_R1 - 1; r >= PAC_R0 + 1; r--)      { pacPathCol[pacPathLen] = PAC_C0; pacPathRow[pacPathLen] = r;      pacPathLen++; }
+// PAC_TUNNEL_ROWの左右トンネルぶんだけ列番号を折り返す。
+static inline int pacWrapCol(int col) {
+  return ((col % PAC_COLS) + PAC_COLS) % PAC_COLS;
+}
+
+// 指定セルが通路として移動可能かどうか（PAC_MAZE正本を参照）。
+// PAC_TUNNEL_ROWだけは左右端の外側も折り返して通路とみなす。他の行は
+// 画面端の外側を通路とみなさない（要件どおり）。
+static bool pacCellOpen(int row, int col) {
+  if (row < 0 || row >= PAC_ROWS) return false;
+  if (col < 0 || col >= PAC_COLS) {
+    if (row != PAC_TUNNEL_ROW) return false;
+    col = pacWrapCol(col);
+  }
+  return PAC_MAZE[row][col] == 0;
+}
+
+// 現在セル・現在方向から次の移動方向を選ぶ（経路探索なしの最小限ロジック）。
+// (a) 直進が可能ならそのまま直進を継続する
+// (b) 直進できない場合、後戻り以外の通路方向からランダムに1つ選ぶ
+// (c) 行き止まり（後戻りしか無い）場合のみ後戻りする
+// 引数はすべてプリミティブ型（int / int8_t / ポインタ）のみで、カスタム
+// struct/classは一切参照しないため、Arduino IDEの自動プロトタイプ生成が
+// 未知の型に当たることはない。
+static void pacChooseDir(int row, int col, int8_t curDx, int8_t curDy, int8_t* outDx, int8_t* outDy) {
+  int8_t otherDx[4], otherDy[4];
+  int otherN = 0;
+  bool straightOK = false;
+  for (int i = 0; i < 4; i++) {
+    int8_t dx = PAC_DIRS[i][0], dy = PAC_DIRS[i][1];
+    if (!pacCellOpen(row + dy, col + dx)) continue;
+    if (dx == curDx && dy == curDy) straightOK = true;
+    if (!(dx == (int8_t)(-curDx) && dy == (int8_t)(-curDy))) {
+      otherDx[otherN] = dx; otherDy[otherN] = dy; otherN++;
+    }
+  }
+  if (straightOK) { *outDx = curDx; *outDy = curDy; return; }
+  if (otherN > 0) {
+    int pick = (int)(pacRandNext() % (uint32_t)otherN);
+    *outDx = otherDx[pick]; *outDy = otherDy[pick];
+    return;
+  }
+  // 候補が無い＝行き止まり。後戻りするしかない。
+  *outDx = (int8_t)(-curDx); *outDy = (int8_t)(-curDy);
+}
+
+// アクター（自機／オバケ）を1体ぶん、1フレームだけ進める。セルの中心から
+// 隣接セルの中心へprogress(0..1)で滑走し、遷移が完了した瞬間にだけ
+// 次の方向を選び直す。すべて組み込み型へのポインタのみを引数に取る。
+static void pacStepActor(int* col, int* row, float* progress, int8_t* dirX, int8_t* dirY, float speed) {
+  *progress += speed;
+  while (*progress >= 1.0f) {
+    *progress -= 1.0f;
+    int nc = *col + *dirX, nr = *row + *dirY;
+    if (nr == PAC_TUNNEL_ROW) nc = pacWrapCol(nc);
+    *col = nc; *row = nr;
+    int8_t ndx, ndy;
+    pacChooseDir(*row, *col, *dirX, *dirY, &ndx, &ndy);
+    *dirX = ndx; *dirY = ndy;
+  }
 }
 
 static void pacResetDots() {
-  for (int i = 0; i < pacPathLen; i++) pacDotEaten[i] = false;
-  for (int i = 0; i < PAC_CROSS_LEN; i++) pacCrossEaten[i] = false;
+  for (int r = 0; r < PAC_ROWS; r++)
+    for (int c = 0; c < PAC_COLS; c++)
+      pacDotEaten[r][c] = false;
 }
 
 static void pacResetActors() {
-  pacPos = 0.0f;
-  pacGhostPos[0] = (float)pacPathLen * 0.33f;
-  pacGhostPos[1] = (float)pacPathLen * 0.66f;
-  pacGhostPos[2] = 0.5f;              // 中央通路は0..1の往復パラメータ
-  pacGhostDir[0] = 1;
-  pacGhostDir[1] = -1;
-  pacGhostDir[2] = 1;
+  pacCol = 1; pacRow = 1; pacProgress = 0.0f; pacDirX = 0; pacDirY = 0;
+  { int8_t dx, dy; pacChooseDir(pacRow, pacCol, pacDirX, pacDirY, &dx, &dy); pacDirX = dx; pacDirY = dy; }
+
+  static const uint8_t GHOST_SPAWN_COL[PAC_GHOSTS] = { 9, 10, 11 };
+  static const uint8_t GHOST_SPAWN_ROW[PAC_GHOSTS] = { 6, 6, 6 };
+  for (int g = 0; g < PAC_GHOSTS; g++) {
+    pacGhostCol[g] = GHOST_SPAWN_COL[g];
+    pacGhostRow[g] = GHOST_SPAWN_ROW[g];
+    pacGhostProgress[g] = 0.0f;
+    pacGhostDirX[g] = 0; pacGhostDirY[g] = 0;
+    int8_t dx, dy;
+    pacChooseDir(pacGhostRow[g], pacGhostCol[g], pacGhostDirX[g], pacGhostDirY[g], &dx, &dy);
+    pacGhostDirX[g] = dx; pacGhostDirY[g] = dy;
+  }
 }
 
 static void pacInitAll() {
-  pacBuildPath();
   pacResetDots();
   pacResetActors();
   pacResetAt = 0;
   pacReady = true;
-}
-
-// 装飾用の壁ブロック（見た目だけで、実際の通路判定＝移動経路には使わない）。
-// PAC-MAN風の非対称な迷路に見せるため、上下左右で異なる形の壁ブロック
-// （T字・角・袋小路・ゴーストハウス・左右トンネル風の開口）を配置する。
-// 実際にキャラクターが通る経路（外周ループ＝PAC_C0/PAC_C1/PAC_R0/PAC_R1と
-// 中央横断通路＝PAC_CROSS_ROW）は、以下のガードで必ず壁にならないようにしている。
-static bool pacIsWallCell(int col, int row) {
-  // 上下端は常に壁
-  if (row == 0 || row == PAC_ROWS - 1) return true;
-  // 左右端：中央通路の行だけ開口し、PAC-MANらしいワープトンネル風の抜けを演出
-  if (col == 0 || col == PAC_COLS - 1) return (row != PAC_CROSS_ROW);
-
-  // 実際の移動経路（外周ループ＋中央横断通路）は最優先で通路のまま維持
-  if (col == PAC_C0 || col == PAC_C1)        return false; // 外周ループの縦通路帯
-  if (row == PAC_R0 || row == PAC_R1)        return false; // 外周ループの横通路帯
-  if (row == PAC_CROSS_ROW)                  return false; // 中央横断通路
-
-  // ── ここから内部の装飾壁（通路判定には無関係）──
-  // 上段（row2-4）：非対称なT字・角ブロックで「田」の字を崩す
-  if (row >= 2 && row <= 3 && col >= 2  && col <= 3)  return true; // 左上の角ブロック
-  if (row == 2              && col >= 5  && col <= 8) return true; // 横バー
-  if (row >= 3 && row <= 4  && col >= 6  && col <= 7) return true; // ↑から垂れるT字の柄
-  if (row >= 2 && row <= 4  && col >= 10 && col <= 11) return true; // 中央上の縦長ブロック
-  if (row == 2              && col >= 13 && col <= 17) return true; // 右上の長い横バー
-  if (row >= 3 && row <= 4  && col >= 14 && col <= 15) return true; // 右側T字の柄（左とは位置をずらす）
-
-  // 中央：ゴーストハウスを連想させる小部屋（中央横断通路のすぐ下＝入口的な位置）
-  if (row == 6               && col >= 8  && col <= 11) return true; // 屋根
-  if (row == 7               && (col == 8 || col == 11)) return true; // 側柱（内側col9-10は入口として開放）
-
-  // 下段（row6-9）：上段とは高さ・大きさを変えた非対称配置
-  if (row >= 6 && row <= 7  && col >= 2  && col <= 3)  return true; // 左の角ブロック（上段より低い位置）
-  if (row >= 8 && row <= 9  && col >= 4  && col <= 6)  return true; // 左下の横長ブロック
-  if (row == 9               && col >= 13 && col <= 16) return true; // 右下の横バー
-  if (row >= 6 && row <= 8  && col >= 14 && col <= 15) return true; // 右の縦長ブロック
-  if (row >= 6 && row <= 7  && col == 17)              return true; // 右端の細い柱（袋小路）
-
-  return false;
 }
 
 static void pacDrawGhost(int cx, int cy, uint16_t col, int dirX) {
@@ -17292,59 +17367,52 @@ void lightRenderPacman(bool needsInit, bool fullRepaint) {
   // ── 背景を黒で塗りつぶす（毎フレーム全面・Sky Raid等と同じ連続アニメ方式）──
   lightFillRect(0, PAC_TOP, SCENE_W, SCENE_H - PAC_TOP, BLACK);
 
-  // ── 壁タイル ──
+  // ── 壁タイル（PAC_MAZEを正本として、v1系と同じ二重矩形の描き方をそのまま使う）──
   for (int row = 0; row < PAC_ROWS; row++) {
     for (int col = 0; col < PAC_COLS; col++) {
-      if (!pacIsWallCell(col, row)) continue;
+      if (PAC_MAZE[row][col] == 0) continue;
       int x = col * PAC_CELL, y = PAC_TOP + row * PAC_CELL;
       lightFillRect(x + 1, y + 1, PAC_CELL - 2, PAC_CELL - 2, WALL_EDGE);
       lightFillRect(x + 2, y + 2, PAC_CELL - 6, PAC_CELL - 6, WALL_COL);
     }
   }
 
-  // ── ドット／パワーエサ ──
+  // ── ドット／パワーエサ（PAC_MAZEの通路セルすべてに配置。壁セルには描かない）──
   bool blink = ((now / 260) % 2) == 0;
-  for (int i = 0; i < pacPathLen; i++) {
-    int col = pacPathCol[i], row = pacPathRow[i];
-    bool isPellet = (col == PAC_C0 && row == PAC_R0) || (col == PAC_C1 && row == PAC_R0) ||
-                    (col == PAC_C0 && row == PAC_R1) || (col == PAC_C1 && row == PAC_R1);
-    int cx, cy; pacCellXY(col, row, &cx, &cy);
-    if (isPellet) {
-      if (!blink) continue;
-      GFX.fillCircle(cx, cy, 4, lightBright(DOT_COL));
-    } else {
-      if (pacDotEaten[i]) continue;
-      GFX.fillCircle(cx, cy, 2, lightBright(DOT_COL));
+  for (int row = 0; row < PAC_ROWS; row++) {
+    for (int col = 0; col < PAC_COLS; col++) {
+      if (PAC_MAZE[row][col] != 0) continue;   // 壁セルにはドットを描かない
+      bool isPower = false;
+      for (int k = 0; k < PAC_POWER_COUNT; k++) {
+        if (PAC_POWER_COL[k] == col && PAC_POWER_ROW[k] == row) { isPower = true; break; }
+      }
+      int cx, cy; pacCellXY(col, row, &cx, &cy);
+      if (isPower) {
+        if (!blink || pacDotEaten[row][col]) continue;
+        GFX.fillCircle(cx, cy, 4, lightBright(DOT_COL));
+      } else {
+        if (pacDotEaten[row][col]) continue;
+        GFX.fillCircle(cx, cy, 2, lightBright(DOT_COL));
+      }
     }
   }
-  for (int k = 0; k < PAC_CROSS_LEN; k++) {
-    if (pacCrossEaten[k]) continue;
-    int col = PAC_C0 + 1 + k;
-    int cx, cy; pacCellXY(col, PAC_CROSS_ROW, &cx, &cy);
-    GFX.fillCircle(cx, cy, 2, lightBright(DOT_COL));
-  }
 
-  // ── 自機（外周ループを周回）──
-  pacPos += PAC_SPEED * audioBoost;
-  while (pacPos >= (float)pacPathLen) pacPos -= (float)pacPathLen;
-  int   pi  = (int)pacPos;
-  int   pi2 = (pi + 1) % pacPathLen;
-  float pf  = pacPos - (float)pi;
+  // ── 自機（PAC_MAZEの通路だけを、隣接セル判定でグリッド移動）──
+  pacStepActor(&pacCol, &pacRow, &pacProgress, &pacDirX, &pacDirY, PAC_SPEED * audioBoost);
+  pacDotEaten[pacRow][pacCol] = true;   // 現在セルのドットを消費
+
   int x0, y0, x1, y1;
-  pacCellXY(pacPathCol[pi],  pacPathRow[pi],  &x0, &y0);
-  pacCellXY(pacPathCol[pi2], pacPathRow[pi2], &x1, &y1);
-  int pacX = x0 + (int)((x1 - x0) * pf);
-  int pacY = y0 + (int)((y1 - y0) * pf);
-  pacDotEaten[pi] = true;
+  pacCellXY(pacCol, pacRow, &x0, &y0);
+  pacCellXY(pacCol + pacDirX, pacRow + pacDirY, &x1, &y1);   // 折り返し前の生座標＝トンネルで自然に画面外へ滑走する
+  int pacX = x0 + (int)((x1 - x0) * pacProgress);
+  int pacY = y0 + (int)((y1 - y0) * pacProgress);
 
-  int dirX = (x1 > x0) ? 1 : (x1 < x0 ? -1 : 0);
-  int dirY = (y1 > y0) ? 1 : (y1 < y0 ? -1 : 0);
   float mouthT = (sinf((float)now * 0.012f) + 1.0f) * 0.5f;  // 0..1
   int mouthDeg = 8 + (int)(mouthT * 30.0f);                  // 8〜38度
 
   GFX.fillCircle(pacX, pacY, 7, lightBright(PACMAN_COL));
-  if (dirX != 0 || dirY != 0) {
-    float baseAng = atan2f((float)dirY, (float)dirX);
+  if (pacDirX != 0 || pacDirY != 0) {
+    float baseAng = atan2f((float)pacDirY, (float)pacDirX);
     float half = mouthDeg * 3.14159f / 180.0f;
     float ax = pacX + cosf(baseAng + half) * 10.0f;
     float ay = pacY + sinf(baseAng + half) * 10.0f;
@@ -17353,44 +17421,28 @@ void lightRenderPacman(bool needsInit, bool fullRepaint) {
     GFX.fillTriangle(pacX, pacY, (int)ax, (int)ay, (int)bx, (int)by, BLACK);
   }
 
-  // ── 敵（オバケ）3体：外周ループの別位相2体＋中央通路往復1体 ──
+  // ── 敵（オバケ）3体：3体とも同じグリッド移動ロジックで独立に動く ──
   for (int g = 0; g < PAC_GHOSTS; g++) {
-    int gx, gy, gdirX;
-    if (g < 2) {
-      pacGhostPos[g] += 0.085f * audioBoost * (float)pacGhostDir[g];
-      while (pacGhostPos[g] < 0.0f)               pacGhostPos[g] += (float)pacPathLen;
-      while (pacGhostPos[g] >= (float)pacPathLen)  pacGhostPos[g] -= (float)pacPathLen;
-      int gi  = (int)pacGhostPos[g];
-      int gi2 = (gi + pacGhostDir[g] + pacPathLen) % pacPathLen;
-      float gf = pacGhostPos[g] - (float)gi;
-      int gx0, gy0, gx1, gy1;
-      pacCellXY(pacPathCol[gi],  pacPathRow[gi],  &gx0, &gy0);
-      pacCellXY(pacPathCol[gi2], pacPathRow[gi2], &gx1, &gy1);
-      gx = gx0 + (int)((gx1 - gx0) * gf);
-      gy = gy0 + (int)((gy1 - gy0) * gf);
-      gdirX = (gx1 >= gx0) ? 1 : -1;
-      if (gi >= 0 && gi < pacPathLen) pacDotEaten[gi] = true;
-    } else {
-      pacGhostPos[g] += 0.02f * audioBoost * (float)pacGhostDir[g];
-      if (pacGhostPos[g] >= 1.0f) { pacGhostPos[g] = 1.0f; pacGhostDir[g] = -1; }
-      if (pacGhostPos[g] <= 0.0f) { pacGhostPos[g] = 0.0f; pacGhostDir[g] = 1; }
-      float t = pacGhostPos[g];
-      int cx0, cy0, cx1, cy1;
-      pacCellXY(PAC_C0, PAC_CROSS_ROW, &cx0, &cy0);
-      pacCellXY(PAC_C1, PAC_CROSS_ROW, &cx1, &cy1);
-      gx = cx0 + (int)((cx1 - cx0) * t);
-      gy = cy0;
-      gdirX = pacGhostDir[g];
-      int idx = (int)(t * (PAC_CROSS_LEN - 1));
-      if (idx >= 0 && idx < PAC_CROSS_LEN) pacCrossEaten[idx] = true;
-    }
+    pacStepActor(&pacGhostCol[g], &pacGhostRow[g], &pacGhostProgress[g], &pacGhostDirX[g], &pacGhostDirY[g],
+                 PAC_GHOST_SPEED[g] * audioBoost);
+    pacDotEaten[pacGhostRow[g]][pacGhostCol[g]] = true;   // v1系同様、オバケも通過した通路のドットを消費する
+
+    int gx0, gy0, gx1, gy1;
+    pacCellXY(pacGhostCol[g], pacGhostRow[g], &gx0, &gy0);
+    pacCellXY(pacGhostCol[g] + pacGhostDirX[g], pacGhostRow[g] + pacGhostDirY[g], &gx1, &gy1);
+    int gx = gx0 + (int)((gx1 - gx0) * pacGhostProgress[g]);
+    int gy = gy0 + (int)((gy1 - gy0) * pacGhostProgress[g]);
+    int gdirX = (pacGhostDirX[g] > 0) ? 1 : (pacGhostDirX[g] < 0 ? -1 : 0);
     pacDrawGhost(gx, gy, PAC_GHOST_COL[g], gdirX);
   }
 
   // ── ドット全消化 or 一定時間経過で無限ループのため復活 ──
   bool allEaten = true;
-  for (int i = 0; i < pacPathLen && allEaten; i++) if (!pacDotEaten[i]) allEaten = false;
-  for (int k = 0; k < PAC_CROSS_LEN && allEaten; k++) if (!pacCrossEaten[k]) allEaten = false;
+  for (int row = 0; row < PAC_ROWS && allEaten; row++) {
+    for (int col = 0; col < PAC_COLS && allEaten; col++) {
+      if (PAC_MAZE[row][col] == 0 && !pacDotEaten[row][col]) allEaten = false;
+    }
+  }
   if (pacResetAt == 0) pacResetAt = now + 45000;   // 45秒ごとにも強制リセット（見た目の新鮮さ維持）
   if (allEaten || now >= pacResetAt) {
     pacResetDots();
