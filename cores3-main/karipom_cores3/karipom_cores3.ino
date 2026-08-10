@@ -809,6 +809,8 @@ enum LightingMode : uint8_t {
   //   （enum値も再利用しないよう欠番にはせず、LIGHT_VORTEXをそのままbit15に詰めた）。
   LIGHT_AQUARIUM = 16,        // Aquarium（背景・特定作品の模倣ではないKariPom独自表現の水槽風スクリーンセーバー）
   LIGHT_FLYINGPOMPADOUR = 17, // Flying Pompadour（背景・1990年代スクリーンセーバーへのオマージュ。著作物のデザインは使わずKariPom独自の飛行体で表現）
+  LIGHT_RAINBOWWASHER = 18,   // Rainbow Washing Machine（背景・中心から放射状に広がる多数の高彩度三角片が洗濯機の脱水サイクル風に速度・方向を変えながら回転）
+  LIGHT_PIXELINVASION = 19,   // Pixel Invasion（背景・1970年代末〜80年代初頭の固定画面シューティングへのオマージュ。黒背景に紫/水色/緑のオリジナルドット絵敵編隊・自機・赤いシールド・UFOが自動で動き続ける）
   // ↓ 将来ここへ追加（Defender / Scramble / Pong / Block Breaker / Fire / Neon …）
   // cfg_lightingMask は uint32_t（今後のLighting追加を見込んで正式採用。bit31=32番目まで拡張余地あり）。
   LIGHT_MODE_COUNT
@@ -854,6 +856,10 @@ const LightModeInfo LIGHT_MODES[LIGHT_MODE_COUNT] = {
     "往年の水槽スクリーンセーバーを思わせる、眺めていて心地よい水中Lightingです（特定ソフトウェアの画像・デザインを再現したものではなく、KariPom独自の表現です）。上ほど淡く下ほど沈む水の濃淡と、ゆっくり漂う淡い光の筋で深い水中を感じさせます。体色・体形・ヒレ・模様の異なる数種類の魚が3〜6匹、大きさ・泳ぐ高さ・速度をそれぞれ変えて左右どちらの向きにも泳ぎ、尾びれと各ヒレは常に小さくはためいて生きて泳いでいるように見えます。画面外へ抜けた魚は少し間を置いてから自然なタイミングで再登場します。下部には岩・水草・砂地を控えめに配置し、気泡が下から上へゆっくり立ちのぼります。動きはせわしなくせず、ぼんやり眺めていられる速度感を重視しています。Brightness設定が効きます。" },
   { "flyingpompadour", "Flying Pompadour",
     "1990年代の名作スクリーンセーバーへのオマージュ演出です（元作品の画像・デザインはそのまま使用せず、羽の生えたKariPomらしい小型飛行体をモチーフにしたKariPom独自のデザインです）。夕暮れから夜へ沈む空を背景に、丸いフォルムとポンパドール状のシルエットを持つ小さな飛行体が斜め方向に画面を横切ります。複数体が一定間隔ではなくランダムなタイミングで現れ、大きさ・速度の異なる奥と手前の2層で奥行きを表現します。羽は4コマの羽ばたきアニメーションで動き、本体には陰影とハイライトを付けて立体感を出しています。見た瞬間にあの雰囲気を思わせつつも、グラフィックは完全にオリジナルです。Brightness設定が効きます。" },
+  { "rainbowwasher", "Rainbow Washing Machine",
+    "画面中央の消失点を軸に、赤・橙・黄・黄緑・緑・シアン・青・紫・マゼンタなど彩度の高い三角形・くさび形の色片が510個、中心付近の小さな点として次々に生まれては外側へ実際に移動しながらだんだん大きくなり、最外周に達すると消えてまた中心付近から生まれ直す、極彩色のトンネルのようなLightingです。半径を5つの帯に分け、内側から外側へ帯ごとに回転方向・速度を変えている（隣り合う帯が互いに逆方向へ回る）ため、複数の渦が重なって滑っていくように見えます。Hypnotic Vortexの単色6分割ウェッジが1枚岩として一定速度で回るのとは異なり、色片の数・中心から外周への移動・帯ごとの逆回転のいずれの点でも別物です。加速・停止・反転を伴う洗濯機の脱水サイクルのような動きではなく、回転は止まることなく常時継続する、トランス感のある演出です。Psychedelic / Tranceのような視覚モチーフの切替や点滅も行いません。Brightness設定が効きます。" },
+  { "pixelinvasion", "Pixel Invasion",
+    "1970年代末〜1980年代初頭のカラー化された固定画面シューティングゲームの雰囲気を思わせる、レトロアーケード風の自動アニメーションLightingです（実在ゲームのスプライトデータは一切使用せず、上段マゼンタ・中段ターコイズ・下段グリーンに塗り分けたKariPom独自のドット絵敵編隊です）。背景は完全な黒一色で、星や背景スクロールなどの宇宙演出は入れていません。5段の敵編隊が数ピクセル単位でカッ、カッ、カッと左右へ移動し、端に達すると方向転換して少し下降します。画面下部ではオリジナルデザインの自機が自動で左右往復しながら時々弾を発射し、敵側も時おり下方向へ弾を撃ち返します。自機と敵編隊の間には赤いピクセルアートのシールドが4つあり、弾が当たった場所から少しずつ欠けていきます。ときどき画面上部をUFOが横切ります。スコアや残機、GAME OVERの概念は無く、編隊が減ったり画面下に近づいたりすると新しい編隊とシールドへ自然に切り替わり、眺めている間ずっとアニメーションが続きます。Brightness設定が効きます。" },
 };
 
 // Lightingの複数選択状態（ビットマスク・NVS "lightMask" に保存）。0=全OFF。
@@ -928,6 +934,8 @@ const uint8_t LIGHT_LAYER[LIGHT_MODE_COUNT] = {
   LIGHT_LAYER_BG,    // LIGHT_VORTEX  … 面
   LIGHT_LAYER_BG,    // LIGHT_AQUARIUM … 面
   LIGHT_LAYER_BG,    // LIGHT_FLYINGPOMPADOUR … 面
+  LIGHT_LAYER_BG,    // LIGHT_RAINBOWWASHER … 面
+  LIGHT_LAYER_BG,    // LIGHT_PIXELINVASION … 面
 };
 const uint8_t LIGHT_HEADER[LIGHT_MODE_COUNT] = {
   HEADER_LIGHT,      // LIGHT_DISCO  … 明るい原色の床 → 上端は白背景が読みやすい
@@ -952,6 +960,8 @@ const uint8_t LIGHT_HEADER[LIGHT_MODE_COUNT] = {
   HEADER_LIGHT,      // LIGHT_VORTEX  … 白背景に黒い螺旋アーム → 上端は白背景が読みやすい
   HEADER_DARK,       // LIGHT_AQUARIUM … 深い水中の暗めの青緑背景 → 黒
   HEADER_DARK,       // LIGHT_FLYINGPOMPADOUR … 夕暮れ〜夜空の暗い背景 → 黒
+  HEADER_DARK,       // LIGHT_RAINBOWWASHER … 黒背景に高彩度の色片 → 黒
+  HEADER_DARK,       // LIGHT_PIXELINVASION … 完全な黒背景 → 黒
 };
 
 // 上端パネルを黒テーマにすべきか（採用中の背景Lightingのヘッダーに従う）。
@@ -20296,6 +20306,658 @@ void lightRenderFlyingPompadour(bool needsInit, bool fullRepaint) {
 }
 
 // ============================================================================
+// Lighting #19 : Rainbow Washing Machine（v1.1 / 2026-08-10）
+//
+// ■ コンセプト（2026-08-10 実機評価を反映し全面改訂）
+//   v1.0は「固定形状のリングがその場で回転するだけ」で奥行きが無く、実機評価で
+//   トランス感・奥行き感が乏しいとの指摘を受けた。v1.1では、色片そのものが
+//   中心付近の小さな点として生まれ、外側へ向かって実際に移動しながら
+//   だんだん大きくなり、最外周で消えてまた中心付近から生まれ直す──という
+//   循環運動を主役にし、「中央の消失点から色のトンネルがこちらへ迫ってくる」
+//   奥行きを作っている（詳細は buildRainbowWashingMachineTable() /
+//   lightRenderRainbowWashingMachine() 内のコメント参照）。
+//
+//   さらに、半径によって回転方向・速度が変わる「帯（RWM_BAND_*）」を設け、
+//   内側から外側へ「時計回り→反時計回り→時計回り→…」と隣接する帯が
+//   互いに逆方向へ滑るようにしてある。単一の剛体として同じ角速度で回る
+//   Hypnotic Vortexとは、色片の数・色の割り当て・中心→外周への移動・
+//   帯ごとの逆回転のいずれの点でも明確に別物になっている。
+//
+//   また、v1.0にあった「加速→高速巡航→減速→一時停止→（時々）反転」という
+//   洗濯機の脱水サイクル的な速度変化・停止フェーズは、実機評価で「回転が
+//   主役に見えすぎる」との指摘を受けて廃止した。回転は帯ごとに常時継続し、
+//   停止・完全な逆転サイクルは行わない（トランス感を優先）。
+//
+//   既存 Psychedelic / Trance（LIGHT_PSYCHE）とも別物：Psychedelicは
+//   「輪・螺旋・モアレ…」といった複数の視覚モチーフを1〜2秒ごとに丸ごと
+//   切り替え、フラッシュ・顔差し込みなど「予測不能な切替」が主役のモンタージュ
+//   型。本Lightingはモチーフの切替や静止フラッシュを行わず、単一の連続した
+//   「中心から湧き出て外へ流れるトンネル」を持続させる。
+//
+// ■ 負荷対策
+//   色片は固定数（RWM_COUNT個）のプールを使い回す（生成・消滅のたびに
+//   new/deleteやmalloc/freeは行わない）。毎フレームは各色片について
+//   「現在の半径から属する帯を求める→帯の角速度で角度を進める→半径に比例した
+//   速度で外側へ進める→最外周を超えたら中心付近の値へ書き戻す」という
+//   O(1)の更新と、頂点3点ぶんのcosf/sinfのみで、画面全ピクセルに対する
+//   atan2等の重い処理は行わない。
+// ============================================================================
+#define RWM_TOP    SCENE_TOP
+#define RWM_CX     160
+#define RWM_CY     ((RWM_TOP + 240) / 2)
+#define RWM_MAX_R  200.0f   // この半径で画面四隅まで完全に覆う（トンネルの最遠端）
+#define RWM_COUNT  510      // 常時プールしておく色片の総数（2026-08-10: 実機評価で密度不足の
+                             // 指摘を受け170→510へ変更。アニメーションロジックは無変更）
+
+// 9色・高彩度パレット（赤・橙・黄・黄緑・緑・シアン・青・紫・マゼンタ）。
+// このLightingは終始このパレットのみを使い、パステル寄りの色は混ぜない。
+static const uint16_t RWM_PALETTE[9] = {
+  0xF800, 0xFD20, 0xFFE0, 0xAFE5, 0x07E0, 0x07FF, 0x001F, 0x780F, 0xF81F,
+};
+#define RWM_PALETTE_COUNT 9
+
+// 半径を RWM_BAND_COUNT個の帯に分け、帯ごとに異なる回転方向・速度を与える。
+// 符号を隣り合う帯どうしで交互にすることで「内側:時計回り／中間:反時計回り／
+// 外側:時計回り…」のように半径方向へ逆回転する層が並ぶ（画面座標はy下方向が
+// 正のため、cosf/sinfで角度を増やす方向＝符号+が時計回りになる）。速度の大きさ
+// も帯ごとに変えて「適度な速度差」を出している。
+#define RWM_BAND_COUNT 5
+static const float RWM_BAND_ANGVEL[RWM_BAND_COUNT] = { 1.05f, -1.55f, 0.80f, -1.35f, 1.15f };
+static const float RWM_BAND_WOBBLE_FREQ[RWM_BAND_COUNT] = { 0.35f, 0.50f, 0.28f, 0.60f, 0.40f };
+#define RWM_BAND_WOBBLE_AMP 0.15f   // 速度がゆっくり揺らぐ幅（符号は反転させない＝停止・逆転はしない）
+
+// 半径の成長：中心付近はゆっくり・外側ほど速く広がる（半径に比例する成長速度＋
+// 常に一定以上の最低速度）ことで、「消失点から迫ってくる」加速感を出す。
+#define RWM_GROWTH_RATE     0.50f  // 半径に比例した成長速度（1/秒）
+#define RWM_GROWTH_MIN      5.0f   // 中心付近でも動きが止まって見えないための最低速度(px/秒)
+#define RWM_RESPAWN_R       2.0f   // 再出現時の半径（中心付近）
+#define RWM_RESPAWN_JITTER  6.0f   // 再出現位置の半径ジッター（同時に生まれた点が重ならないように）
+
+struct RwmShard {
+  float   r;            // 中心からの現在の距離（半径）。時間とともに増加し続ける
+  float   ang;           // 現在の角度（rad）。半径が属する帯の角速度で回り続ける
+  float   angWidthL;     // 外側左頂点の角度オフセット幅
+  float   angWidthR;     // 外側右頂点の角度オフセット幅
+  float   apexAngOff;    // 中心側頂点の角度オフセット（三角形を歪ませ不揃いに見せる）
+  float   growthMul;     // この色片固有の成長速度倍率（個体差を出す）
+  uint8_t colorIdx;
+};
+
+// Arduino IDEの自動プロトタイプ生成（ctags）は、struct RwmShard の定義より前の
+// 位置へ rwmSpawnShard() のプロトタイプを機械的に挿入してしまい、その時点では
+// RwmShard がまだ未定義のため "'RwmShard' was not declared in this scope" 等で
+// ビルド失敗する（Fighter Duel の sfDrawFighter(const SFFighter&, ...) と同じ
+// 既知の問題。詳細はそちらの前方宣言コメントを参照）。
+// ここで手動プロトタイプを明示することで自動生成対象から外し、回避する。
+static void rwmSpawnShard(RwmShard& s, float rStart);
+
+static RwmShard rwmShard[RWM_COUNT];
+static bool     rwmReady = false;
+
+// 乱数：このLighting専用の小さなLCG（既存の他Lighting同様、共通化はしない）
+static uint32_t rwmLcg = 1;
+static inline uint32_t rwmRand() {
+  rwmLcg ^= rwmLcg << 13; rwmLcg ^= rwmLcg >> 17; rwmLcg ^= rwmLcg << 5; return rwmLcg;
+}
+static inline float rwmRand01() { return (float)(rwmRand() & 0xFFFF) / 65535.0f; }
+
+// 色片1個を「中心付近の新しい点」として（再）生成する。形・色・成長速度の
+// 個体差はここで毎回ランダムに決め直すため、同じ場所から生まれ直しても
+// 見た目が単調にならない。
+static void rwmSpawnShard(RwmShard& s, float rStart) {
+  s.r   = rStart;
+  s.ang = rwmRand01() * 6.2831853f;
+  float halfW  = 0.045f + rwmRand01() * 0.10f;  // 角度幅は概ね一定（rad）。絶対幅は半径とともに自動的に広がる
+  s.angWidthL  = halfW * (0.7f + rwmRand01() * 0.6f);
+  s.angWidthR  = halfW * (0.7f + rwmRand01() * 0.6f);
+  s.apexAngOff = (rwmRand01() - 0.5f) * halfW * 0.6f;
+  s.growthMul  = 0.82f + rwmRand01() * 0.36f;
+  s.colorIdx   = (uint8_t)(rwmRand() % RWM_PALETTE_COUNT);
+}
+
+void buildRainbowWashingMachineTable() {
+  rwmLcg = 20260810u;
+  for (uint16_t i = 0; i < RWM_COUNT; i++) {
+    // 起動直後から中心〜最外周までトンネルの奥行き全体に色片が満ちて見えるよう、
+    // 初期半径だけは均等にばらまいておく（以後の再出現は必ず中心付近から、
+    // という循環ルールは rwmSpawnShard() 側で保証する）。
+    float rStart = ((float)i / (float)RWM_COUNT) * RWM_MAX_R;
+    rwmSpawnShard(rwmShard[i], rStart);
+  }
+  rwmReady = true;
+}
+
+void lightRenderRainbowWashingMachine(bool needsInit, bool fullRepaint) {
+  (void)fullRepaint;
+  if (!rwmReady) buildRainbowWashingMachineTable();
+
+  static unsigned long rwmPrevMs   = 0;
+  static float         rwmTimeSec  = 0.0f;
+  unsigned long now = millis();
+  if (needsInit || rwmPrevMs == 0) { rwmPrevMs = now; rwmTimeSec = 0.0f; }
+  float dt = (now - rwmPrevMs) / 1000.0f;
+  if (dt > 0.5f) dt = 0.5f;
+  rwmPrevMs = now;
+  rwmTimeSec += dt;
+
+  GFX.setClipRect(0, RWM_TOP, 320, 240 - RWM_TOP);
+  lightFillRect(0, RWM_TOP, 320, 240 - RWM_TOP, BLACK);
+
+  for (uint16_t i = 0; i < RWM_COUNT; i++) {
+    RwmShard& s = rwmShard[i];
+
+    // ① 半径からこの色片が属する帯を求め、帯ごとの角速度（符号が違えば逆回転）
+    //    で角度を進める。速度にはゆっくりした揺らぎを重ねるが符号は変えない
+    //    ＝回転が止まったり反転したりはしない（トランス感を優先）。
+    int band = (int)(s.r / RWM_MAX_R * (float)RWM_BAND_COUNT);
+    if (band < 0) band = 0;
+    if (band >= RWM_BAND_COUNT) band = RWM_BAND_COUNT - 1;
+    float wobble = 1.0f + RWM_BAND_WOBBLE_AMP
+                 * sinf(rwmTimeSec * RWM_BAND_WOBBLE_FREQ[band] + (float)band * 1.7f);
+    s.ang += RWM_BAND_ANGVEL[band] * wobble * dt;
+
+    // ② 半径そのものを時間とともに増やし、色片を中心から外側へ実際に移動させる。
+    //    半径に比例した速度＋最低速度により、中心付近はゆっくり・外側ほど速く
+    //    広がる（消失点から迫ってくるような加速感）。
+    s.r += (RWM_GROWTH_RATE * s.r + RWM_GROWTH_MIN) * s.growthMul * dt;
+
+    // ③ 最外周を超えたら消し、中心付近から新しい色片として生まれ直させる
+    //    （この循環を止めずに連続させることで「トンネル」に見せる）。
+    if (s.r > RWM_MAX_R + 24.0f) {
+      rwmSpawnShard(s, RWM_RESPAWN_R + rwmRand01() * RWM_RESPAWN_JITTER);
+      continue;   // 生まれ直した直後の1フレームは点として小さすぎるため描画を省略
+    }
+
+    // 半径が大きいほど色片自体も太く・大きく見えるようにする（外側ほど大きい構成）。
+    float depthHalf = 3.0f + s.r * 0.09f;
+    float apexR = s.r - depthHalf; if (apexR < 0.0f) apexR = 0.0f;
+    float baseR = s.r + depthHalf;
+
+    float apexAng = s.ang + s.apexAngOff;
+    float ax = RWM_CX + cosf(apexAng) * apexR;
+    float ay = RWM_CY + sinf(apexAng) * apexR;
+    float lx = RWM_CX + cosf(s.ang - s.angWidthL) * baseR;
+    float ly = RWM_CY + sinf(s.ang - s.angWidthL) * baseR;
+    float rx = RWM_CX + cosf(s.ang + s.angWidthR) * baseR;
+    float ry = RWM_CY + sinf(s.ang + s.angWidthR) * baseR;
+    uint16_t col = lightBright(RWM_PALETTE[s.colorIdx]);
+    GFX.fillTriangle((int)ax, (int)ay, (int)lx, (int)ly, (int)rx, (int)ry, col);
+  }
+
+  // 中心に小さな光点を置き、トンネルの奥（消失点）をはっきり感じさせる。
+  GFX.fillCircle(RWM_CX, RWM_CY, 2, lightBright(WHITE));
+
+  GFX.clearClipRect();
+}
+
+// ============================================================================
+// Lighting #20 : Pixel Invasion（v1.0 / 2026-08-10）
+//
+// ■ コンセプト
+//   1970年代末〜1980年代初頭のカラー化された固定画面シューティングゲーム
+//   （特にSpace Invaders Part IIの雰囲気）から着想を得た、レトロアーケード風の
+//   自動アニメーションLightingです。実在ゲームのスプライトデータ・マップ・
+//   画像は一切使用せず、敵編隊・自機・UFOはすべて本ブロック内で新規に
+//   デザインしたオリジナルのドット絵（8x8等の小さな2値ビットマップ）です。
+//   背景は要件どおり完全な黒一色のみで、星・瞬き・流れ星・パーティクル・
+//   背景スクロールの類は一切描かない（Asteroid Field/Tempest Tunnel/Missile
+//   Defenseに追加したカラフルな1ドット星とは意図的に切り離してあり、本
+//   Lightingには一切持ち込んでいない）。
+//
+// ■ Arduino IDE 自動プロトタイプ生成対策（設計方針）
+//   Rainbow Washing Machine追加時に、ユーザー定義structを引数に取る関数で
+//   ctagsの自動プロトタイプ生成がstruct定義より前へプロトタイプを挿入して
+//   しまい、ビルドエラーになる問題が発生した（対策はrwmSpawnShard()直上の
+//   コメント、および本ファイル冒頭のPsyPal・17444行目付近のSFFighterの
+//   コメントを参照）。本Lightingでは同じ問題を最初から避けるため、
+//   【カスタムstruct/classを一切定義しない】設計にしてある。敵編隊・弾・
+//   シールドはすべてグローバルなプリミティブ型の配列（bool/uint8_t/float/
+//   uint16_t/unsigned long）で保持し、操作関数はすべて添字(int)や座標(float)
+//   などのプリミティブ引数のみを取る（Missile DefenseのmSpawnEnemy(uint8_t i)
+//   と同じ流儀）。これにより自動生成プロトタイプが未知の型を参照すること
+//   自体が起こり得ない。
+//
+// ■ 構成
+//   ・敵編隊：8列×5段。1段目＝マゼンタ、2〜3段目＝ターコイズ、4〜5段目＝
+//     グリーンの3色に塗り分け、段のグループごとに異なる自作ドット絵（各2
+//     フレームの脚／触手アニメーション）を割り当てている。編隊全体は一定
+//     ピクセル単位でしか移動しない「ステップ移動」で、画面端付近に達すると
+//     反転して少し下降する。
+//   ・自機：画面下部をステップ移動で自動的に左右往復し、一定間隔でランダム
+//     性を持たせつつ弾を発射する。
+//   ・シールド：4個。赤いドット絵の防壁で、弾が当たったセルだけが個別に
+//     消えていき、徐々に崩れて見える。編隊リセット時に元の形へ復元する。
+//   ・弾：自機弾（水色系・上方向）、敵弾（赤系・下方向）。同時数を少数
+//     （自機1発・敵最大3発）に制限し、昔の固定画面シューティングらしい
+//     簡潔な画面を維持する。
+//   ・UFO：ランダムな間隔（約9〜21秒）で出現し、画面最上部付近を左右
+//     どちらかへ横切って自然に消える。
+//   ・永久ループ：敵が少数まで減る／編隊が下降しすぎる／一定時間経過、の
+//     いずれかで新しい5段編隊とシールドへ自然に切り替わる。スコア・残機・
+//     GAME OVER・ユーザー操作は一切無く、アニメーションは無限に継続する。
+//
+// ■ 描画方針
+//   すべて lightFillRect（Framework共通Brightness適用済み）による矩形の
+//   ベタ塗りのみで構成し、アンチエイリアス・グラデーション・発光・
+//   パーティクル・大量の爆発演出は使わない（要件どおり）。撃墜演出も
+//   数フレームの白いピクセル的な点滅のみ。
+// ============================================================================
+#define PIX_TOP           SCENE_TOP
+#define PIX_COLS          8
+#define PIX_ROWS          5
+#define PIX_INV_CELL      2      // 敵1体＝8x8ドット絵 × 2px = 16x16画面px
+#define PIX_INV_HALF      8
+#define PIX_FORM_LEFT_X0  32
+#define PIX_FORM_COL_DX   34
+#define PIX_FORM_TOP_Y    (PIX_TOP + 4)
+#define PIX_FORM_ROW_DY   20
+#define PIX_STEP_PX       6      // 1ステップあたりの水平移動量（「カッ、カッ、カッ」の刻み）
+#define PIX_DROP_PX       4      // 反転時に下降する量（下降できる余地を確保し、1ラウンドが
+                                  // 数秒で終わってしまわないようにする）
+#define PIX_FORM_MARGIN   16     // 編隊が反転する画面端からの余白
+#define PIX_RESET_ALIVE_MIN 3    // 生存数がこれ以下になったら新しい編隊へ
+#define PIX_ROUND_MAX_MS  70000UL // 安全策：この時間が経過したら強制的に新しい編隊へ
+
+#define PIX_SHIELD_COUNT  4
+#define PIX_SHIELD_ROWS   6
+#define PIX_SHIELD_COLS   10
+#define PIX_SHIELD_CELL   3
+#define PIX_SHIELD_Y      178
+
+#define PIX_PLAYER_Y        224
+#define PIX_PLAYER_CELL     2
+#define PIX_PLAYER_MARGIN   16
+#define PIX_PLAYER_STEP_MS  40UL
+#define PIX_PLAYER_STEP_PX  2.0f
+
+#define PIX_UFO_CELL        2
+#define PIX_UFO_Y           (PIX_TOP + 12)
+#define PIX_UFO_SPEED       55.0f
+#define PIX_UFO_MIN_GAP_MS  9000UL
+#define PIX_UFO_GAP_JITTER_MS 12000UL
+
+#define PIX_PBULLET_MAX     1
+#define PIX_EBULLET_MAX     3
+#define PIX_PBULLET_SPEED   170.0f
+#define PIX_EBULLET_SPEED   115.0f
+#define PIX_PLAYER_FIRE_MIN_MS  1200UL
+#define PIX_PLAYER_FIRE_JITTER_MS 1300UL
+#define PIX_ENEMY_FIRE_MIN_MS   500UL
+#define PIX_ENEMY_FIRE_JITTER_MS 900UL
+#define PIX_KILL_FLASH_MS   150UL
+
+// 黒背景・マゼンタ／紫・ターコイズ・グリーン・自機水色・敵弾赤・シールド赤・UFO橙黄
+static const uint16_t PIX_COL_MAGENTA   = (uint16_t)(((230 & 0xF8) << 8) | ((40  & 0xFC) << 3) | (220 >> 3));
+static const uint16_t PIX_COL_TURQUOISE = (uint16_t)((( 40 & 0xF8) << 8) | ((220 & 0xFC) << 3) | (210 >> 3));
+static const uint16_t PIX_COL_GREEN     = (uint16_t)((( 60 & 0xF8) << 8) | ((220 & 0xFC) << 3) | (90  >> 3));
+static const uint16_t PIX_COL_PLAYER    = (uint16_t)((( 80 & 0xF8) << 8) | ((200 & 0xFC) << 3) | (255 >> 3));
+static const uint16_t PIX_COL_PBULLET   = (uint16_t)(((160 & 0xF8) << 8) | ((235 & 0xFC) << 3) | (255 >> 3));
+static const uint16_t PIX_COL_EBULLET   = (uint16_t)(((255 & 0xF8) << 8) | ((70  & 0xFC) << 3) | (70  >> 3));
+static const uint16_t PIX_COL_SHIELD    = (uint16_t)(((220 & 0xF8) << 8) | ((30  & 0xFC) << 3) | (30  >> 3));
+static const uint16_t PIX_COL_UFO       = (uint16_t)(((255 & 0xF8) << 8) | ((195 & 0xFC) << 3) | (40  >> 3));
+
+// ── 敵編隊のドット絵（8x8、1バイト=1行。bit7が左端、bit0が右端）──────────
+// 実在ゲームのスプライトは参照せず、本ファイル用に新規デザインした抽象的な
+// 宇宙生物のシルエット。段グループごとに2フレーム（脚／触手のポーズ違い）。
+static const uint8_t PIX_SPR_TOP[2][8] = {
+  { 0x3C, 0x7E, 0xFF, 0xDB, 0xFF, 0x24, 0x42, 0x81 },
+  { 0x3C, 0x7E, 0xFF, 0xDB, 0xFF, 0x5A, 0x24, 0x5A },
+};
+static const uint8_t PIX_SPR_MID[2][8] = {
+  { 0x18, 0x3C, 0x7E, 0xFF, 0x66, 0xDB, 0x5A, 0xA5 },
+  { 0x18, 0x3C, 0x7E, 0xFF, 0x66, 0xDB, 0xA5, 0x5A },
+};
+static const uint8_t PIX_SPR_BOT[2][8] = {
+  { 0x5A, 0x3C, 0x7E, 0xDB, 0xFF, 0x42, 0xA5, 0x42 },
+  { 0x5A, 0x3C, 0x7E, 0xDB, 0xFF, 0xA5, 0x42, 0xA5 },
+};
+// 自機（8x6、水色／ターコイズ系。オリジナルの小さな砲台シルエット）
+static const uint8_t PIX_SPR_PLAYER[6] = { 0x18, 0x3C, 0x7E, 0xFF, 0xDB, 0xA5 };
+// UFO（8x5、既存ゲームのスプライトを参照しないオリジナルの円盤シルエット）
+static const uint8_t PIX_SPR_UFO[5] = { 0x3C, 0x7E, 0xFF, 0x5A, 0x24 };
+// シールドの初期形状（6行×10列、ドーム状＋下部にアーチの切り欠き）
+static const uint16_t PIX_SHIELD_BASE[PIX_SHIELD_ROWS] = { 0x0FC, 0x1FE, 0x3FF, 0x3FF, 0x387, 0x303 };
+
+// ── 状態（すべてプリミティブ型のグローバル配列。カスタムstruct/classは使わない）──
+static bool          pixReady = false;
+static bool          pixAlive[PIX_ROWS][PIX_COLS];
+static unsigned long pixKillFlashUntil[PIX_ROWS][PIX_COLS];
+static int           pixFormOffsetX = 0, pixFormOffsetY = 0;
+static int8_t         pixFormDir = 1;
+static uint8_t        pixAnimFrame = 0;
+static unsigned long pixNextStepAt = 0;
+static unsigned long pixRoundStartMs = 0;
+
+static uint16_t       pixShieldRowMask[PIX_SHIELD_COUNT][PIX_SHIELD_ROWS];
+
+static float          pixPlayerX = 160.0f;
+static int8_t         pixPlayerDir = 1;
+static unsigned long pixPlayerNextStepAt = 0;
+static unsigned long pixPlayerNextFireAt = 0;
+
+static bool           pixUfoActive = false;
+static float          pixUfoX = 0.0f;
+static int8_t          pixUfoDir = 1;
+static unsigned long  pixUfoNextAt = 0;
+
+static bool            pixPBulletActive[PIX_PBULLET_MAX];
+static float           pixPBulletX[PIX_PBULLET_MAX], pixPBulletY[PIX_PBULLET_MAX];
+static bool            pixEBulletActive[PIX_EBULLET_MAX];
+static float           pixEBulletX[PIX_EBULLET_MAX], pixEBulletY[PIX_EBULLET_MAX];
+static unsigned long  pixNextEnemyFireAt = 0;
+
+// 乱数：このLighting専用の小さなLCG（既存の他Lighting同様、共通化はしない）
+static uint32_t pixRng = 20260810u;
+static inline uint32_t pixRand() {
+  pixRng ^= pixRng << 13; pixRng ^= pixRng >> 17; pixRng ^= pixRng << 5; return pixRng;
+}
+static inline float pixRand01() { return (float)(pixRand() & 0xFFFF) / 65535.0f; }
+
+static inline int pixInvaderX(int c) { return PIX_FORM_LEFT_X0 + c * PIX_FORM_COL_DX + pixFormOffsetX; }
+static inline int pixInvaderY(int r) { return PIX_FORM_TOP_Y   + r * PIX_FORM_ROW_DY  + pixFormOffsetY; }
+static inline uint16_t pixRowColor(int r) {
+  if (r == 0) return PIX_COL_MAGENTA;
+  if (r <= 2) return PIX_COL_TURQUOISE;
+  return PIX_COL_GREEN;
+}
+static inline const uint8_t* pixRowSprite(int r, int frame) {
+  if (r == 0) return PIX_SPR_TOP[frame];
+  if (r <= 2) return PIX_SPR_MID[frame];
+  return PIX_SPR_BOT[frame];
+}
+static inline int pixShieldX(int i) { return 40 + i * 70; }
+
+static int pixAliveCount() {
+  int n = 0;
+  for (int r = 0; r < PIX_ROWS; r++)
+    for (int c = 0; c < PIX_COLS; c++)
+      if (pixAlive[r][c]) n++;
+  return n;
+}
+
+// 8列幅のドット絵を、1論理ピクセル=px画面pxのベタ塗り矩形として描く。
+// rows/rowCountは「上から何行あるか」だけを表す単純なポインタ渡しのため、
+// 自動プロトタイプ生成の対象になっても引数はすべて既知の組み込み型のみ。
+static void pixDrawSprite(int cx, int cy, const uint8_t* rows, int rowCount, uint16_t color, int px) {
+  int w = 8 * px, h = rowCount * px;
+  int x0 = cx - w / 2, y0 = cy - h / 2;
+  for (int r = 0; r < rowCount; r++) {
+    uint8_t bits = rows[r];
+    for (int c = 0; c < 8; c++) {
+      if (bits & (0x80 >> c)) {
+        lightFillRect(x0 + c * px, y0 + r * px, px, px, color);
+      }
+    }
+  }
+}
+
+static void pixResetShields() {
+  for (int s = 0; s < PIX_SHIELD_COUNT; s++)
+    for (int r = 0; r < PIX_SHIELD_ROWS; r++)
+      pixShieldRowMask[s][r] = PIX_SHIELD_BASE[r];
+}
+
+static void pixResetFormation() {
+  for (int r = 0; r < PIX_ROWS; r++) {
+    for (int c = 0; c < PIX_COLS; c++) {
+      pixAlive[r][c] = true;
+      pixKillFlashUntil[r][c] = 0;
+    }
+  }
+  pixFormOffsetX = 0;
+  pixFormOffsetY = 0;
+  pixFormDir = 1;
+  pixAnimFrame = 0;
+}
+
+static void pixResetRound(unsigned long now) {
+  pixResetFormation();
+  pixResetShields();
+  for (int i = 0; i < PIX_PBULLET_MAX; i++) pixPBulletActive[i] = false;
+  for (int i = 0; i < PIX_EBULLET_MAX; i++) pixEBulletActive[i] = false;
+  pixRoundStartMs = now;
+  pixNextStepAt = now + 200;
+  pixNextEnemyFireAt = now + PIX_ENEMY_FIRE_MIN_MS + (unsigned long)(pixRand01() * PIX_ENEMY_FIRE_JITTER_MS);
+}
+
+static void pixInitAll(unsigned long now) {
+  pixPlayerX = 160.0f;
+  pixPlayerDir = 1;
+  pixPlayerNextStepAt = now;
+  pixPlayerNextFireAt = now + PIX_PLAYER_FIRE_MIN_MS;
+  pixUfoActive = false;
+  pixUfoNextAt = now + PIX_UFO_MIN_GAP_MS + (unsigned long)(pixRand01() * PIX_UFO_GAP_JITTER_MS);
+  pixResetRound(now);
+  pixReady = true;
+}
+
+// 編隊のステップ移動（一定ピクセルずつ進む「カッ、カッ、カッ」という刻み）。
+// 端に達したら移動せず反転＋下降だけを行う（連続スクロールにしない＝要件どおり）。
+static void pixStepFormation(unsigned long now) {
+  if (now < pixNextStepAt) return;
+  int aliveN = pixAliveCount();
+  unsigned long stepMs = 180UL + (unsigned long)aliveN * 10UL;
+  if (stepMs > 560UL) stepMs = 560UL;
+  pixNextStepAt = now + stepMs;
+
+  int newOffsetX = pixFormOffsetX + (int)pixFormDir * PIX_STEP_PX;
+  int leftEdge  = PIX_FORM_LEFT_X0 + 0 * PIX_FORM_COL_DX + newOffsetX - PIX_INV_HALF;
+  int rightEdge = PIX_FORM_LEFT_X0 + (PIX_COLS - 1) * PIX_FORM_COL_DX + newOffsetX + PIX_INV_HALF;
+  if (leftEdge < PIX_FORM_MARGIN || rightEdge > SCENE_W - PIX_FORM_MARGIN) {
+    pixFormDir = (int8_t)(-pixFormDir);
+    pixFormOffsetY += PIX_DROP_PX;
+  } else {
+    pixFormOffsetX = newOffsetX;
+  }
+  pixAnimFrame ^= 1;
+}
+
+// 生存数が少ない／編隊が下降しすぎた／時間経過、のいずれかで新しい編隊へ。
+static void pixCheckRoundReset(unsigned long now) {
+  int aliveN = pixAliveCount();
+  bool tooLow    = aliveN <= PIX_RESET_ALIVE_MIN;
+  bool descended = pixInvaderY(PIX_ROWS - 1) >= (PIX_SHIELD_Y - 10);
+  bool timedOut  = (now - pixRoundStartMs) >= PIX_ROUND_MAX_MS;
+  if (tooLow || descended || timedOut) pixResetRound(now);
+}
+
+static void pixUpdatePlayer(unsigned long now) {
+  if (now < pixPlayerNextStepAt) return;
+  pixPlayerNextStepAt = now + PIX_PLAYER_STEP_MS;
+  pixPlayerX += (float)pixPlayerDir * PIX_PLAYER_STEP_PX;
+  if (pixPlayerX < PIX_PLAYER_MARGIN)              { pixPlayerX = PIX_PLAYER_MARGIN;              pixPlayerDir = 1;  }
+  if (pixPlayerX > SCENE_W - PIX_PLAYER_MARGIN)    { pixPlayerX = SCENE_W - PIX_PLAYER_MARGIN;     pixPlayerDir = -1; }
+}
+
+static void pixUpdatePlayerFire(unsigned long now) {
+  if (now < pixPlayerNextFireAt) return;
+  pixPlayerNextFireAt = now + PIX_PLAYER_FIRE_MIN_MS + (unsigned long)(pixRand01() * PIX_PLAYER_FIRE_JITTER_MS);
+  if (!pixPBulletActive[0]) {
+    pixPBulletActive[0] = true;
+    pixPBulletX[0] = pixPlayerX;
+    pixPBulletY[0] = (float)PIX_PLAYER_Y - 10.0f;
+  }
+}
+
+static void pixUpdateUfo(unsigned long now, float dt) {
+  if (!pixUfoActive) {
+    if (now >= pixUfoNextAt) {
+      pixUfoActive = true;
+      pixUfoDir = (pixRand() & 1u) ? 1 : -1;
+      pixUfoX = (pixUfoDir > 0) ? -20.0f : (float)SCENE_W + 20.0f;
+    }
+    return;
+  }
+  pixUfoX += (float)pixUfoDir * PIX_UFO_SPEED * dt;
+  if ((pixUfoDir > 0 && pixUfoX > (float)SCENE_W + 20.0f) ||
+      (pixUfoDir < 0 && pixUfoX < -20.0f)) {
+    pixUfoActive = false;
+    pixUfoNextAt = now + PIX_UFO_MIN_GAP_MS + (unsigned long)(pixRand01() * PIX_UFO_GAP_JITTER_MS);
+  }
+}
+
+// 生存している列からランダムに1つ選び、その列でもっとも手前（下側）の
+// 敵から弾を発射する（古典的な固定画面シューティングの定石どおり）。
+static void pixSpawnEnemyBullet(unsigned long now) {
+  if (now < pixNextEnemyFireAt) return;
+  pixNextEnemyFireAt = now + PIX_ENEMY_FIRE_MIN_MS + (unsigned long)(pixRand01() * PIX_ENEMY_FIRE_JITTER_MS);
+
+  int slot = -1;
+  for (int i = 0; i < PIX_EBULLET_MAX; i++) { if (!pixEBulletActive[i]) { slot = i; break; } }
+  if (slot < 0) return;
+
+  int aliveCols[PIX_COLS];
+  int aliveColN = 0;
+  for (int c = 0; c < PIX_COLS; c++) {
+    bool any = false;
+    for (int r = 0; r < PIX_ROWS; r++) if (pixAlive[r][c]) { any = true; break; }
+    if (any) aliveCols[aliveColN++] = c;
+  }
+  if (aliveColN == 0) return;
+  int c = aliveCols[pixRand() % (uint32_t)aliveColN];
+  int shooterRow = -1;
+  for (int r = PIX_ROWS - 1; r >= 0; r--) { if (pixAlive[r][c]) { shooterRow = r; break; } }
+  if (shooterRow < 0) return;
+
+  pixEBulletActive[slot] = true;
+  pixEBulletX[slot] = (float)pixInvaderX(c);
+  pixEBulletY[slot] = (float)pixInvaderY(shooterRow) + (float)PIX_INV_HALF;
+}
+
+// シールドの1セルに弾が当たったかを判定し、当たっていればそのセルだけを
+// 消して true を返す（既に空のセルなら弾はそのまま素通りする＝false）。
+static bool pixShieldHit(int s, float wx, float wy) {
+  int localX = (int)(wx - (float)pixShieldX(s));
+  int localY = (int)(wy - (float)PIX_SHIELD_Y);
+  if (localX < 0 || localY < 0) return false;
+  int c = localX / PIX_SHIELD_CELL;
+  int r = localY / PIX_SHIELD_CELL;
+  if (c < 0 || c >= PIX_SHIELD_COLS || r < 0 || r >= PIX_SHIELD_ROWS) return false;
+  uint16_t bit = (uint16_t)(1u << c);
+  if (!(pixShieldRowMask[s][r] & bit)) return false;
+  pixShieldRowMask[s][r] &= (uint16_t)~bit;
+  return true;
+}
+
+static void pixUpdateBullets(unsigned long now, float dt) {
+  (void)now;
+  // ── 自機弾：上へ進み、シールド／敵編隊との当たりを判定 ──
+  for (int i = 0; i < PIX_PBULLET_MAX; i++) {
+    if (!pixPBulletActive[i]) continue;
+    pixPBulletY[i] -= PIX_PBULLET_SPEED * dt;
+    if (pixPBulletY[i] < (float)PIX_TOP) { pixPBulletActive[i] = false; continue; }
+
+    bool absorbed = false;
+    for (int s = 0; s < PIX_SHIELD_COUNT && !absorbed; s++) {
+      if (pixShieldHit(s, pixPBulletX[i], pixPBulletY[i])) absorbed = true;
+    }
+    if (absorbed) { pixPBulletActive[i] = false; continue; }
+
+    for (int r = 0; r < PIX_ROWS && pixPBulletActive[i]; r++) {
+      for (int c = 0; c < PIX_COLS && pixPBulletActive[i]; c++) {
+        if (!pixAlive[r][c]) continue;
+        int ix = pixInvaderX(c), iy = pixInvaderY(r);
+        if (pixPBulletX[i] >= ix - PIX_INV_HALF && pixPBulletX[i] <= ix + PIX_INV_HALF &&
+            pixPBulletY[i] >= iy - PIX_INV_HALF && pixPBulletY[i] <= iy + PIX_INV_HALF) {
+          pixAlive[r][c] = false;
+          pixKillFlashUntil[r][c] = now + PIX_KILL_FLASH_MS;
+          pixPBulletActive[i] = false;
+        }
+      }
+    }
+  }
+
+  // ── 敵弾：下へ進み、シールドとの当たりのみ判定（自機には当てない＝ゲームオーバー無し）──
+  for (int i = 0; i < PIX_EBULLET_MAX; i++) {
+    if (!pixEBulletActive[i]) continue;
+    pixEBulletY[i] += PIX_EBULLET_SPEED * dt;
+    if (pixEBulletY[i] > (float)PIX_PLAYER_Y - 4.0f) { pixEBulletActive[i] = false; continue; }
+
+    for (int s = 0; s < PIX_SHIELD_COUNT; s++) {
+      if (pixShieldHit(s, pixEBulletX[i], pixEBulletY[i])) { pixEBulletActive[i] = false; break; }
+    }
+  }
+}
+
+static void pixDrawShield(int s) {
+  int baseX = pixShieldX(s);
+  for (int r = 0; r < PIX_SHIELD_ROWS; r++) {
+    uint16_t mask = pixShieldRowMask[s][r];
+    for (int c = 0; c < PIX_SHIELD_COLS; c++) {
+      if (mask & (uint16_t)(1u << c)) {
+        lightFillRect(baseX + c * PIX_SHIELD_CELL, PIX_SHIELD_Y + r * PIX_SHIELD_CELL,
+                      PIX_SHIELD_CELL, PIX_SHIELD_CELL, PIX_COL_SHIELD);
+      }
+    }
+  }
+}
+
+static void pixDrawFormation(unsigned long now) {
+  for (int r = 0; r < PIX_ROWS; r++) {
+    for (int c = 0; c < PIX_COLS; c++) {
+      int cx = pixInvaderX(c), cy = pixInvaderY(r);
+      if (pixAlive[r][c]) {
+        pixDrawSprite(cx, cy, pixRowSprite(r, pixAnimFrame), 8, pixRowColor(r), PIX_INV_CELL);
+      } else if (now < pixKillFlashUntil[r][c]) {
+        // ごく短い数フレームの撃墜フラッシュ（白いピクセルの点滅のみ。爆発演出は無し）
+        lightFillRect(cx - PIX_INV_HALF, cy - PIX_INV_HALF, PIX_INV_HALF * 2, PIX_INV_HALF * 2, WHITE);
+      }
+    }
+  }
+}
+
+static void pixDrawPlayer() {
+  pixDrawSprite((int)pixPlayerX, PIX_PLAYER_Y, PIX_SPR_PLAYER, 6, PIX_COL_PLAYER, PIX_PLAYER_CELL);
+}
+
+static void pixDrawUfo() {
+  if (!pixUfoActive) return;
+  pixDrawSprite((int)pixUfoX, PIX_UFO_Y, PIX_SPR_UFO, 5, PIX_COL_UFO, PIX_UFO_CELL);
+}
+
+static void pixDrawBullets() {
+  for (int i = 0; i < PIX_PBULLET_MAX; i++) {
+    if (!pixPBulletActive[i]) continue;
+    lightFillRect((int)pixPBulletX[i] - 1, (int)pixPBulletY[i] - 3, 2, 6, PIX_COL_PBULLET);
+  }
+  for (int i = 0; i < PIX_EBULLET_MAX; i++) {
+    if (!pixEBulletActive[i]) continue;
+    lightFillRect((int)pixEBulletX[i] - 1, (int)pixEBulletY[i] - 3, 2, 6, PIX_COL_EBULLET);
+  }
+}
+
+void lightRenderPixelInvasion(bool needsInit, bool fullRepaint) {
+  (void)fullRepaint;
+  unsigned long now = millis();
+  if (!pixReady) pixInitAll(now);
+
+  static unsigned long pixPrevMs = 0;
+  if (needsInit || pixPrevMs == 0) pixPrevMs = now;
+  float dt = (now - pixPrevMs) / 1000.0f;
+  if (dt > 0.5f) dt = 0.5f;
+  pixPrevMs = now;
+
+  pixStepFormation(now);
+  pixUpdatePlayer(now);
+  pixUpdatePlayerFire(now);
+  pixUpdateUfo(now, dt);
+  pixSpawnEnemyBullet(now);
+  pixUpdateBullets(now, dt);
+  pixCheckRoundReset(now);
+
+  GFX.setClipRect(0, PIX_TOP, SCENE_W, SCENE_H - PIX_TOP);
+  lightFillRect(0, PIX_TOP, SCENE_W, SCENE_H - PIX_TOP, BLACK);   // 完全な黒背景のみ（星・スクロール等は一切描かない）
+
+  for (int s = 0; s < PIX_SHIELD_COUNT; s++) pixDrawShield(s);
+  pixDrawFormation(now);
+  pixDrawPlayer();
+  pixDrawUfo();
+  pixDrawBullets();
+
+  GFX.clearClipRect();
+}
+
+// ============================================================================
 // Lighting Manager（描画関数テーブル）
 //
 // enum LightingMode と同じ並び順。追加時はここへ関数を1行足すだけ。
@@ -20318,8 +20980,10 @@ const LightRenderFn LIGHT_RENDER_FN[LIGHT_MODE_COUNT] = {
   lightRenderMissile,         // LIGHT_MISSILE
   lightRenderPsychedelic,     // LIGHT_PSYCHE
   lightRenderVortex,          // LIGHT_VORTEX
-  lightRenderAquarium,        // LIGHT_AQUARIUM
-  lightRenderFlyingPompadour, // LIGHT_FLYINGPOMPADOUR
+  lightRenderAquarium,             // LIGHT_AQUARIUM
+  lightRenderFlyingPompadour,      // LIGHT_FLYINGPOMPADOUR
+  lightRenderRainbowWashingMachine, // LIGHT_RAINBOWWASHER
+  lightRenderPixelInvasion,         // LIGHT_PIXELINVASION
 };
 
 // LIGHT_LAYER[] / LIGHT_HEADER[] / lightingHeaderDark() / LIGHT_LAYER_BG・OVL /
