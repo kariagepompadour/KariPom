@@ -724,7 +724,7 @@ const VizModeInfo VIZ_MODES[VIZ_MODE_COUNT] = {
   { "eq",   "Graphic EQ（Classic）",
     "従来のグライコフェイス。顔に縦バーを重ねて表示します（左＝低音／右＝高音）。バーが顔を侵食する既存の演出そのままです。" },
   { "halo", "Audio Halo",
-    "顔を囲む楕円から画面外周へ向かって、48方向のスペクトラムが広がります。各方向の先端が滑らかにつながり、顔の周囲を巨大な波形の王冠が取り囲みます。真下＝低音／真上＝高音の左右対称。オートゲインにより小〜中音量でも常に大きく展開し、表情と口パクは常に最前面に表示されます。" },
+    "顔を囲む正円から外側へ向かって、48方向のスペクトラムが広がります。各方向の先端が滑らかにつながり、顔の周囲を巨大な波形の王冠が取り囲みます。真下＝低音／真上＝高音の左右対称。オートゲインにより小〜中音量でも大きく展開し、表情と口パクは常に最前面に表示されます。" },
   { "mirror", "Mirror Wave",
     "8バンドFFTを横方向へ補間し、上下対称のネオンリボン状波形として画面いっぱいに描きます。線ではなく太いリボン＋ネオングローで、見た瞬間に『音が動いている』と分かります。帯域と音量で色相がシアン→青→紫→マゼンタ→黄へ流れます。Lightingの上へ重ね描きでき、顔は最前面。上端48pxの情報パネルには侵入しません。" },
   { "rhythm", "8-Lane Rhythm",
@@ -12256,12 +12256,12 @@ void vizRenderGraphicEq(bool needsInit) {
 // Visualizer #2 : Audio Halo — Circular Wave Crown (v3.0)
 //
 // ■ コンセプト
-//   顔を囲む楕円の外周を発射点とし、そこから画面外周へ向かって
+//   顔を囲む正円の外周を発射点とし、そこから外側へ向かって
 //   48方向のスペクトラムが伸びる。各方向の先端は隣同士で滑らかに結ばれ、
 //   顔の周囲を「巨大な波形の王冠（クラウン）」が取り囲む。
 //   内側は淡いオーラ、外側の波形エッジは原色で光る4段グラデーション。
 //
-//   ＝ v1のレイアウト（顔を囲む楕円）＋ v2の迫力（画面外周まで到達）
+//   ＝ 正円のHaloそのものが音で均等に呼吸するレイアウト
 //
 // ■ 設計思想：これは測定器ではなく「かりポムの演出」
 //   FFT値の忠実な再現より「見ていて楽しいこと」を優先する。
@@ -12277,14 +12277,14 @@ void vizRenderGraphicEq(bool needsInit) {
 //     Graphic EQは平滑化を一切行わず fftLevel をそのまま表示している。
 //
 // ■ レイアウト
-//   発射楕円 (AIN=84,  BIN=40)  中心(160,143) → x  76…244 / y 103…183
-//   到達楕円 (AOUT=157, BOUT=93) 中心(160,143) → x   3…317 / y  50…236
-//   ・顔の内側へは一切伸ばさない（発射点は常に発射楕円の上）
+//   発射正円 (R=62) 中心(160,143) → x 98…222 / y 81…205
+//   到達正円 (R=93) 中心(160,143) → x 67…253 / y 50…236
+//   ・顔の内側へは一切伸ばさない（発射点は常に発射正円の上）
 //   ・上方向の到達点は y=50（showSensors()が300ms毎に塗る y<48 へ侵入しない）
-//   ・左右は画面端 x=3/317、下は y=236 まで到達
-//   ・ベース楕円線は描かない（v1で「常時表示のリングにしか見えない」原因だったため）
-//   ・到達側も「楕円」にしているため、最大入力でも画面矩形に張り付かず
-//     波形（王冠）の形が保たれる
+//   ・最大時は x=67…253 / y=50…236。左右にはLightingを十分残す
+//   ・ベース円線は描かない（v1で「常時表示のリングにしか見えない」原因だったため）
+//   ・内外とも正円なので、全方向へ均等に膨張しHaloらしい形が保たれる
+//   ・左右にはLightingが大きく残り、Visualizerと背景を同時に楽しめる
 //
 // ■ 帯の太さ
 //   王冠は48セクターの帯として描かれ、1セクターの円周方向の幅は
@@ -12308,9 +12308,9 @@ void vizRenderGraphicEq(bool needsInit) {
 
 static const float HALO_CX   = 160.0f;   // 王冠の中心（顔の中心）
 static const float HALO_CY   = 143.0f;
-static const float HALO_A_IN  =  84.0f;  // 発射楕円（顔を囲む）
-static const float HALO_B_IN  =  40.0f;
-static const float HALO_A_OUT = 157.0f;  // 到達楕円（画面外周）
+static const float HALO_A_IN  =  62.0f;  // 発射正円（顔を囲む）
+static const float HALO_B_IN  =  62.0f;
+static const float HALO_A_OUT =  93.0f;  // 到達正円（上端 y=50 を守る最大半径）
 static const float HALO_B_OUT =  93.0f;  // 中心143 - 93 = y50 ＝ センサー帯の直下
 
 // ── 演出パラメータ（見え方の調整はここだけで完結する）──
@@ -12335,7 +12335,7 @@ static float    haloPrevLr[HALO_SPOKES];                        // 前回の外�
 static float    haloCurveLut[33];                               // 音量カーブLUT（sqrt領域）
 static float    haloAgcPeak = 0.0f;                             // AGC用の追従ピーク
 
-// 4段グラデーションの境界（発射楕円=0.0 → 波形エッジ=1.0）
+// 4段グラデーションの境界（発射正円=0.0 → 波形エッジ=1.0）
 static const float HALO_SEG[5] = { 0.00f, 0.40f, 0.68f, 0.86f, 1.00f };
 // 各段の濃さ（viz565Tint のパーセント。内側ほど淡く、外側の波形エッジが原色）
 static const uint8_t HALO_SEG_TINT[4] = { 18, 42, 72, 100 };
@@ -12512,7 +12512,7 @@ void vizRenderAudioHalo(bool needsInit) {
 
     float s1 = haloL[k]  - haloRIn[k];
     float s2 = haloL[k2] - haloRIn[k2];
-    if (s1 <= 1.0f && s2 <= 1.0f) continue;   // ほぼ発射楕円まで収束＝何も描かない
+    if (s1 <= 1.0f && s2 <= 1.0f) continue;   // ほぼ発射正円まで収束＝何も描かない
 
     for (int q = 0; q < 4; q++) {
       vizHaloBand(k,
@@ -12877,19 +12877,19 @@ void vizRenderRhythm(bool needsInit) {
 //
 // v4では、以下の方針で作り直す。
 //   ・各リングの「厚み・可動頂点の角度・可動頂点の半径・色相」を、
-//     現在値A→次の目標値Bへ3〜6秒かけて滑らかに補間するA/Bモーフ方式に
+//     現在値A→次の目標値Bへゆっくり滑らかに補間するA/Bモーフ方式に
 //     変更する。目標に到達したら A=B、新しいBを再抽選、を無限に繰り返す
 //     （sin()による往復ではなく、常に次の新しい形へ向かい続ける）。
 //   ・可動域を大幅に拡大する（リング厚み8〜22px、頂点角度4°〜26°、
 //     頂点半径比15%〜85%、色相は全域）ことで、モーフ後は実際に
 //     「別の万華鏡模様」に見える程度の変化量を確保する。
-//   ・kalRotは1周約31秒まで大幅に減速し、回転を明確に脇役にする。
+//   ・kalRotはさらに減速し、回転を明確に脇役にする。
 //   ・境界（θ=0°/30°）に頂点を固定する既存の鏡映接続の仕組み（direct/
 //     mirror展開→最後にkalRotを一括適用）はv3のまま維持する。
 //     kalDrawWedgeTri()は無変更。
 //   ・リングを3→4に増やし、中心リング（半径0起点）も他と同じA/Bモーフの
 //     対象にすることで、中心部だけが固定花芯に見える状態を避ける。
-//   ・各リングのモーフ周期（3〜6秒）は互いに独立に再抽選するため、
+//   ・各リングのモーフ周期は互いに独立に再抽選するため、
 //     全リングが同時に切り替わらず、組み替わり方が有機的になる。
 //
 // ■ 境界接続（維持）
@@ -12951,17 +12951,18 @@ static const float KAL_A30_COS = 0.8660254f, KAL_A30_SIN = 0.5f;      // 30°
 static const float KAL_FACET_HUE_OFS[KAL_FACETS] = { 0.0f, 0.05f, 0.10f, 0.15f };
 
 // A/Bモーフの可動範囲（境界接続・自己交差防止のための制約。上のコメント参照）。
-// 2026-07-29 仕上げ修正：巨大化のため、リング厚みをリングごとに非対称化した。
-// 内周（リング0）は密度を保つためやや細く、外周（リング3）へ行くほど大きく
-// 広げる。4リング合計（最外周半径）はKAL_GAP_MIN[]の和(190px)〜KAL_GAP_MAX[]の
-// 和(240px)の範囲になる。画面中心(160,144)からクリップ後に見える4隅
-// （y=48〜239の範囲）までの最大距離は約187pxなので、通常時から常にこれを
-// 上回り、左右端・下端まで模様が届く（＝黒帯がほぼ残らない）。
-static const float KAL_GAP_MIN[KAL_RING_COUNT] = { 30.0f, 40.0f, 50.0f, 70.0f };  // リング厚み最小(px)：内周→外周
-static const float KAL_GAP_MAX[KAL_RING_COUNT] = { 40.0f, 50.0f, 60.0f, 90.0f };  // リング厚み最大(px)：内周→外周
-static const float KAL_ANG_MIN   = 0.0698f,  KAL_ANG_MAX   = 0.4538f;   // 可動頂点の角度(rad)=4°〜26°
-static const float KAL_FRAC_MIN  = 0.15f,    KAL_FRAC_MAX  = 0.85f;     // 可動頂点の半径比（base shape用）
-static const float KAL_MORPH_MIN_SEC = 3.0f, KAL_MORPH_MAX_SEC = 6.0f;  // モーフ所要時間(秒)＝「遅い基礎アニメーション」層
+// 2026-08-10：Lightingを背景として活かすため、巨大化していたリングを縮小した。
+// 内周は細く、外周へ向けて少しずつ厚くする構成は維持するが、4リング合計の
+// 最外周半径は106〜136pxに抑える。中心(160,144)の周囲にLightingが常に残り、
+// Kaleidoscopeが「全面背景」ではなく中央のVisualizerオーバーレイとして見える。
+static const float KAL_GAP_MIN[KAL_RING_COUNT] = { 20.0f, 24.0f, 28.0f, 34.0f };  // 最外周106〜136px。Lightingを外周に常時見せる
+static const float KAL_GAP_MAX[KAL_RING_COUNT] = { 26.0f, 30.0f, 36.0f, 44.0f };
+// base shapeは中央寄り(10°〜20°)に留め、音反応だけが最終可動域(2°〜28°)を大きく使う。
+// これにより自動モーフよりFFT由来の角度変形が知覚的に優位になる。
+static const float KAL_BASE_ANG_MIN = 0.1745f,  KAL_BASE_ANG_MAX = 0.3491f; // 10°〜20°
+static const float KAL_ANG_MIN      = 0.0349f,  KAL_ANG_MAX      = 0.4887f; // 最終安全範囲2°〜28°
+static const float KAL_FRAC_MIN  = 0.28f,    KAL_FRAC_MAX  = 0.72f;     // base shapeは中央寄り。音で内外へ動く余地を残す
+static const float KAL_MORPH_MIN_SEC = 12.0f, KAL_MORPH_MAX_SEC = 22.0f; // 自動変形は非常にゆっくり。音反応を主役にする
 
 // ── 音反応（base shapeとは独立な「速いVisualizer反応」層）──────────────
 // base shape（A/Bモーフ）と audio deformation は完全に分離する。A/Bターゲット
@@ -13018,7 +13019,7 @@ struct KalRing {
   float fracA, fracB;    // 可動頂点の半径比のA/Bターゲット
   float hueA,  hueB;     // 色相位置(0..1)のA/Bターゲット
   float morphT;          // 0..1。A→Bの補間進捗
-  float morphPeriod;     // このモーフ1回にかける秒数（3〜6秒でリングごとに独立抽選）
+  float morphPeriod;     // このモーフ1回にかける秒数（リングごとに独立抽選）
 };
 static KalRing kalRing[KAL_RING_COUNT];
 static float   kalRot           = 0.0f;   // 全体回転角（ラジアン）。優先順位は音反応＞自動モーフ＞回転
@@ -13040,7 +13041,7 @@ static float kalRandRange(float lo, float hi) { return lo + (hi - lo) * kalRand0
 static void kalPickNewTarget(uint8_t i) {
   KalRing& R = kalRing[i];
   R.gapA  = R.gapB;  R.gapB  = kalRandRange(KAL_GAP_MIN[i],  KAL_GAP_MAX[i]);
-  R.angA  = R.angB;  R.angB  = kalRandRange(KAL_ANG_MIN,  KAL_ANG_MAX);
+  R.angA  = R.angB;  R.angB  = kalRandRange(KAL_BASE_ANG_MIN, KAL_BASE_ANG_MAX);
   R.fracA = R.fracB; R.fracB = kalRandRange(KAL_FRAC_MIN, KAL_FRAC_MAX);
   R.hueA  = R.hueB;  R.hueB  = kalRand01();
   R.morphT = 0.0f;
@@ -13175,7 +13176,7 @@ void vizRenderKaleidoscope(bool needsInit) {
   GFX.setClipRect(0, KAL_TOP, 320, 240 - KAL_TOP);
 
   // ── 回転：今回も脇役のまま。音量では速度を変えない（■13：回転は音反応の主役にしない）──
-  const float KAL_ROT_BASE = 0.014f;   // 無音時の基準回転速度(rad/frame)。70ms周期で約0.2rad/s＝1周約31秒
+  const float KAL_ROT_BASE = 0.004f;   // 約0.057rad/s＝1周約110秒。回転は存在感を抑え、音変形の比較基準にする
   kalRot += KAL_ROT_BASE;              // 音量による上乗せはしない（回転は常に一定速度）
   if (kalRot > 6.2831853f) kalRot -= 6.2831853f;
   float cosR = cosf(kalRot), sinR = sinf(kalRot);   // 全リング共通・1フレーム1回だけ
@@ -13317,10 +13318,17 @@ void vizRenderKaleidoscope(bool needsInit) {
     uint16_t col2 = light565Lerp(kalHueColor(hue + KAL_FACET_HUE_OFS[2] * hueSpread), WHITE, whiteBoost);
     uint16_t col3 = light565Lerp(kalHueColor(hue + KAL_FACET_HUE_OFS[3] * hueSpread), WHITE, whiteBoost);
 
-    kalDrawWedgeTri(pIn0x,  pIn0y,  pIn1x,  pIn1y,  pfx, pfy, cosR, sinR, col0);   // 内周辺
-    kalDrawWedgeTri(pIn1x,  pIn1y,  pOut1x, pOut1y, pfx, pfy, cosR, sinR, col1);   // θ=30°側の境界辺
-    kalDrawWedgeTri(pOut1x, pOut1y, pOut0x, pOut0y, pfx, pfy, cosR, sinR, col2);   // 外周辺
-    kalDrawWedgeTri(pOut0x, pOut0y, pIn0x,  pIn0y,  pfx, pfy, cosR, sinR, col3);   // θ=0°側の境界辺
+    // Lighting併用時はファセットを意図的に抜き、背景Lightingを万華鏡の内部にも見せる。
+    // 無音時は2/4面だけ、音が有効なら3/4面、bassの瞬間だけ4/4面にすることで、
+    // 「音が入った」こと自体も面密度の変化として一目で分かる。Lighting OFF時は従来通り4/4面。
+    kalDrawWedgeTri(pIn0x,  pIn0y,  pIn1x,  pIn1y,  pfx, pfy, cosR, sinR, col0);   // 常時：内周辺
+    kalDrawWedgeTri(pOut1x, pOut1y, pOut0x, pOut0y, pfx, pfy, cosR, sinR, col2);   // 常時：外周辺
+    if (!gLightingActive || kalGate > 0.10f) {
+      kalDrawWedgeTri(pIn1x, pIn1y, pOut1x, pOut1y, pfx, pfy, cosR, sinR, col1);   // 音あり：第3面
+    }
+    if (!gLightingActive || kalBassPulse > 0.20f) {
+      kalDrawWedgeTri(pOut0x, pOut0y, pIn0x, pIn0y, pfx, pfy, cosR, sinR, col3);   // bass：一瞬だけ全面化
+    }
   }
 
   GFX.clearClipRect();   // 顔描画・他の描画に影響しないよう必ず解除する
@@ -13406,9 +13414,10 @@ void vizRenderKaleidoscope(bool needsInit) {
 #define AVU_CELL_H     ((SCENE_H - AVU_TOP) / AVU_ROWS) // 96
 
 #define AVU_PANEL_DX   3     // セル左端 → 盤面左端
-#define AVU_PANEL_DY   8     // セル上端 → 盤面上端
+#define AVU_PANEL_DY   8     // 旧矩形盤面の基準Y（下端位置の互換維持に使用）
 #define AVU_PANEL_W    74
 #define AVU_PANEL_H    76
+#define AVU_FACE_R     (AVU_R_TICK_OUT + 2) // 目盛り円弧の外側に2px残すアーチ型盤面
 #define AVU_PIVOT_DX   40    // セル左端 → 針の回転軸X（盤面中央）
 #define AVU_PIVOT_DY   74    // セル上端 → 針の回転軸Y（盤面下端の10px上）
 #define AVU_R_TICK_IN  34    // 主目盛りの内側半径
@@ -13564,10 +13573,49 @@ void vizRenderAnalogVu(bool needsInit) {
     int vx  = cx0 + AVU_PIVOT_DX;                               // 針の回転軸X
     int vy  = cy0 + AVU_PIVOT_DY;                               // 針の回転軸Y
 
-    // 盤面（クリーム）＋濃色の外枠＋外周ベゼル
-    GFX.fillRect(px, py, AVU_PANEL_W, AVU_PANEL_H, AVU_C_FACE);
-    GFX.drawRect(px, py, AVU_PANEL_W, AVU_PANEL_H, AVU_C_FRAME);
-    GFX.drawRect(px - 1, py - 1, AVU_PANEL_W + 2, AVU_PANEL_H + 2, AVU_C_BEZEL);
+    // 盤面（クリーム）：上端を目盛り円弧の2px外側に沿うアーチ形状にする。
+    // 四角い上余白を描かないため、Lighting併用時はアーチ外側に背景がそのまま見える。
+    // 針・目盛り・文字・盤面下端の位置とサイズは従来のまま維持する。
+    const int panelBottom = py + AVU_PANEL_H - 1;
+    int prevTopX = 0, prevTopY = 0;
+    for (int lx = 0; lx < AVU_PANEL_W; lx++) {
+      int sx = px + lx;
+      int dx = sx - vx;
+      int rr = AVU_FACE_R * AVU_FACE_R - dx * dx;
+      if (rr < 0) rr = 0;
+      int topY = vy - (int)lroundf(sqrtf((float)rr));
+      GFX.drawFastVLine(sx, topY, panelBottom - topY + 1, AVU_C_FACE);
+
+      // アーチ上端の濃色フレーム。
+      if (lx > 0) GFX.drawLine(prevTopX, prevTopY, sx, topY, AVU_C_FRAME);
+      prevTopX = sx; prevTopY = topY;
+    }
+    // 左右と下側のフレームは従来の外形を維持。
+    int leftTopDx = px - vx;
+    int leftRR = AVU_FACE_R * AVU_FACE_R - leftTopDx * leftTopDx;
+    if (leftRR < 0) leftRR = 0;
+    int leftTopY = vy - (int)lroundf(sqrtf((float)leftRR));
+    int rightX = px + AVU_PANEL_W - 1;
+    int rightTopDx = rightX - vx;
+    int rightRR = AVU_FACE_R * AVU_FACE_R - rightTopDx * rightTopDx;
+    if (rightRR < 0) rightRR = 0;
+    int rightTopY = vy - (int)lroundf(sqrtf((float)rightRR));
+    GFX.drawLine(px,     leftTopY,  px,     panelBottom, AVU_C_FRAME);
+    GFX.drawLine(rightX, rightTopY, rightX, panelBottom, AVU_C_FRAME);
+    GFX.drawLine(px, panelBottom, rightX, panelBottom, AVU_C_FRAME);
+
+    // 外周ベゼルはアーチのさらに1px外側だけに描き、Lightingを不必要に覆わない。
+    const int bezelR = AVU_FACE_R + 1;
+    int prevBezX = 0, prevBezY = 0;
+    for (int lx = -1; lx <= AVU_PANEL_W; lx++) {
+      int sx = px + lx;
+      int dx = sx - vx;
+      int rr = bezelR * bezelR - dx * dx;
+      if (rr < 0) continue;
+      int topY = vy - (int)lroundf(sqrtf((float)rr));
+      if (prevBezX != 0) GFX.drawLine(prevBezX, prevBezY, sx, topY, AVU_C_BEZEL);
+      prevBezX = sx; prevBezY = topY;
+    }
 
     // 右端の赤いピーク領域（放射状の短い線を密に並べて帯に見せる）
     for (uint8_t k = 0; k < AVU_RED_N; k++) {
