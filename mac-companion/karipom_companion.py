@@ -50,7 +50,7 @@
 #                       手動起動する場合は通常指定不要）
 # =============================================================================
 
-import sys, json, os, re, threading, traceback, subprocess, webbrowser, random
+import sys, json, os, re, threading, traceback, subprocess, webbrowser, random, math
 import socket, platform, time, signal
 import requests
 from datetime import datetime
@@ -59,7 +59,7 @@ from PyQt5.QtWidgets import (
     QLabel, QLineEdit, QPushButton, QTextEdit, QSplitter,
     QGroupBox, QStatusBar, QMessageBox, QFrame, QTabWidget
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QUrl
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QUrl, QPoint
 from PyQt5.QtGui import QFont, QTextCursor, QColor, QPainter, QPen, QBrush
 
 # KariPom LabをCompanion内タブへ埋め込む。PyQtWebEngineが無い環境でも
@@ -1293,7 +1293,24 @@ FACE_NOSE_INTERVAL_MS = (120, 280)
 
 
 class KariPomFaceWidget(QWidget):
-    """Companion内蔵音声エンジンの発話状態に同期する、かりポム顔。"""
+    """Companion内蔵音声に同期する、クリック切替対応KariPom BBX。"""
+
+    VIS_MODES = (
+        "Face",
+        "EQ Classic",
+        "Audio Halo",
+        "Mirror Wave",
+        "8-Lane Rhythm",
+        "Kaleidoscope",
+        "Analog VU",
+        "Tetromino Dance",
+    )
+    EQ_GAIN8 = (1.6, 1.6, 1.6, 1.6, 1.7, 1.8, 2.0, 2.2)
+    SPECTRUM_RGB = (
+        (0, 0, 255), (0, 255, 255), (0, 255, 0), (173, 255, 41),
+        (255, 255, 0), (255, 165, 0), (255, 0, 0), (255, 0, 255),
+    )
+    SCENE_TOP = 48
 
     def __init__(self, audio_state, scale=2, parent=None):
         super().__init__(parent)
@@ -1309,6 +1326,36 @@ class KariPomFaceWidget(QWidget):
         self.mouth_mw = 18
         self.mouth_mh = 12
 
+        # Face -> 7 Visualizers -> Face
+        self.display_mode = 0
+
+        # Visualizer state. Keep these as Python lists so Companion GUI does not
+        # gain a new mandatory numpy import at module startup.
+        self.halo_agc_peak = 0.0
+        self.mw_agc_peak = 0.0
+        self.mw_phase = 0.0
+        self.rhythm_hist = [[0.0] * 8 for _ in range(48)]
+        self.rhythm_prev = [0.0] * 8
+        self.rhythm_last_step = 0
+
+        # 2026-08-10 adopted Kaleidoscope look:
+        # compact rings, very slow auto rotation, audio deformation dominant.
+        self.kal_rot = 0.0
+        self.kal_pulse = 0.0
+        self.kal_bass_avg = 0.0
+        self.kal_level_fast = 0.0
+        self.kal_phase = [0.0, 1.3, 2.7, 4.1]
+        self.kal_period = [15.0, 18.0, 21.0, 13.0]
+
+        # 2026-08-10 adopted Analog VU behavior/shape.
+        self.avu_needle = [0.0] * 8
+        self.avu_level_env = 0.0
+
+        self.tetro_pieces = []
+        self.tetro_last_spawn = 0
+        self.tetro_bass_avg = 0.0
+        self._tetro_prev = [0.0] * 8
+
         now = self._now_ms()
         self.next_nose_at = now + random.randrange(*FACE_NOSE_INTERVAL_MS)
         self.next_blink_check_at = now + random.randrange(*FACE_BLINK_INTERVAL_MS)
@@ -1317,6 +1364,8 @@ class KariPomFaceWidget(QWidget):
 
         self.setFixedSize(FACE_W * scale, FACE_H * scale)
         self.setAttribute(Qt.WA_OpaquePaintEvent, True)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setToolTip("画面をクリックすると Face → 7 Visualizers → Face の順に切り替わります")
 
         self.timer = QTimer(self)
         self.timer.setInterval(20)
@@ -1327,12 +1376,71 @@ class KariPomFaceWidget(QWidget):
     def _now_ms():
         return int(time.monotonic() * 1000)
 
+    @staticmethod
+    def _clamp(v, lo=0.0, hi=1.0):
+        return lo if v < lo else hi if v > hi else v
+
+    @classmethod
+    def _spectrum_color(cls, p):
+        p = cls._clamp(float(p)) * 7.0
+        i = int(math.floor(p))
+        j = min(7, i + 1)
+        t = p - i
+        a = cls.SPECTRUM_RGB[i]
+        b = cls.SPECTRUM_RGB[j]
+        return QColor(
+            int(a[0] * (1.0 - t) + b[0] * t),
+            int(a[1] * (1.0 - t) + b[1] * t),
+            int(a[2] * (1.0 - t) + b[2] * t),
+        )
+
+    @staticmethod
+    def _tint(color, white_pct):
+        t = max(0.0, min(1.0, float(white_pct) / 100.0))
+        return QColor(
+            int(color.red() * (1.0 - t) + 255 * t),
+            int(color.green() * (1.0 - t) + 255 * t),
+            int(color.blue() * (1.0 - t) + 255 * t),
+        )
+
+    @staticmethod
+    def _fft8(values):
+        try:
+            vals = [float(v) for v in list(values)[:8]]
+        except Exception:
+            vals = []
+        if len(vals) < 8:
+            vals.extend([0.0] * (8 - len(vals)))
+        return [max(0.0, min(100.0, v)) for v in vals]
+
+    @classmethod
+    def _interp_band(cls, fft_levels, p):
+        vals = [v / 100.0 for v in cls._fft8(fft_levels)]
+        x = cls._clamp(p) * 7.0
+        i = int(math.floor(x))
+        j = min(7, i + 1)
+        t = x - i
+        return vals[i] * (1.0 - t) + vals[j] * t
+
     def set_speaking(self, speaking):
         self.speaking = bool(speaking)
 
+    def mousePressEvent(self, event):
+        """左クリックで Face → 7 Visualizers → Face を順送りする。"""
+        if event.button() == Qt.LeftButton:
+            self.display_mode = (self.display_mode + 1) % len(self.VIS_MODES)
+            self.update()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
     def _tick(self):
         now = self._now_ms()
-        speaking, _rms, _error, _fft = self.audio_state.snapshot()
+        speaking, _rms, _error, fft_raw = self.audio_state.snapshot()
+        fft = self._fft8(fft_raw)
+        fft01 = [v / 100.0 for v in fft]
+        level = sum(fft01) / 8.0
+        bass = (fft01[0] + fft01[1]) * 0.5
 
         if speaking != self.was_speaking:
             self.was_speaking = speaking
@@ -1361,6 +1469,36 @@ class KariPomFaceWidget(QWidget):
             _, mode = self.blink_events.pop(0)
             self.eye_mode = mode
 
+        # Mirror Wave
+        self.mw_phase = (self.mw_phase + 0.02 + level * 0.30) % 6.0
+
+        # Latest Kaleidoscope: bass pulse + very slow rotation.
+        self.kal_bass_avg += (bass - self.kal_bass_avg) * 0.15
+        if bass > self.kal_bass_avg * 1.3 + 0.04:
+            self.kal_pulse = 1.0
+        self.kal_pulse *= 0.65
+        self.kal_level_fast += (level - self.kal_level_fast) * (0.50 if level > self.kal_level_fast else 0.18)
+        # CoreS3 uses 0.004 rad per ~70 ms frame. Companion ticks at 20 ms.
+        self.kal_rot = (self.kal_rot + 0.004 * (20.0 / 70.0)) % (2.0 * math.pi)
+
+        # Latest Analog VU: absolute + relative spectrum contribution, attack/release.
+        gained = [min(1.5, fft01[i] * self.EQ_GAIN8[i]) for i in range(8)]
+        mean = sum(gained) / 8.0
+        self.avu_level_env += (level - self.avu_level_env) * (0.50 if level > self.avu_level_env else 0.18)
+        gate = self._clamp((self.avu_level_env - 0.012) / 0.040)
+        rel_den = max(mean, 0.060)
+        for i in range(8):
+            target = 0.0
+            if gained[i] >= 0.020:
+                a_abs = min(1.0, gained[i] / 1.30)
+                ratio = gained[i] / rel_den
+                a_rel = self._clamp((ratio - 0.35) / (1.90 - 0.35))
+                target = min(1.0, gate * (0.55 * a_abs + 0.60 * a_rel))
+            coef = 0.60 if target > self.avu_needle[i] else 0.14
+            self.avu_needle[i] += (target - self.avu_needle[i]) * coef
+
+        self._update_rhythm(now, fft)
+        self._update_tetromino(now, fft01, level, bass)
         self.update()
 
     def _schedule_blink(self, now):
@@ -1384,27 +1522,27 @@ class KariPomFaceWidget(QWidget):
         pen.setWidth(thickness)
         pen.setCapStyle(Qt.RoundCap)
         painter.setPen(pen)
-        painter.drawLine(x0, y0, x1, y1)
+        painter.drawLine(int(x0), int(y0), int(x1), int(y1))
 
     @staticmethod
     def _fill_ellipse(painter, cx, cy, rx, ry, color):
         painter.setPen(Qt.NoPen)
         painter.setBrush(QBrush(color))
-        painter.drawEllipse(cx - rx, cy - ry, rx * 2, ry * 2)
+        painter.drawEllipse(int(cx - rx), int(cy - ry), int(rx * 2), int(ry * 2))
 
     @classmethod
     def _fill_circle(cls, painter, cx, cy, radius, color):
         cls._fill_ellipse(painter, cx, cy, radius, radius, color)
 
-    def paintEvent(self, event):  # noqa: ARG002
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing, False)
-        painter.fillRect(self.rect(), QColor("white"))
-        painter.scale(self.scale_factor, self.scale_factor)
+    @staticmethod
+    def _poly(painter, points, color):
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QBrush(color))
+        painter.drawPolygon(*[QPoint(int(round(x)), int(round(y))) for x, y in points])
 
+    def _draw_face(self, painter):
         black = QColor("black")
         red = QColor("red")
-
         if self.eye_mode == "blink":
             self._draw_thick_line(painter, 72, 90, 108, 90, 6, black)
             self._draw_thick_line(painter, 212, 90, 248, 90, 6, black)
@@ -1416,34 +1554,449 @@ class KariPomFaceWidget(QWidget):
 
         if self.mouth_open and self.was_speaking:
             self._draw_thick_line(
-                painter,
-                FACE_NOSE_X,
-                FACE_NOSE_Y + self.nose_offset + 8,
-                FACE_NOSE_X,
-                FACE_NOSE_Y + 25,
-                6,
-                black,
+                painter, FACE_NOSE_X, FACE_NOSE_Y + self.nose_offset + 8,
+                FACE_NOSE_X, FACE_NOSE_Y + 25, 6, black
             )
             self._fill_ellipse(
-                painter,
-                self.mouth_mx,
-                self.mouth_my,
-                self.mouth_mw,
-                self.mouth_mh,
-                red,
+                painter, self.mouth_mx, self.mouth_my,
+                self.mouth_mw, self.mouth_mh, red
             )
         else:
             self._draw_thick_line(
-                painter,
-                FACE_NOSE_X,
-                FACE_NOSE_Y + self.nose_offset + 8,
-                FACE_NOSE_X,
-                FACE_NOSE_Y + 22,
-                6,
-                black,
+                painter, FACE_NOSE_X, FACE_NOSE_Y + self.nose_offset + 8,
+                FACE_NOSE_X, FACE_NOSE_Y + 22, 6, black
             )
             self._draw_thick_line(painter, FACE_NOSE_X, FACE_NOSE_Y + 22, FACE_NOSE_X - 20, FACE_NOSE_Y + 32, 6, black)
             self._draw_thick_line(painter, FACE_NOSE_X, FACE_NOSE_Y + 22, FACE_NOSE_X + 20, FACE_NOSE_Y + 32, 6, black)
+
+    def _draw_face_with_rim(self, painter):
+        white = QColor("white")
+        if self.eye_mode == "blink":
+            self._draw_thick_line(painter, 72, 90, 108, 90, 10, white)
+            self._draw_thick_line(painter, 212, 90, 248, 90, 10, white)
+        else:
+            self._fill_circle(painter, 90, 90, 24, white)
+            self._fill_circle(painter, 230, 90, 24, white)
+        self._fill_ellipse(painter, FACE_NOSE_X, FACE_NOSE_Y + self.nose_offset, 22, 16, white)
+        # Keep the visualizer background visible behind the mouth.
+        # Eyes and nose retain their white rim, but no rectangular mouth underlay.
+        self._draw_face(painter)
+
+    def _draw_eq(self, painter, fft):
+        painter.setPen(Qt.NoPen)
+        for i, raw in enumerate(fft):
+            disp = min(100.0, raw * self.EQ_GAIN8[i])
+            h = int(round(disp * 160.0 / 100.0))
+            if h > 0:
+                painter.setBrush(QBrush(QColor(*self.SPECTRUM_RGB[i])))
+                painter.drawRect(i * 40 + 3, 200 - h, 34, h)
+        self._draw_face(painter)
+
+    def _draw_halo(self, painter, fft):
+        # 2026-08-10 adopted CoreS3 look: true circle, not the former flattened ellipse.
+        vals = [v / 100.0 for v in fft]
+        peak = max(vals) if vals else 0.0
+        self.halo_agc_peak += (peak - self.halo_agc_peak) * (1.0 if peak > self.halo_agc_peak else 0.03)
+        ref = max(0.21, self.halo_agc_peak)
+        agc = 0.64 / ref
+        cx, cy = 160.0, 143.0
+        rin, rout = 62.0, 93.0
+        for j in range(48):
+            rel = j / 47.0
+            fold = min(rel * 2.0, 2.0 - rel * 2.0)
+            v = min(1.0, self._interp_band(fft, fold) * agc)
+            if v < 0.02:
+                v = 0.0
+            elif v < 0.065:
+                v *= (v - 0.02) / 0.045
+            if v > 0.0:
+                v = v ** 0.48
+            a = math.radians(90.0 + j * 360.0 / 48.0)
+            dx, dy = math.cos(a), math.sin(a)
+            r2 = rin + (rout - rin) * v
+            base = self._spectrum_color(fold)
+            for frac, tint, width in ((0.45, 82, 8), (0.70, 58, 7), (0.88, 28, 6), (1.0, 0, 4)):
+                rr = rin + (r2 - rin) * frac
+                pen = QPen(self._tint(base, tint))
+                pen.setWidth(width)
+                pen.setCapStyle(Qt.RoundCap)
+                painter.setPen(pen)
+                painter.drawLine(
+                    int(cx + dx * rin), int(cy + dy * rin),
+                    int(cx + dx * rr), int(cy + dy * rr)
+                )
+        self._draw_face(painter)
+
+    def _draw_mirror(self, painter, fft):
+        vals = [v / 100.0 for v in fft]
+        peak = max(vals) if vals else 0.0
+        self.mw_agc_peak += (peak - self.mw_agc_peak) * (1.0 if peak > self.mw_agc_peak else 0.03)
+        agc = 0.80 / max(0.20, self.mw_agc_peak)
+        pal = (
+            QColor(0,230,255), QColor(0,140,255), QColor(150,90,255),
+            QColor(255,60,220), QColor(255,200,0), QColor(60,255,140),
+        )
+        cy, ymin, ymax, sx, edge = 143, 50, 236, 4, 6
+        max_half = (ymax - ymin) // 2
+        for c in range(81):
+            x = min(319, c * sx)
+            p = x / 319.0
+            v = min(1.0, self._interp_band(fft, p) * agc)
+            h = max(2, int((v ** 0.45) * max_half))
+            top, bot = max(ymin, cy - h), min(ymax, cy + h)
+            hue = pal[int(c * 0.10 + self.mw_phase) % len(pal)]
+            body = self._tint(hue, 18)
+            hi = self._tint(hue, 62)
+            painter.setPen(Qt.NoPen)
+            if bot - top > 2 * edge:
+                painter.setBrush(QBrush(body))
+                painter.drawRect(x, top + edge, sx, bot - top - 2 * edge)
+            painter.setBrush(QBrush(hi))
+            painter.drawRect(x, top, sx, edge)
+            painter.drawRect(x, bot - edge, sx, edge)
+        self._draw_face(painter)
+
+    def _update_rhythm(self, now, fft):
+        if now - self.rhythm_last_step < 40:
+            return
+        self.rhythm_last_step = now
+        self.rhythm_hist[1:] = [row[:] for row in self.rhythm_hist[:-1]]
+        self.rhythm_hist[0] = [0.0] * 8
+        vals = [min(100.0, fft[i] * self.EQ_GAIN8[i]) for i in range(8)]
+        rise = [vals[i] - self.rhythm_prev[i] for i in range(8)]
+        for i in range(8):
+            if vals[i] >= 12.0 and rise[i] >= 10.0:
+                self.rhythm_hist[0][i] = vals[i]
+        self.rhythm_prev = vals
+
+    def _draw_rhythm(self, painter):
+        painter.setPen(Qt.NoPen)
+        for r, row in enumerate(self.rhythm_hist):
+            if (r % 4) >= 3:
+                continue
+            y = self.SCENE_TOP + r * 4
+            for i, disp in enumerate(row):
+                if disp <= 0:
+                    continue
+                tint = max(0.0, min(88.0, 100.0 - disp))
+                painter.setBrush(QBrush(self._tint(QColor(*self.SPECTRUM_RGB[i]), tint)))
+                painter.drawRect(i * 40 + 3, y, 34, 16)
+        self._draw_face(painter)
+
+    def _draw_kaleido(self, painter, fft, now_sec):
+        # 2026-08-10 adopted compact Kaleidoscope:
+        # total radius ~106..136 px, slow auto morph/rotation, audio shape dominant.
+        painter.fillRect(0, self.SCENE_TOP, FACE_W, FACE_H - self.SCENE_TOP, QColor("white"))
+        painter.save()
+        painter.setClipRect(0, self.SCENE_TOP, FACE_W, FACE_H - self.SCENE_TOP)
+
+        vals = [v / 100.0 for v in fft]
+        gained = [vals[i] * self.EQ_GAIN8[i] for i in range(8)]
+        mean = sum(gained) / 8.0
+        gate = self._clamp((self.kal_level_fast - 0.015) / 0.05)
+        loud_trim = 0.55 + 0.45 * min(1.0, self.kal_level_fast / 0.35)
+        amp = gate * loud_trim
+        pulse = 1.0 + 0.10 * self.kal_pulse
+
+        gaps_min = (20.0, 24.0, 28.0, 34.0)
+        gaps_max = (26.0, 30.0, 36.0, 44.0)
+        cx, cy = 160.0, 144.0
+        r_prev = 0.0
+
+        def rel_shape(v):
+            denom = max(mean, 0.05)
+            ratio = max(-2.5, min(2.5, (v - mean) / denom))
+            mag = math.sqrt(abs(ratio) * 1.3)
+            return max(-1.3, min(1.3, mag if ratio >= 0 else -mag))
+
+        for ring in range(4):
+            # 12..22s-scale base morph kept intentionally subtle.
+            wave = 0.5 + 0.5 * math.sin((now_sec / self.kal_period[ring]) * 2.0 * math.pi + self.kal_phase[ring])
+            gap = gaps_min[ring] + (gaps_max[ring] - gaps_min[ring]) * wave
+            r_in = r_prev * pulse
+            r_out = (r_prev + gap) * pulse
+            r_prev += gap
+
+            shape_r = rel_shape(gained[ring * 2])
+            shape_a = rel_shape(gained[ring * 2 + 1])
+            frac_base = 0.38 + 0.24 * (0.5 + 0.5 * math.sin((now_sec / (self.kal_period[ring] * 1.17)) * 2.0 * math.pi + self.kal_phase[ring]))
+            r_f = r_in + (r_out - r_in) * frac_base + shape_r * amp * 45.0 + self.kal_pulse * 22.0
+            margin = max(3.0, (r_out - r_in) * 0.12)
+            r_f = max(r_in + margin, min(r_out - margin, r_f))
+            base_ang = math.radians(10.0 + 10.0 * wave)
+            ang = max(math.radians(2.0), min(math.radians(28.0), base_ang + shape_a * amp * 0.55))
+
+            # One 30-degree seed wedge, mirrored into 12 copies.
+            in0 = (r_in, 0.0)
+            in1 = (r_in * math.cos(math.pi / 6), r_in * math.sin(math.pi / 6))
+            out0 = (r_out, 0.0)
+            out1 = (r_out * math.cos(math.pi / 6), r_out * math.sin(math.pi / 6))
+            fp = (r_f * math.cos(ang), r_f * math.sin(ang))
+
+            audio_avg = (abs(shape_r) + abs(shape_a)) * 0.5 * amp
+            hue_spread = 1.0 + audio_avg * 0.9
+            white_boost = min(92.0, 8.0 + audio_avg * 42.0 + self.kal_pulse * 55.0)
+            colors = [
+                self._tint(self._spectrum_color((ring * 0.22 + ofs * hue_spread) % 1.0), white_boost)
+                for ofs in (0.00, 0.05, 0.10, 0.15)
+            ]
+            tris = (
+                (in0, in1, fp),
+                (in1, out1, fp),
+                (out1, out0, fp),
+                (out0, in0, fp),
+            )
+
+            for sec in range(6):
+                sec_a = sec * math.pi / 3.0
+                for mirrored in (False, True):
+                    for tri, col in zip(tris, colors):
+                        pts = []
+                        for x, y in tri:
+                            if mirrored:
+                                y = -y
+                            # sector rotation, then whole-pattern rotation
+                            cs, ss = math.cos(sec_a), math.sin(sec_a)
+                            tx, ty = x * cs - y * ss, x * ss + y * cs
+                            cr, sr = math.cos(self.kal_rot), math.sin(self.kal_rot)
+                            fx, fy = tx * cr - ty * sr, tx * sr + ty * cr
+                            pts.append((cx + fx, cy + fy))
+                        self._poly(painter, pts, col)
+
+        painter.restore()
+        self._draw_face(painter)
+
+    def _draw_analog_vu(self, painter):
+        # 2026-08-10 adopted arch-top meter faces:
+        # meter/ticks/needle size retained; unused square top is removed.
+        painter.fillRect(0, self.SCENE_TOP, FACE_W, FACE_H - self.SCENE_TOP, QColor("white"))
+        cream = QColor(245, 230, 200)
+        frame = QColor(33, 36, 36)
+        bezel = QColor(82, 82, 82)
+        red_zone = QColor(192, 0, 0)
+        needle = QColor(248, 0, 0)
+        labels = ("L1", "L2", "M1", "M2", "M3", "M4", "H1", "H2")
+
+        for b in range(8):
+            col, row = b % 4, b // 4
+            cx0, cy0 = col * 80, self.SCENE_TOP + row * 96
+            px, py = cx0 + 3, cy0 + 8
+            vx, vy = cx0 + 40, cy0 + 74
+            panel_w, panel_h = 74, 76
+            face_r = 44  # tick outer radius 42 + requested 2 px
+            panel_bottom = py + panel_h - 1
+
+            # Fill only below the arch. This is the key adopted change.
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(QBrush(cream))
+            prev_top = None
+            for lx in range(panel_w):
+                sx = px + lx
+                dx = sx - vx
+                rr = max(0, face_r * face_r - dx * dx)
+                top_y = vy - int(round(math.sqrt(rr)))
+                painter.drawRect(sx, top_y, 1, panel_bottom - top_y + 1)
+                if prev_top is not None:
+                    painter.setPen(QPen(frame, 1))
+                    painter.drawLine(prev_top[0], prev_top[1], sx, top_y)
+                    painter.setPen(Qt.NoPen)
+                prev_top = (sx, top_y)
+
+            # Side/bottom frame.
+            def arch_y(sx, radius):
+                rr = max(0, radius * radius - (sx - vx) ** 2)
+                return vy - int(round(math.sqrt(rr)))
+            right_x = px + panel_w - 1
+            painter.setPen(QPen(frame, 1))
+            painter.drawLine(px, arch_y(px, face_r), px, panel_bottom)
+            painter.drawLine(right_x, arch_y(right_x, face_r), right_x, panel_bottom)
+            painter.drawLine(px, panel_bottom, right_x, panel_bottom)
+
+            # 1px outer bezel following the arch.
+            prev = None
+            for lx in range(-1, panel_w + 1):
+                sx = px + lx
+                dx = sx - vx
+                rr = (face_r + 1) ** 2 - dx * dx
+                if rr < 0:
+                    continue
+                yy = vy - int(round(math.sqrt(rr)))
+                if prev is not None:
+                    painter.setPen(QPen(bezel, 1))
+                    painter.drawLine(prev[0], prev[1], sx, yy)
+                prev = (sx, yy)
+
+            # Arc + ticks.
+            arc_pts = []
+            for k in range(13):
+                deg = -55.0 + (110.0 * k / 12.0)
+                a = math.radians(deg)
+                arc_pts.append((vx + math.sin(a) * 42, vy - math.cos(a) * 42))
+            painter.setPen(QPen(frame, 1))
+            for p0, p1 in zip(arc_pts[:-1], arc_pts[1:]):
+                painter.drawLine(int(p0[0]), int(p0[1]), int(p1[0]), int(p1[1]))
+
+            # Dense red peak band.
+            painter.setPen(QPen(red_zone, 2))
+            for k in range(16):
+                t = 0.75 + 0.25 * k / 15.0
+                deg = -55.0 + 110.0 * t
+                a = math.radians(deg)
+                painter.drawLine(
+                    int(vx + math.sin(a) * 38), int(vy - math.cos(a) * 38),
+                    int(vx + math.sin(a) * 42), int(vy - math.cos(a) * 42),
+                )
+
+            for k in range(7):
+                t = k / 6.0
+                deg = -55.0 + 110.0 * t
+                a = math.radians(deg)
+                painter.setPen(QPen(red_zone if t >= 0.75 else frame, 1))
+                painter.drawLine(
+                    int(vx + math.sin(a) * 34), int(vy - math.cos(a) * 34),
+                    int(vx + math.sin(a) * 42), int(vy - math.cos(a) * 42),
+                )
+
+            # Labels at lower corners, matching current CoreS3 design.
+            painter.setPen(QPen(frame, 1))
+            painter.drawText(cx0 + 17, cy0 + 80, labels[b])
+            painter.drawText(cx0 + 53, cy0 + 80, "VU")
+
+            # Needle + hub.
+            a = math.radians(-55.0 + 110.0 * self.avu_needle[b])
+            sx, sy = math.sin(a), -math.cos(a)
+            pxp, pyp = math.cos(a), math.sin(a)
+            tip = (vx + sx * 38.0, vy + sy * 38.0)
+            b1 = (vx + pxp, vy + pyp)
+            b2 = (vx - pxp, vy - pyp)
+            self._poly(painter, (b1, b2, tip), needle)
+            self._fill_circle(painter, vx, vy, 3, frame)
+            self._fill_circle(painter, vx, vy, 1, bezel)
+
+        self._draw_face(painter)
+
+    def _spawn_tetromino(self, color, now):
+        if len(self.tetro_pieces) >= 4:
+            return
+        shape = random.choice(("O", "I", "L"))
+        self.tetro_pieces.append({
+            "shape": shape,
+            "cx": float(random.randint(64, 256)),
+            "cy": float(self.SCENE_TOP - 64),
+            "vy": 0.6,
+            "angle": 0.0,
+            "target": 0.0,
+            "color": color,
+            "next_rot": now + random.randint(900, 1700),
+            "slide_to": None,
+            "slide_from": 0.0,
+            "slide_start": 0,
+            "slide_dur": 0,
+            "next_slide": now + random.randint(1200, 2200),
+        })
+
+    def _update_tetromino(self, now, fft01, level, bass):
+        vals = [min(100.0, fft01[i] * self.EQ_GAIN8[i] * 100.0) for i in range(8)]
+        for i in range(8):
+            if vals[i] >= 15.0 and vals[i] - self._tetro_prev[i] >= 12.0 and now - self.tetro_last_spawn >= 220:
+                self._spawn_tetromino(QColor(*self.SPECTRUM_RGB[i]), now)
+                self.tetro_last_spawn = now
+                break
+        self._tetro_prev = vals
+
+        if not self.tetro_pieces and now - self.tetro_last_spawn >= 2500:
+            self._spawn_tetromino(QColor(*self.SPECTRUM_RGB[4]), now)
+            self.tetro_last_spawn = now
+
+        self.tetro_bass_avg += (bass - self.tetro_bass_avg) * 0.15
+        bass_hit = bass > self.tetro_bass_avg * 1.3 + 0.04
+
+        for p in list(self.tetro_pieces):
+            p["cy"] += p["vy"] * (1.0 + level * 2.2)
+            if abs(p["target"] - p["angle"]) > 1e-4:
+                step = 0.2618 if p["target"] > p["angle"] else -0.2618
+                if abs(p["target"] - p["angle"]) <= abs(step):
+                    p["angle"] = p["target"]
+                else:
+                    p["angle"] += step
+            elif p["shape"] != "O" and (now >= p["next_rot"] or (bass_hit and random.random() < 0.25)):
+                p["target"] = p["angle"] + math.pi / 2.0
+                p["next_rot"] = now + random.randint(900, 1700)
+
+            if p["slide_to"] is not None:
+                t = min(1.0, (now - p["slide_start"]) / max(1, p["slide_dur"]))
+                e = t * t * (3.0 - 2.0 * t)
+                p["cx"] = p["slide_from"] + (p["slide_to"] - p["slide_from"]) * e
+                if t >= 1.0:
+                    p["slide_to"] = None
+            elif now >= p["next_slide"]:
+                if random.random() < 0.5:
+                    target = p["cx"] + random.choice((-1, 1)) * random.choice((40, 80))
+                    target = max(64.0, min(256.0, target))
+                    if abs(target - p["cx"]) > 4.0:
+                        p["slide_from"] = p["cx"]
+                        p["slide_to"] = target
+                        p["slide_start"] = now
+                        p["slide_dur"] = random.randint(300, 500)
+                p["next_slide"] = now + random.randint(1200, 2200)
+
+            if p["cy"] - 64 > FACE_H:
+                self.tetro_pieces.remove(p)
+
+    def _draw_tetromino(self, painter):
+        painter.save()
+        painter.setClipRect(0, self.SCENE_TOP, FACE_W, FACE_H - self.SCENE_TOP)
+        shapes = {
+            "O": ((0,0),(1,0),(0,1),(1,1)),
+            "I": ((0,0),(1,0),(2,0)),
+            "L": ((0,0),(1,0),(0,1)),
+        }
+        for p in self.tetro_pieces:
+            cells = shapes[p["shape"]]
+            w = 3 if p["shape"] == "I" else 2
+            h = 1 if p["shape"] == "I" else 2
+            ca, sa = math.cos(p["angle"]), math.sin(p["angle"])
+            for col, row in cells:
+                lcx = (col - (w - 1) / 2.0) * 40
+                lcy = (row - (h - 1) / 2.0) * 40
+                half = 19
+                pts = []
+                for lx, ly in (
+                    (lcx-half,lcy-half),(lcx+half,lcy-half),
+                    (lcx+half,lcy+half),(lcx-half,lcy+half)
+                ):
+                    rx, ry = lx * ca - ly * sa, lx * sa + ly * ca
+                    pts.append((p["cx"] + rx, p["cy"] + ry))
+                self._poly(painter, pts, p["color"])
+        painter.restore()
+        self._draw_face(painter)
+
+    def paintEvent(self, event):  # noqa: ARG002
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing, False)
+        painter.fillRect(self.rect(), QColor("white"))
+        painter.scale(self.scale_factor, self.scale_factor)
+
+        _speaking, _rms, _error, fft_raw = self.audio_state.snapshot()
+        fft = self._fft8(fft_raw)
+        now_sec = time.monotonic()
+
+        if self.display_mode == 0:
+            self._draw_face(painter)
+        elif self.display_mode == 1:
+            self._draw_eq(painter, fft)
+        elif self.display_mode == 2:
+            self._draw_halo(painter, fft)
+        elif self.display_mode == 3:
+            self._draw_mirror(painter, fft)
+        elif self.display_mode == 4:
+            self._draw_rhythm(painter)
+        elif self.display_mode == 5:
+            self._draw_kaleido(painter, fft, now_sec)
+        elif self.display_mode == 6:
+            self._draw_analog_vu(painter)
+        elif self.display_mode == 7:
+            self._draw_tetromino(painter)
 
         painter.end()
 
@@ -1553,6 +2106,10 @@ class MainWindow(QMainWindow):
         face_row.addWidget(self.face_widget)
         face_row.addStretch()
         face_lay.addLayout(face_row)
+        self.lbl_face_mode = QLabel("Face → 7 Visualizers → Face：画面クリック")
+        self.lbl_face_mode.setAlignment(Qt.AlignCenter)
+        self.lbl_face_mode.setStyleSheet("color: gray; font-size: 11px;")
+        face_lay.addWidget(self.lbl_face_mode)
         self.lbl_face_status = QLabel("PC音声を待機中")
         self.lbl_face_status.setAlignment(Qt.AlignCenter)
         self.lbl_face_status.setStyleSheet("color: gray; font-size: 12px;")
