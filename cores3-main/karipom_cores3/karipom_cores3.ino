@@ -811,6 +811,7 @@ enum LightingMode : uint8_t {
   LIGHT_FLYINGPOMPADOUR = 17, // Flying Pompadour（背景・1990年代スクリーンセーバーへのオマージュ。著作物のデザインは使わずKariPom独自の飛行体で表現）
   LIGHT_RAINBOWWASHER = 18,   // Rainbow Washing Machine（背景・中心から放射状に広がる多数の高彩度三角片が洗濯機の脱水サイクル風に速度・方向を変えながら回転）
   LIGHT_PIXELINVASION = 19,   // Pixel Invasion（背景・1970年代末〜80年代初頭の固定画面シューティングへのオマージュ。黒背景に紫/水色/緑のオリジナルドット絵敵編隊・自機・赤いシールド・UFOが自動で動き続ける）
+  LIGHT_FLOWERCLOCK = 20,     // Flower Clock（背景・画面いっぱいの12色花びら＋中央白文字盤のカラフルなアナログ時計）
   // ↓ 将来ここへ追加（Defender / Scramble / Pong / Block Breaker / Fire / Neon …）
   // cfg_lightingMask は uint32_t（今後のLighting追加を見込んで正式採用。bit31=32番目まで拡張余地あり）。
   LIGHT_MODE_COUNT
@@ -860,6 +861,8 @@ const LightModeInfo LIGHT_MODES[LIGHT_MODE_COUNT] = {
     "画面中央の消失点を軸に、赤・橙・黄・黄緑・緑・シアン・青・紫・マゼンタなど彩度の高い三角形・くさび形の色片が510個、中心付近の小さな点として次々に生まれては外側へ実際に移動しながらだんだん大きくなり、最外周に達すると消えてまた中心付近から生まれ直す、極彩色のトンネルのようなLightingです。半径を5つの帯に分け、内側から外側へ帯ごとに回転方向・速度を変えている（隣り合う帯が互いに逆方向へ回る）ため、複数の渦が重なって滑っていくように見えます。Hypnotic Vortexの単色6分割ウェッジが1枚岩として一定速度で回るのとは異なり、色片の数・中心から外周への移動・帯ごとの逆回転のいずれの点でも別物です。加速・停止・反転を伴う洗濯機の脱水サイクルのような動きではなく、回転は止まることなく常時継続する、トランス感のある演出です。Psychedelic / Tranceのような視覚モチーフの切替や点滅も行いません。Brightness設定が効きます。" },
   { "pixelinvasion", "Pixel Invasion",
     "1970年代末〜1980年代初頭のカラー化された固定画面シューティングゲームの雰囲気を思わせる、レトロアーケード風の自動アニメーションLightingです（実在ゲームのスプライトデータは一切使用せず、上段マゼンタ・中段ターコイズ・下段グリーンに塗り分けたKariPom独自のドット絵敵編隊です）。背景は完全な黒一色で、星や背景スクロールなどの宇宙演出は入れていません。5段の敵編隊が数ピクセル単位でカッ、カッ、カッと左右へ移動し、端に達すると方向転換して少し下降します。画面下部ではオリジナルデザインの自機が自動で左右往復しながら時々弾を発射し、敵側も時おり下方向へ弾を撃ち返します。自機と敵編隊の間には赤いピクセルアートのシールドが4つあり、弾が当たった場所から少しずつ欠けていきます。ときどき画面上部をUFOが横切ります。スコアや残機、GAME OVERの概念は無く、編隊が減ったり画面下に近づいたりすると新しい編隊とシールドへ自然に切り替わり、眺めている間ずっとアニメーションが続きます。Brightness設定が効きます。" },
+  { "flowerclock", "Flower Clock",
+    "画面いっぱいを使ったカラフルなアナログ時計Lightingです。四角い画面そのものを活かし、円形の文字盤だけを中央に置くのではなく、中央の正円の白い文字盤の外側から画面四辺・四隅までを、12時間に対応する12枚の色面（花びら）で埋め尽くします。花びらは12時の方向から時計回りに赤→橙→黄→黄緑→緑→黄緑がかった緑→シアン→青緑→青→紫→マゼンタ→バラ色と虹色に並び、花びら同士の境界は判別できる程度の細い黒線のみです。数字や分目盛りは表示せず、中央の白い文字盤には黒い時針・分針のみを描きます（秒針はありません）。長針は「分」をそのまま示し、短針は時刻ちょうどで飛ばず分に応じて滑らかに進む通常のアナログ時計動作です。中心軸はシンプルな黒い円です。表示領域は他のLighting同様、上部48pxの情報パネルを除く画面下側です。Brightness設定が効きます。" },
 };
 
 // Lightingの複数選択状態（ビットマスク・NVS "lightMask" に保存）。0=全OFF。
@@ -936,6 +939,7 @@ const uint8_t LIGHT_LAYER[LIGHT_MODE_COUNT] = {
   LIGHT_LAYER_BG,    // LIGHT_FLYINGPOMPADOUR … 面
   LIGHT_LAYER_BG,    // LIGHT_RAINBOWWASHER … 面
   LIGHT_LAYER_BG,    // LIGHT_PIXELINVASION … 面
+  LIGHT_LAYER_BG,    // LIGHT_FLOWERCLOCK … 面
 };
 const uint8_t LIGHT_HEADER[LIGHT_MODE_COUNT] = {
   HEADER_LIGHT,      // LIGHT_DISCO  … 明るい原色の床 → 上端は白背景が読みやすい
@@ -962,6 +966,7 @@ const uint8_t LIGHT_HEADER[LIGHT_MODE_COUNT] = {
   HEADER_DARK,       // LIGHT_FLYINGPOMPADOUR … 夕暮れ〜夜空の暗い背景 → 黒
   HEADER_DARK,       // LIGHT_RAINBOWWASHER … 黒背景に高彩度の色片 → 黒
   HEADER_DARK,       // LIGHT_PIXELINVASION … 完全な黒背景 → 黒
+  HEADER_LIGHT,      // LIGHT_FLOWERCLOCK … 中央白文字盤＋明るい原色の花びら → 上端は白背景が読みやすい
 };
 
 // 上端パネルを黒テーマにすべきか（採用中の背景Lightingのヘッダーに従う）。
@@ -21057,6 +21062,292 @@ void lightRenderPixelInvasion(bool needsInit, bool fullRepaint) {
   GFX.clearClipRect();
 }
 
+// ############################################################################
+// #  Flower Clock Lighting（2026-08-11 追加。同日中に複数回の実機調整あり）  #
+// ############################################################################
+//
+// ■ コンセプト
+//   画面いっぱいを使ったカラフルなアナログ時計。320×192のLighting描画領域
+//   そのものを時計とみなし、12時間に対応する12枚の色区画が画面四辺・四隅から
+//   中央へ向かって放射状に広がり、中央には描画領域の横長比率に合わせた
+//   「角の少しだけ丸い横長長方形」の白い文字盤を置く（カプセル型にはしない）。
+//   文字盤には12・3・6・9の4数字と、黒より最前面の長針（ピンク系）・短針
+//   （紫系）のみを表示する（秒針は無し。数字は紫系）。
+//
+// ■ 描画領域・寸法（320×192の実描画領域から比率で決定。固定値の先出しはしない）
+//   ・FC_TOP = SCENE_TOP(48)。上部48pxの情報パネルには一切描かない
+//     （GFX.setClipRect()で構造的に保護。Psychedelic/Vortex等と同じ方式）。
+//   ・実描画領域は 320×192（y:48〜240）。その幾何中心 FC_CX=160, FC_CY=144
+//     を12色区画・文字盤・針すべての中心にする。
+//   ・中心から画面四隅までの距離は sqrt(160^2+96^2) ≈ 186.6px。12色区画の
+//     外側境界は固定半径 FC_R_OUTER=220（これより大きい）を使い、
+//     GFX.setClipRect()の矩形クリップによって実際には四隅ぴったりまで
+//     塗られる（＝12色区画は常に画面いっぱい・四隅まで届く）。
+//   ・中央白領域（角丸長方形）は、描画領域の半幅160・半高さ96に対して同じ
+//     縮小率0.5625を掛けた FC_RECT_HW=90（幅180）, FC_RECT_HH=54（高さ108）。
+//     縦横とも描画領域と同じ縮小率にすることで、320:192＝5:3という描画領域
+//     自体の横長比率をそのまま中央領域にも反映している（「描画領域そのものが
+//     時計」という設計意図に対応）。
+//   ・角丸半径 FC_RECT_R=16（FC_RECT_HHの約3割）。カプセル型（R=HH）には
+//     ならない程度の、控えめな角丸に留めている。
+//
+// ■ 色（12枚・0°=12時方向から時計回りに30°刻みでフル彩度の虹色）
+//   赤→橙→黄→黄緑→緑→黄緑がかった緑→シアン→青緑→青→紫→マゼンタ→
+//   バラ色、と一周する。区画同士の境界は判別に必要な最小限として、
+//   1pxの黒線のみを引く。
+//
+// ■ 12色区画と中央角丸長方形の接続（シンプルな放射状構造）
+//   境界線13本（12区分+折返し）を、内側＝角丸長方形の輪郭までの距離
+//   （fcRoundedRectDist）、外側＝固定半径FC_R_OUTERの2点だけで表し、
+//   区画ごとに直線の四角形（三角形2枚）で塗る。境界角度には15°シフト
+//   （下記「実機フィードバック」参照）を適用しているため、12時・1時・2時…
+//   の各時刻方向は境界ではなく各色区画の「中心」を通る。
+//
+// ■ 時刻
+//   既存の getLocalTime()（drawClock()等と同じRTC/NTP由来の時刻。Flower Clock
+//   専用の時刻管理は追加していない）をそのまま使う。
+//   ・長針＝「分」でなめらかに1周（60分で1周）。
+//   ・短針＝「時＋分/60」で12時間を滑らかに移動する通常のアナログ時計動作
+//     （時刻ちょうどで飛ばない）。
+//   ・秒針は表示しない。
+//
+// ■ 負荷対策
+//   境界座標（内側13点・外側13点）は画面中心・寸法とも固定なので
+//   buildFlowerClockTable()で初回のみ計算してstatic配列にキャッシュする
+//   （Hypnotic Vortexのテーブルキャッシュと同じ考え方）。毎フレームは
+//   キャッシュ済み座標で12区画ぶんのfillTriangle×2枚のみを行う。
+//
+// ■ 実機フィードバックによる主な変更履歴
+//   第3弾: 12色の境界を15°（半区分）シフトし、各時刻方向が境界ではなく
+//     各色区画の「中心」を通るようにした。中央白領域に12・3・6・9の4数字を
+//     紫系で追加。針を太く・長くし、長針＝ピンク系／短針＝紫系に変更。
+//   第4弾: 針を中央白領域の輪郭近くまで届く長さへ伸ばした。「3」「9」を
+//     角丸長方形の左右の辺に近い位置へ移動（上下の「12」「6」とは別の距離
+//     FC_NUM_DXを新設）。
+//   第5弾: 針（長針・短針・中心軸）を、Lighting層ではなく顔レイヤーより後の
+//     「最前面専用オーバーレイ」fcDrawHandsForeground() へ移した（顔の鼻・口
+//     に隠れる問題への対応。sceneComposeAndPush()参照）。12色区画の外周を
+//     「花びら」状に丸める試みを開始。
+//   第6弾: 最前面オーバーレイの黒い中心軸（丸）を廃止（鼻の黒と重なって
+//     見えるため）。「花びら」形状をコサイン波→プラトー付きS字形状へ改良。
+//   第7弾（今回）: 実機確認の結果、「花びら化」自体を中止。12色区画の外周を
+//     花びら化する前のシンプルな放射状構造（本コメント上部の「12色区画と
+//     中央角丸長方形の接続」参照）へ戻した。第5弾のfcDrawHandsForeground()
+//     （針の最前面描画）・第6弾の黒い中心軸なしは、花びら形状とは独立した
+//     改善のためそのまま維持している。
+// ============================================================================
+#define FC_TOP           SCENE_TOP
+#define FC_CX            160
+#define FC_CY            ((FC_TOP + 240) / 2)
+#define FC_PETALS        12
+// 中央白領域（角丸長方形）の半幅・半高さ・角丸半径。
+// 描画領域の半幅160・半高さ96に同じ縮小率(0.5625)を掛けて求めた値
+// （＝描画領域320×192と同じ5:3の横長比率を中央領域にも反映）。
+// サイズ・角丸は今回も現状維持（変更対象外）。
+#define FC_RECT_HW       90.0f
+#define FC_RECT_HH       54.0f
+#define FC_RECT_R        16.0f
+
+// ── 12・3・6・9 数字（紫系・太字風）──────────────────────────────
+// FC_NUM_TEXTSIZE=2（既定フォント12×16px/文字）を使用。setTextSize(1)は
+// 320×192実機で細く読みにくかったため、既存コード（drawClockEyeDigits等）と
+// 同じ「同じ位置へ1px刻みで3回描いて太らせる」手法で太字風にしている。
+// 中央白領域は180×108の横長長方形のため、円周上に等距離で並べるのではなく
+// 上下（12・6）と左右（3・9）で別々の距離を使う：
+//   ・FC_NUM_DY=43 … 上下エッジ(FC_RECT_HH=54)から「文字の半分の高さ(8px)＋
+//     余白3px」だけ内側（54-8-3=43）＝上辺・下辺のすぐ近く。
+//   ・FC_NUM_DX=80 … 左右エッジ(FC_RECT_HW=90)から「文字の半分の幅(約7px)＋
+//     余白3px」だけ内側（90-7-3=80）＝左辺・右辺のすぐ近く。
+//     以前は上下と同じDY=43を左右にも流用していたため3・9が中央寄りに
+//     見えていた不具合を修正し、白い角丸長方形の形に合わせて大幅に外側へ
+//     移動した。
+#define FC_NUM_TEXTSIZE  2
+#define FC_NUM_DY        43.0f
+#define FC_NUM_DX        80.0f
+
+// ── 針 ────────────────────────────────────────────────────────────
+// 長さ・太さ・色は前回（第4弾）の値を維持。長針50px・短針40px（半幅7px/6px）。
+// 2026-08-11（6回目の実機フィードバック）：黒い中心軸（丸）は鼻の黒と重なって
+// 見えるため廃止した（FC_HUB_Rも削除。fcDrawHandsForeground()参照）。
+#define FC_HAND_MIN_LEN  50.0f
+#define FC_HAND_HOUR_LEN 40.0f
+#define FC_HAND_MIN_HW   7.0f
+#define FC_HAND_HOUR_HW  6.0f
+
+// 長針＝ピンク系（Hot Pink 255,105,180）／短針・数字＝紫系（Blue Violet
+// 138,43,226）をRGB565化した値。数字と短針は同系色で揃えている。
+#define FC_COL_PINK      0xFB56
+#define FC_COL_PURPLE    0x895C
+
+// 12時方向から時計回りに30°刻みのフル彩度虹色（RGB565）。
+// 赤,橙,黄,黄緑,緑,若緑(緑寄りのスプリンググリーン),シアン,青緑,青,紫,マゼンタ,バラ色。
+// 並び順・色そのものは無変更（境界角度の15°シフトのみ実施）。
+static const uint16_t FC_COLORS[FC_PETALS] = {
+  0xF800, 0xFC00, 0xFFE0, 0x87E0, 0x07E0, 0x07F0,
+  0x07FF, 0x041F, 0x001F, 0x801F, 0xF81F, 0xF810,
+};
+
+// 境界線13本（12区分+折返し）の内側・外側座標をキャッシュする
+// （詳細はbuildFlowerClockTable()参照）。
+// 外側の固定半径。画面四隅までの距離(約186.6px)より大きく取り、
+// GFX.setClipRect()の矩形クリップで実際には画面いっぱい・四隅まで塗られる。
+#define FC_R_OUTER 220.0f
+static float fcInnerX[FC_PETALS + 1], fcInnerY[FC_PETALS + 1];
+static float fcOuterX[FC_PETALS + 1], fcOuterY[FC_PETALS + 1];
+static bool  fcReady = false;
+
+// 中心(原点)から単位方向ベクトル(dx,dy)へレイを飛ばし、角丸長方形
+// （半幅hw・半高さhh・角丸半径r、中心が原点。r=0を渡せば角丸なしの
+// 通常の矩形として扱える）の輪郭までの距離を返す。
+// 手順：①角丸を無視した矩形の辺との交点距離tを求める　②その交点がコーナーの
+// 丸め範囲に入っていなければtをそのまま返す　③入っていればコーナー円
+// （半径r）とレイの交点を二次方程式で解き直す。
+static float fcRoundedRectDist(float dx, float dy, float hw, float hh, float r) {
+  float tx = (fabsf(dx) > 1e-6f) ? (hw / fabsf(dx)) : 1e9f;
+  float ty = (fabsf(dy) > 1e-6f) ? (hh / fabsf(dy)) : 1e9f;
+  float t  = fminf(tx, ty);
+  float px = dx * t, py = dy * t;
+  bool cornerZone = (t == tx) ? (fabsf(py) > (hh - r)) : (fabsf(px) > (hw - r));
+  if (!cornerZone) return t;
+
+  float ccx = (dx >= 0.0f ? 1.0f : -1.0f) * (hw - r);
+  float ccy = (dy >= 0.0f ? 1.0f : -1.0f) * (hh - r);
+  float b = dx * ccx + dy * ccy;              // dx,dyは単位ベクトルなのでa=1
+  float c = ccx * ccx + ccy * ccy - r * r;
+  float disc = b * b - c;
+  if (disc < 0.0f) disc = 0.0f;                // 数値誤差対策
+  float sq = sqrtf(disc);
+  float tNear = b - sq;
+  return (tNear > 0.0f) ? tNear : (b + sq);
+}
+
+// なめらかな0..1のS字補間（3次smoothstep）。xは呼び出し側で0..1の範囲。
+// 境界線13本（12区分+折返し。k=0..FC_PETALS）の内側・外側座標を求める。
+// 角度は15°（半区分）シフト済み（k*step-半区分）にしているため、
+// 12時・1時・2時…の各時刻方向は境界ではなく各色区画の「中心」を通る。
+// 内側＝角丸長方形の輪郭までの距離（fcRoundedRectDist）、外側＝固定半径
+// FC_R_OUTER（画面クリップで実際には四隅まで届く）の2点のみで直線区画にする。
+void buildFlowerClockTable() {
+  const float step = 6.2831853f / FC_PETALS;   // 30°（1区分の角度幅）
+  for (int k = 0; k <= FC_PETALS; k++) {
+    float ang = (float)k * step - step * 0.5f;   // 0=12時方向、時計回りに増加（15°シフト）
+    float s = sinf(ang), c = cosf(ang);
+    float rInner = fcRoundedRectDist(s, -c, FC_RECT_HW, FC_RECT_HH, FC_RECT_R);
+    fcInnerX[k] = FC_CX + rInner * s;
+    fcInnerY[k] = FC_CY - rInner * c;
+    fcOuterX[k] = FC_CX + FC_R_OUTER * s;
+    fcOuterY[k] = FC_CY - FC_R_OUTER * c;
+  }
+  fcReady = true;
+}
+
+// 根元が太く先端が細い針を1本描く（Analogue VUメーターの針描画と同じ考え方の
+// 三角形1枚）。angRadは0=12時方向、時計回りに増加するラジアン角。
+static void fcDrawHand(float angRad, float len, float halfWidth, uint16_t color) {
+  float sa = sinf(angRad), ca = cosf(angRad);
+  int tipX = FC_CX + (int)lroundf(len * sa);
+  int tipY = FC_CY - (int)lroundf(len * ca);
+  int b1X  = FC_CX + (int)lroundf(halfWidth * ca);
+  int b1Y  = FC_CY + (int)lroundf(halfWidth * sa);
+  int b2X  = FC_CX - (int)lroundf(halfWidth * ca);
+  int b2Y  = FC_CY - (int)lroundf(halfWidth * sa);
+  GFX.fillTriangle(b1X, b1Y, b2X, b2Y, tipX, tipY, lightBright(color));
+}
+
+// 1文字（または"12"の2文字）を中央基準(MC_DATUM)で描き、1px右へずらして
+// もう2回重ね描きすることで太字風にする（drawClockEyeDigits等と同じ手法）。
+// 呼び出し側で setTextDatum(MC_DATUM)/setTextColor()/setTextSize() を
+// 設定済みであることを前提とする。
+static void fcDrawNumeral(const char* text, int cx, int cy) {
+  GFX.drawString(text, cx - 1, cy);
+  GFX.drawString(text, cx,     cy);
+  GFX.drawString(text, cx + 1, cy);
+}
+
+// Flower Clockの背景（12色区画・文字盤・数字）だけを描く。針（長針・短針）
+// はここでは一切描かない。針は顔レイヤーより後の最前面専用オーバーレイ
+// fcDrawHandsForeground() へ完全に移してあるため（sceneComposeAndPush()参照）、
+// 背景側と最前面側で二重に描かれることはない。
+void lightRenderFlowerClock(bool needsInit, bool fullRepaint) {
+  (void)needsInit;
+  (void)fullRepaint;
+  if (!fcReady) buildFlowerClockTable();
+
+  GFX.setClipRect(0, FC_TOP, 320, 240 - FC_TOP);
+
+  // 12枚の色区画（中央角丸長方形の外側〜画面四辺・四隅まで、途切れなく敷き詰める）。
+  for (int k = 0; k < FC_PETALS; k++) {
+    uint16_t col = lightBright(FC_COLORS[k]);
+    GFX.fillTriangle((int)fcInnerX[k],   (int)fcInnerY[k],
+                      (int)fcInnerX[k+1], (int)fcInnerY[k+1],
+                      (int)fcOuterX[k+1], (int)fcOuterY[k+1], col);
+    GFX.fillTriangle((int)fcInnerX[k],   (int)fcInnerY[k],
+                      (int)fcOuterX[k+1], (int)fcOuterY[k+1],
+                      (int)fcOuterX[k],   (int)fcOuterY[k],   col);
+  }
+  // 色区画同士の境界線（12区画が判別できる必要最小限の1px黒線）
+  for (int k = 0; k < FC_PETALS; k++) {
+    lightDrawLine((int)fcInnerX[k], (int)fcInnerY[k], (int)fcOuterX[k], (int)fcOuterY[k], BLACK);
+  }
+
+  // 中央の白い文字盤（角の少しだけ丸い横長長方形。サイズ・角丸は現状維持）
+  GFX.fillRoundRect((int)(FC_CX - FC_RECT_HW), (int)(FC_CY - FC_RECT_HH),
+                     (int)(FC_RECT_HW * 2.0f), (int)(FC_RECT_HH * 2.0f),
+                     (int)FC_RECT_R, lightBright(WHITE));
+
+  // 12・3・6・9の4数字のみを紫系・太字風で描く（1,2,4,5,7,8,10,11は表示しない）。
+  GFX.setTextDatum(MC_DATUM);
+  GFX.setTextColor(lightBright(FC_COL_PURPLE));
+  GFX.setTextSize(FC_NUM_TEXTSIZE);
+  fcDrawNumeral("12", FC_CX,               FC_CY - (int)FC_NUM_DY);
+  fcDrawNumeral("3",  FC_CX + (int)FC_NUM_DX, FC_CY);
+  fcDrawNumeral("6",  FC_CX,               FC_CY + (int)FC_NUM_DY);
+  fcDrawNumeral("9",  FC_CX - (int)FC_NUM_DX, FC_CY);
+  GFX.setTextDatum(TL_DATUM);   // 他の描画に影響しないよう既定へ戻す
+
+  GFX.clearClipRect();
+}
+
+// ============================================================================
+// Flower Clockの針（最前面オーバーレイ）— 2026-08-11（5回目の実機フィードバック）
+//
+// 【背景】針をLighting層（lightRenderFlowerClock）で描いていたため、その後に
+//   描かれる顔レイヤー（とくに鼻・口。noseX,noseY=(160,145)が文字盤中心と
+//   ほぼ同じ位置）に隠れてしまい、針を伸ばすだけでは解決しなかった。
+//
+// 【方針】Lighting全体の共通レイヤー構造（Layer0 Lighting→Layer1 Visualizer→
+//   Layer2 顔）はどのLightingにも共通の仕組みとして一切変更しない。その代わり
+//   Flower Clock専用の最終描画ステップとして、sceneComposeAndPush()の顔レイヤー
+//   （4）の直後・液晶転送前に、Flower Clockが現在の背景(BG)Lightingとして
+//   採用されている時だけ本関数を呼ぶ（呼び出し箇所はsceneComposeAndPush()内、
+//   1行の条件分岐のみ）。他のLightingの描画順・処理には一切影響しない。
+//
+// 【内容】getLocalTime()による角度計算はlightRenderFlowerClock()に元々あった
+//   ものと完全に同一（時刻計算・秒針なしの仕様は無変更）。長針＝ピンク系、
+//   短針＝紫系のみを描く。
+//   2026-08-11（6回目の実機フィードバック）：中心軸（黒丸）は、顔の鼻の黒と
+//   重なって黒い塊に見えるとの指摘を受け廃止した。中心軸を省いても長針・
+//   短針の根元（fcDrawHand()の三角形の底辺）が中心付近を覆うため、軸が
+//   無くても違和感のない見た目になる。
+//   背景側（lightRenderFlowerClock）は針を一切描かなくなったため、二重描画は
+//   発生しない。
+// ============================================================================
+void fcDrawHandsForeground() {
+  GFX.setClipRect(0, FC_TOP, 320, 240 - FC_TOP);
+
+  struct tm timeinfo;
+  if (getLocalTime(&timeinfo, 0)) {
+    float minuteFrac = timeinfo.tm_min / 60.0f;                       // 0..1（長針）
+    float hourFrac   = ((timeinfo.tm_hour % 12) + minuteFrac) / 12.0f; // 0..1（短針・分に応じて滑らかに進む）
+    float hourAng    = hourFrac   * 6.2831853f;
+    float minAng     = minuteFrac * 6.2831853f;
+    fcDrawHand(hourAng, FC_HAND_HOUR_LEN, FC_HAND_HOUR_HW, FC_COL_PURPLE);
+    fcDrawHand(minAng,  FC_HAND_MIN_LEN,  FC_HAND_MIN_HW,  FC_COL_PINK);
+  }
+
+  GFX.clearClipRect();
+}
+
 // ============================================================================
 // Lighting Manager（描画関数テーブル）
 //
@@ -21084,6 +21375,7 @@ const LightRenderFn LIGHT_RENDER_FN[LIGHT_MODE_COUNT] = {
   lightRenderFlyingPompadour,      // LIGHT_FLYINGPOMPADOUR
   lightRenderRainbowWashingMachine, // LIGHT_RAINBOWWASHER
   lightRenderPixelInvasion,         // LIGHT_PIXELINVASION
+  lightRenderFlowerClock,           // LIGHT_FLOWERCLOCK
 };
 
 // LIGHT_LAYER[] / LIGHT_HEADER[] / lightingHeaderDark() / LIGHT_LAYER_BG・OVL /
@@ -21307,6 +21599,14 @@ void sceneComposeAndPush(bool lightInit, bool lightFull,
     eslotDrawReelsFrame();     // その上へ絵柄本体を描く（従来どおり）
   }
   sceneDrawFaceLayer();                                        // 4
+  // 4.5: Flower Clock専用──長針・短針・中心軸だけを顔より後（最前面）に描く。
+  //   Flower Clockが現在の背景(BG)Lightingとして採用されている時だけ実行する
+  //   （gLightActiveBgModeは②の sceneDrawLightingLayer() 内でのみ更新される
+  //   ため、②と同じ条件でガードして古い値を誤って使わないようにしている）。
+  //   他のLighting・Visualizer・顔の描画順・処理には一切影響しない。
+  if (cfg_lightingMask != 0 && gLightingActive && gLightActiveBgMode == LIGHT_FLOWERCLOCK) {
+    fcDrawHandsForeground();
+  }
   sceneEndCompose(onCanvas);
   if (onCanvas) scenePush(px, py, pw, ph);                     // 5
 }
