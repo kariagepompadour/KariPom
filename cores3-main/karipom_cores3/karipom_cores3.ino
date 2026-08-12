@@ -9695,6 +9695,18 @@ void setup() {
         html += "hr{border:none;border-top:1px solid var(--border);margin:14px 0}";
         // details / summary
         html += "details summary{color:var(--accent);cursor:pointer;font-weight:bold}";
+        // Lighting/Visualizer 説明文の折りたたみトグル（.desc-toggle）
+        //   ボタン下の説明（LIGHT_MODES[]/VIZ_MODES[].noteの一覧テーブル）が
+        //   機能追加で長くなってきたため、開閉できるようにするための専用スタイル。
+        //   既存の details/summary（Lighting本体・Visualizer本体・内蔵マイク詳細設定）
+        //   の開閉ロジック・表示条件には一切影響しない、独立した見た目の定義。
+        html += ".desc-toggle{margin-top:6px}";
+        html += ".desc-toggle > summary{list-style:none;cursor:pointer;font-weight:normal;font-size:13px;color:#8aaccc}";
+        html += ".desc-toggle > summary::-webkit-details-marker{display:none}";
+        html += ".desc-toggle > summary::marker{content:''}";
+        html += ".desc-toggle .desc-open{display:none}";
+        html += ".desc-toggle[open] .desc-open{display:inline}";
+        html += ".desc-toggle[open] .desc-closed{display:none}";
         // フォーム部品
         html += "input[type=number],select{"
                 "background:#0c1016;border:1px solid var(--border);"
@@ -9929,15 +9941,12 @@ void setup() {
                 + String(on ? "☑ " : "☐ ") + String(LIGHT_MODES[li].label) + "</button></a> ";
         }
         html += "</p>";
-        html += "<table style='border-collapse:collapse;font-size:12px;margin-top:6px;'>";
-        for (uint8_t li = 0; li < (uint8_t)LIGHT_MODE_COUNT; li++) {
-          html += "<tr><td style='padding:3px 8px;vertical-align:top;white-space:nowrap;'><b>"
-                + String(LIGHT_MODES[li].label) + "</b></td>";
-          html += "<td style='padding:3px 8px;color:#8aaccc;'>" + String(LIGHT_MODES[li].note) + "</td></tr>";
-        }
-        html += "</table>";
 
         // ── Lighting 共通 Brightness（全Lightingへ一括適用・NVS保存）──
+        // 2026-08-12: 説明エリア（下記 .desc-toggle）より前へ配置。
+        //   操作UI（モードボタン・Random・Brightness）はすべてここまでで完結させ、
+        //   その下の区切り線から先を「説明エリア」として明確に分離するための
+        //   並び替え。Brightness自体の内容・挙動・保存先は一切変更していない。
         html += "<p style='margin:10px 0 4px;font-weight:bold;'>🔆 Brightness（明るさ）：<b style='color:var(--led-ok);'>"
               + String(cfg_lightingBrightness) + "%</b></p>";
         html += "<p>";
@@ -9954,6 +9963,22 @@ void setup() {
         html += "</p>";
         html += "<p class='note'>Lighting全体（Disco Floor / 今後追加の面演出）に共通で効く明るさです。色味を変えずLEDの明るさだけを知覚的に調整します。既定80%。NVS保存。<br><b>※ Laser Show は常に鮮やかにするため、この明るさの影響を受けません</b>（Brightnessを下げると床が暗くなり、緑レーザーがより際立ちます）。</p>";
         html += "<p class='note'>チェックは「有効候補」を表します。背景（Disco / Aurora / Matrix / Retro Race / Sky Raid / Eye Slot / Classic Race / Asteroid Field / Tempest Tunnel / Hypnotic Vortex）は最後に選んだ1つが採用され、Overlay（Laser）は背景へ重なります。例：Disco+Laser＝踊る床＋緑ビーム、Aurora+Laser＝夜空＋緑ビーム、Matrix+Laser＝緑の雨をレーザーが切り裂く。今後 Defender風 / Scramble風 / Pong / Block Breaker / Fire / Neon / Bubbles なども追加予定です。内蔵マイクモードでは使用しません。選択内容はNVSへ保存されます。</p>";
+
+        // ── ここから説明エリア（操作UIとは分離。区切り線<hr>より下は各モードの説明一覧のみ）──
+        //   既存の <hr>（このページの他セクション区切りと同じスタイル）を再利用しただけで、
+        //   新規CSSは追加していない。折りたたみ自体（.desc-toggle）の仕様は前回実装のまま。
+        html += "<hr>";
+        // 説明文（各Lightingのnote一覧）は折りたたみ式。既定は閉。内容は変更しない。
+        html += "<details class='desc-toggle'>";
+        html += "<summary><span class='desc-closed'>▶ 説明を見る</span><span class='desc-open'>▼ 説明を閉じる</span></summary>";
+        html += "<table style='border-collapse:collapse;font-size:12px;margin-top:6px;'>";
+        for (uint8_t li = 0; li < (uint8_t)LIGHT_MODE_COUNT; li++) {
+          html += "<tr><td style='padding:3px 8px;vertical-align:top;white-space:nowrap;'><b>"
+                + String(LIGHT_MODES[li].label) + "</b></td>";
+          html += "<td style='padding:3px 8px;color:#8aaccc;'>" + String(LIGHT_MODES[li].note) + "</td></tr>";
+        }
+        html += "</table>";
+        html += "</details>";
         html += "</details>";
 
         // ── Audio Visualizer 設定（入力元から独立した共通設定）──
@@ -9964,6 +9989,10 @@ void setup() {
         // ・モード追加時はこのUIを書き換えず、VIZ_MODES[]へ追記するだけでよい
         html += "<details" + String((audioSource == AUDIO_SRC_UDP || audioSource == AUDIO_SRC_LINEIN) ? " open" : "") + ">";
         html += "<summary style='cursor:pointer;font-weight:bold;'>📊 Audio Visualizer</summary>";
+
+        // 2026-08-12: セクション全体の概要説明はLightingと同様、タイトル直下・
+        //   操作UI（Random/モードボタン）より前へ配置。文言・クラスは変更していない（位置のみ移動）。
+        html += "<p class='note'>PC音声（Wi-Fi）、LINE IN（Karipom Ear）、将来のBluetooth入力で<b>共通</b>のオーディオビジュアライザー設定です（入力元ごとの個別設定はありません）。内蔵マイクモードでは使用しません。選択内容はNVSへ保存され、再起動後も維持されます。</p>";
 
         // ── 🎲 Audio Visualizer Random（v1.0 / 2026-07-27）──
         // Lighting Randomとは完全に独立。個別選択とRandomは相互排他。
@@ -10024,6 +10053,15 @@ void setup() {
           html += "<button class='" + cls + "'" + hl + ">📊 " + String(VIZ_MODES[vi].label) + "</button></a> ";
         }
         html += "</p>";
+
+        // ── ここから説明エリア（操作UIとは分離。区切り線<hr>より下は各モードの説明一覧のみ）──
+        //   Lightingセクションと同じ区切り方（既存<hr>の再利用）。新規CSSは追加していない。
+        //   2026-08-12: セクション全体の概要説明（📊 Audio Visualizerタイトル直下・不変文言）は
+        //   ここではなくタイトル直下へ移動済み。ここに残るのは各モードの説明のみ。
+        html += "<hr>";
+        // 説明文（各Visualizerのnote一覧）は折りたたみ式。既定は閉。内容は変更しない。
+        html += "<details class='desc-toggle'>";
+        html += "<summary><span class='desc-closed'>▶ 説明を見る</span><span class='desc-open'>▼ 説明を閉じる</span></summary>";
         html += "<table style='border-collapse:collapse;font-size:12px;margin-top:6px;'>";
         for (uint8_t vi = 0; vi < (uint8_t)VIZ_MODE_COUNT; vi++) {
           html += "<tr><td style='padding:3px 8px;vertical-align:top;white-space:nowrap;'><b>"
@@ -10031,7 +10069,7 @@ void setup() {
           html += "<td style='padding:3px 8px;color:#8aaccc;'>" + String(VIZ_MODES[vi].note) + "</td></tr>";
         }
         html += "</table>";
-        html += "<p class='note'>PC音声（Wi-Fi）、LINE IN（Karipom Ear）、将来のBluetooth入力で<b>共通</b>のオーディオビジュアライザー設定です（入力元ごとの個別設定はありません）。内蔵マイクモードでは使用しません。選択内容はNVSへ保存され、再起動後も維持されます。</p>";
+        html += "</details>";
         html += "</details>";
 
         // 内蔵マイク詳細設定フォーム
