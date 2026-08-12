@@ -21621,6 +21621,20 @@ void fcDrawHandsForeground() {
 #define PIN_MAX_SPEED       260.0f  // px/s（貫通防止の上限）
 #define PIN_MIN_SPEED_STUCK  12.0f  // これ未満の速さが続くと「詰まった」とみなす
 #define PIN_STUCK_MS        2200
+// 位置ベースstuck検知（永久バウンド対策）：速度が十分あっても同じ狭い範囲に
+// 長時間留まり続ける周期軌道（鼻の上での上下バウンド等）を検知して脱出させる。
+// 鼻のKICK=170px/sが常時速度を補充するため、速度ベースの既存検知では検知不可。
+// 解決：一定時間内の位置変化量が閾値未満なら「stuck」とみなし、横方向のナッジを加える。
+// 強制再発射ではなく速度への微小加算なので、現在のプレイを継続したまま自然に脱出する。
+//   PIN_STUCK_POS_R の設定根拠：
+//   鼻のKICK=170px/sで真上に弾かれた場合、上昇距離 = 170²/(2×260) ≈ 55.6px。
+//   stuck_refが往復の一方の端点にある時、もう一方の端点との距離 ≈ 55.6px。
+//   これより小さい閾値だと毎サイクルstuck_refが更新されてlimit cycleを検知できない。
+//   62pxは往復振幅55.6pxにマージンを加えた値で、通常プレイでは目やフリッパー
+//   衝突により62px以上移動する機会が頻繁にあるため、誤検知は極めて稀。
+#define PIN_STUCK_POS_R     62.0f  // px：この範囲内に留まり続けるとstuck（鼻往復振幅55.6px超）
+#define PIN_STUCK_POS_MS  4000UL   // ms：判定に要する停滞時間（≒3周期、通常プレイでは稀）
+#define PIN_STUCK_NUDGE_VX  38.0f  // px/s：脱出用の横方向ナッジ速度成分（小さく・自然な値）
 
 // v5.5：ボール投入位置のランダム化（毎回右上固定だと軌道が単調になるため）。
 // プレイフィールド上辺の左右いずれの壁・角にも食い込まないよう、ボール半径
@@ -21752,7 +21766,10 @@ static PinFlipper pinFlip[2];   // 0=左フリッパー, 1=右フリッパー
 
 static float         pinBallX, pinBallY, pinBallVX, pinBallVY;
 static unsigned long pinPrevMs = 0;
-static unsigned long pinLastFastMoveMs = 0;   // 詰まり検知用
+static unsigned long pinLastFastMoveMs = 0;   // 詰まり検知用（速度ベース）
+static float         pinStuckRefX  = 0.0f;   // 位置ベースstuck判定の基準X座標
+static float         pinStuckRefY  = 0.0f;   // 位置ベースstuck判定の基準Y座標
+static unsigned long pinStuckRefMs = 0;       // 位置ベースstuck判定の基準時刻
 static uint32_t      pinScore = 0;
 static bool          pinEyeFlashing[2];
 static unsigned long pinEyeFlashMs[2];
@@ -21779,6 +21796,9 @@ static void pinLaunchBall(unsigned long now) {
   pinBallVX = (float)random(0, (long)(PIN_LAUNCH_VX_RANGE * 2.0f) + 1) - PIN_LAUNCH_VX_RANGE;
   pinBallVY = PIN_LAUNCH_VY_MIN + (float)random(0, (long)(PIN_LAUNCH_VY_MAX - PIN_LAUNCH_VY_MIN) + 1);
   pinLastFastMoveMs = now;
+  pinStuckRefX  = pinBallX;    // 位置ベースstuck判定の基準を投入位置にリセット
+  pinStuckRefY  = pinBallY;
+  pinStuckRefMs = now;
 }
 
 static void pinResetState(unsigned long now) {
@@ -22106,10 +22126,35 @@ void lightRenderPinball(bool needsInit, bool fullRepaint) {
   // ドレイン（フリッパーで受け止められず落下しきった＝正面から抜けた場合のみ）
   if (pinBallY - PIN_BALL_R > PIN_BOTTOM) pinLaunchBall(now);
 
-  // 詰まり検知：一定時間ほとんど動かない場合は自動的に再発射して復帰する
+  // 詰まり検知（速度ベース）：一定時間ほとんど動かない場合は自動的に再発射して復帰する
   float spd = sqrtf(pinBallVX * pinBallVX + pinBallVY * pinBallVY);
   if (spd > PIN_MIN_SPEED_STUCK) pinLastFastMoveMs = now;
   else if ((now - pinLastFastMoveMs) > PIN_STUCK_MS) pinLaunchBall(now);
+
+  // 詰まり検知（位置ベース）：鼻バウンド等の周期軌道対策。
+  // 速度ベース検知は「速く動いているが位置が停滞」を検知できない。鼻のKICK定数
+  // （PIN_NOSE_KICK=170px/s）が毎回速度を補充するため、速度は常に閾値超えとなり
+  // pinLastFastMoveMs が毎フレーム更新され続ける。鼻の真上での上下バウンドは
+  // エネルギー補充付きの完全な周期軌道（limit cycle）になるため、こちらの
+  // 位置ベース検知で捕捉する。stuck判定は半径PIN_STUCK_POS_R以内に
+  // PIN_STUCK_POS_MS以上留まり続けた場合のみ。脱出は強制再発射ではなく
+  // 横方向ナッジ（速度成分の小さな加算）で現プレイを継続したまま自然に行う。
+  {
+    float dsx = pinBallX - pinStuckRefX;
+    float dsy = pinBallY - pinStuckRefY;
+    if (dsx * dsx + dsy * dsy > PIN_STUCK_POS_R * PIN_STUCK_POS_R) {
+      // 基準位置から十分離れた → 基準を現在位置に更新
+      pinStuckRefX  = pinBallX;
+      pinStuckRefY  = pinBallY;
+      pinStuckRefMs = now;
+    } else if ((now - pinStuckRefMs) > PIN_STUCK_POS_MS) {
+      // 長時間同じ範囲に留まっている → 横方向ナッジで周期軌道を崩す
+      pinBallVX += (random(0, 2) == 0) ? PIN_STUCK_NUDGE_VX : -PIN_STUCK_NUDGE_VX;
+      pinStuckRefX  = pinBallX;   // 基準をリセットして連続発動を防ぐ
+      pinStuckRefY  = pinBallY;
+      pinStuckRefMs = now;
+    }
+  }
 
   // 保険（③④の対策後も念のため）：万一すり抜けて台の外へ大きく外れてしまった
   // 場合は、すぐに再発射して復帰する。通常の衝突判定だけで自己完結していれば
