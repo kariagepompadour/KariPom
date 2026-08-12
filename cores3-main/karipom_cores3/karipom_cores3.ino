@@ -813,6 +813,7 @@ enum LightingMode : uint8_t {
   LIGHT_PIXELINVASION = 19,   // Pixel Invasion（背景・1970年代末〜80年代初頭の固定画面シューティングへのオマージュ。黒背景に紫/水色/緑のオリジナルドット絵敵編隊・自機・赤いシールド・UFOが自動で動き続ける）
   LIGHT_FLOWERCLOCK = 20,     // Flower Clock（背景・画面いっぱいの12色花びら＋中央白文字盤のカラフルなアナログ時計）
   LIGHT_PINBALL = 21,         // PINBALL Arcade（背景・自動プレイのピンボール台。プレイヤー操作なしのスクリーンセーバー）
+  LIGHT_BASEBALL = 22,        // BASEBALL Arcade（背景・ATARI2600〜初期ファミコン風の完全自動野球デモ）
   // ↓ 将来ここへ追加（Defender / Scramble / Pong / Block Breaker / Fire / Neon …）
   // cfg_lightingMask は uint32_t（今後のLighting追加を見込んで正式採用。bit31=32番目まで拡張余地あり）。
   LIGHT_MODE_COUNT
@@ -866,6 +867,8 @@ const LightModeInfo LIGHT_MODES[LIGHT_MODE_COUNT] = {
     "画面いっぱいを使ったカラフルなアナログ時計Lightingです。四角い画面そのものを活かし、円形の文字盤だけを中央に置くのではなく、中央の正円の白い文字盤の外側から画面四辺・四隅までを、12時間に対応する12枚の色面（花びら）で埋め尽くします。花びらは12時の方向から時計回りに赤→橙→黄→黄緑→緑→黄緑がかった緑→シアン→青緑→青→紫→マゼンタ→バラ色と虹色に並び、花びら同士の境界は判別できる程度の細い黒線のみです。数字や分目盛りは表示せず、中央の白い文字盤には黒い時針・分針のみを描きます（秒針はありません）。長針は「分」をそのまま示し、短針は時刻ちょうどで飛ばず分に応じて滑らかに進む通常のアナログ時計動作です。中心軸はシンプルな黒い円です。表示領域は他のLighting同様、上部48pxの情報パネルを除く画面下側です。Brightness設定が効きます。" },
   { "pinball", "PINBALL Arcade",
     "いつものかりポムの顔が、そのままピンボール台になった完全自動プレイのスクリーンセーバーLightingです。目・鼻・口は通常のかりポムの顔と同じ位置・大きさのまま表示されます。左右の目は丸型バンパーとして、内側は白・外周はピンクのリング・一番外側は白い輪郭というシンプルな電飾風の見た目になり、白い中央には得点「100」の数字が表示され、ボールが当たると一瞬明るく白くフラッシュします。鼻も普段どおりの見た目のまま、当たった瞬間だけ一瞬白く光る隠れた役物として機能します。口（縦線＋逆Y字の斜め線）は見た目こそ普段どおりですが当たり判定を持たず、ボールはラリーが続きやすいよう素通りします（ただし通過した瞬間だけ、その線全体が一瞬白く光る演出があります）。プレイフィールドは濃紺〜ダークブルーの1枚の閉じた盤面として塗りつぶされ、外周は明るいブルーのレールで縁取られます。下部左右のフリッパーは支点が外側、先端は丸みのある形状で、静止時は先端が中央下（ドレイン側）を向き、ボールが来ると先端が中央上方向へ跳ね上がって自動で打ち返し続けます。フリッパーで受け止めきれずボールが落下した場合は自動的に新しいボールが発射され、プレイは無限に続きます。ゲームオーバー・残機・プレイヤー操作は一切なく、画面左上に表示されるスコアも眺めて楽しむ演出の一部です。表示領域は他のLighting同様、上部48pxの情報パネルを除く画面下側です。Brightness設定が効きます。" },
+  { "baseball", "BASEBALL Arcade",
+    "ATARI2600〜初期ファミコン時代を思わせる、非常にシンプルでしょぼい雰囲気の完全自動野球デモLightingです。ホームベース側の角度が約120度になる斜め上からの俯瞰視点でフィールドを描き、芝は緑・内野は1塁〜2塁〜3塁を結ぶ幅のある茶色い土の帯（投手マウンドも独立した茶色い円）、塁線・塁・選手・ボールはすべて白で統一します。選手は帽子・ユニフォーム・グローブを持つ、人と分かる丸みのあるドットキャラです。プレイヤー操作は一切なく、投手が投球→打者が自動でスイング→打球がゴロまたはフライで左・中央・右のいずれかへ飛ぶ→守備選手が追いかける→SINGLE・DOUBLE・HOME RUNのいずれかで走者が1塁→2塁→3塁→ホームへ進み、まれに守備選手が捕球してOUTになる、というサイクルを無限に繰り返します。文字による結果表示やRUNS/OUTのスコアUIは一切なく、試合の動きだけを見せる演出です。3アウトでの攻守交代・イニング制・ゲームオーバーの概念も無く、満塁になっても止まらず走者が入れ替わりながら永久に続きます。表示領域は他のLighting同様、上部48pxの情報パネルを除く画面下側です。Brightness設定が効きます。" },
 };
 
 // Lightingの複数選択状態（ビットマスク・NVS "lightMask" に保存）。0=全OFF。
@@ -944,6 +947,7 @@ const uint8_t LIGHT_LAYER[LIGHT_MODE_COUNT] = {
   LIGHT_LAYER_BG,    // LIGHT_PIXELINVASION … 面
   LIGHT_LAYER_BG,    // LIGHT_FLOWERCLOCK … 面
   LIGHT_LAYER_BG,    // LIGHT_PINBALL … 面
+  LIGHT_LAYER_BG,    // LIGHT_BASEBALL … 面
 };
 const uint8_t LIGHT_HEADER[LIGHT_MODE_COUNT] = {
   HEADER_LIGHT,      // LIGHT_DISCO  … 明るい原色の床 → 上端は白背景が読みやすい
@@ -972,6 +976,7 @@ const uint8_t LIGHT_HEADER[LIGHT_MODE_COUNT] = {
   HEADER_DARK,       // LIGHT_PIXELINVASION … 完全な黒背景 → 黒
   HEADER_LIGHT,      // LIGHT_FLOWERCLOCK … 中央白文字盤＋明るい原色の花びら → 上端は白背景が読みやすい
   HEADER_DARK,       // LIGHT_PINBALL … 黒いピンボード台盤面 → 黒
+  HEADER_LIGHT,      // LIGHT_BASEBALL … 明るい草地の緑のフィールド → 上端は白背景が読みやすい
 };
 
 // 上端パネルを黒テーマにすべきか（採用中の背景Lightingのヘッダーに従う）。
@@ -22157,6 +22162,685 @@ void lightRenderPinball(bool needsInit, bool fullRepaint) {
   GFX.clearClipRect();
 }
 
+// ############################################################################
+// #  BASEBALL Arcade Lighting（v2.4 / 目的を明確化：正式な野球ゲームでは    #
+// #  なくレトロな野球画面が延々と動くLighting。3アウト・イニング・スコア   #
+// #  無し。OUTを稀な演出にしヒット・走者の動きを主役に。内野の土をベース   #
+// #  ラインに沿った帯＋滑らかな弧の形へ再設計）                            #
+// ############################################################################
+//
+// ■ コンセプト
+//   ATARI2600〜初期ファミコン時代を思わせる、非常にシンプルな完全自動野球
+//   デモです。プレイヤー操作は一切無く、投手が投球→打者が自動でスイング→
+//   打球が左・中央・右のいずれかへゴロまたはフライで飛ぶ→最も近い守備選手
+//   が追う→あらかじめ抽選済みの結果に応じてOUTまたはSINGLE/DOUBLE/
+//   HOME RUNのいずれかになる、というサイクルを無限に繰り返します。
+//
+// ■ v2.4での方針転換（重要）：これは「正式な野球ゲーム」ではなく、昔の
+//   野球ゲームの画面が自動で延々と動いているように見えるLightingです。
+//   したがって次を明確にしました（これらは元々実装しておらず、v2.4で
+//   あらためて意図として明文化したもの。コードの変更は伴いません）。
+//   ・3アウトでの攻守交代は無い。イニング制も無い。ずっと同じ打者側が
+//     投球→スイング→打球→守備→走者移動→次の投球、を永久に繰り返す。
+//   ・OUT数のカウント・RUNSやスコアのUIも実装しない（文字表示自体を
+//     行わないv2.0以来の方針のまま）。
+//   ・ゲームオーバーや試合終了の概念も無い。満塁になってもゲームは止まら
+//     ず、ヒットが出れば既存の走者を順に進め、ホームへ到達した走者は
+//     bbAdvanceRunners()内で自動的に消える（生還扱い）。
+//   加えて、OUTの発生率をこの目的に合わせて大幅に下げた（詳細は下記
+//   「結果判定の設計」）。野球としての現実的な確率ではなく、走者が頻繁に
+//   出て動く様子が見えることを優先している。
+//
+// ■ v2.0での全面刷新（設計図を受けての再設計）
+//   ・視点をホームベースからやや見上げる斜め俯瞰（ホームベース側の角度が
+//     約120°になる、手前が広く奥がすぼまる遠近感のある構図）へ変更した。
+//     シミュレーション自体（守備選手の移動・ボールとの距離判定・捕球半径
+//     など）は従来通りの単純な平面座標（"フィールド座標"）のまま行い、
+//     bbProject()という1つの関数で描画の直前だけ画面座標へ変換する。
+//   ・文字によるスコア・結果表示（RUNS/OUT/OUT!・HIT!等のフラッシュ）を
+//     完全に廃止した。試合の動きだけを見せる、という指示に対応。
+//   ・選手の見た目を、線だけの棒人間から「帽子・ユニフォーム（胴）・
+//     グローブ」を持つ、人と分かる丸みのあるドットキャラへ変更した
+//     （bbDrawPlayer()参照）。
+//   ・打球（ボール）の遠近表現を追加した。bbProject()が返す奥行きスケール
+//     をボールの半径にも掛けることで、奥（外野）へ飛ぶほど小さく見える。
+//     さらに従来からのフライ滞空中の拡大表現（頂点付近で最大、落下点で
+//     元のサイズへ）と組み合わせている。
+//
+// ■ v2.1での修正（実機フィードバックへの対応）
+//   ① 「ほぼ全部OUTになる」問題：v2.0までは守備選手の初期位置・速度と
+//      ボールの速度・距離だけで結果が決まる、物理レースに近い方式だった。
+//      しかし守備選手の追跡速度が実質的に有利すぎ、実機ではほぼ確実に
+//      OUTになっていた。v2.1では結果（OUT/SINGLE/DOUBLE/HOME RUN）を
+//      先に抽選し、その結果に見た目が一致するよう打球の狙い所・追跡担当・
+//      追跡速度を後から生成する方式へ変更した（詳細はbbStartSwing()）。
+//      Pythonでの多数打席シミュレーションで、OUT約57.5%・SINGLE約27.5%・
+//      DOUBLE約10%・HOME RUN約5%になることを確認済み。
+//   ② 「120°がホーム付近だけになる」問題：v2.0まではファウルラインを
+//      「本塁→塁（フィールド座標）→さらに奥の仮想点（フィールド座標）」
+//      の2区間として、bbProject()で画面座標へ変換して描いていた。しかし
+//      bbProject()の奥行き圧縮は非線形のため、フィールド座標上で同じ方向
+//      に延長しても画面座標上では角度が変わってしまい、1塁・3塁を過ぎた
+//      あたりから角度が狭まって見えていた。v2.1ではファウルラインだけを
+//      bbProject()を経由しない「画面座標上の直線」として引き直した
+//      （bbBoundaryRayEndpoint()参照）。ホームベースを頂点に左右±60°
+//      （合計約120°）の直線を、画面端に達するまでそのまま一直線に伸ばす
+//      ため、1塁・3塁を過ぎても角度が変わらない。塁・守備選手・ボールの
+//      位置は従来通りbbProject()で描くため、視点・シミュレーションには
+//      影響しない。
+//
+// ■ 独立性
+//   PINBALL Arcadeを含む既存の全Lighting・Visualizer・Sleep Carousel・顔
+//   （の描画コード自体）には一切触れません。かりポムの顔の座標も参照しない、
+//   完全に独立した新規Lightingです。frontmostフック（sceneComposeAndPush()
+//   の4.5/4.6のような追加）も不要なため、そちらへの変更もありません。
+//
+// ■ 結果判定の設計（v2.4：結果を先に抽選 → 見た目を後から生成 → 結果は
+//   一切変えない）
+//   ・結果はOUT 22% / SINGLE 60% / DOUBLE 13% / HOME RUN 5%で先に抽選する
+//     （v2.1〜v2.3ではOUT約57.5%・SINGLE約27.5%・DOUBLE約10%・HOME RUN約
+//     5%だったが、v2.4で「OUTは稀な演出」という方針に合わせて大きく変更
+//     した。詳細はファイル冒頭のv2.4の説明を参照）。この時点でbbPlayIsOut
+//     （OUTか否か）とbbHitBases（進塁数：1/2/4）を確定させ、以後一切変え
+//     ない。
+//   ・ゴロ/フライの別は結果が決まった後、見た目のためだけに選ぶ。OUTは
+//     従来通りゴロ55%/フライ45%。SINGLEはゴロ75%/浅いフライ（ブルーパー）
+//     25%。DOUBLE・HOME RUNは必ずフライ。進塁数はbbHitBasesで直接決まる
+//     ため、「浅いフライのSINGLE」でも2塁打扱いになることはない。
+//   ・OUT確定時：守備範囲内（ゴロなら内野手6人、フライなら外野手3人）から
+//     ランダムに1人選び、そのすぐ近く（±12）へ打球を飛ばす。狙われた
+//     守備選手がボールのすぐそばに立つ形になるため、見た目としても自然に
+//     「捕球した」ように見える。
+//   ・HIT確定時：候補地点を複数（BB_HIT_GAP_TRIES回）試し、守備範囲内の
+//     全選手から見て最も距離のある（＝守備の間を最も大きく抜ける）地点を
+//     選ぶ。距離帯はゴロの単打（60〜170）／浅いフライの単打（70〜110）／
+//     DOUBLE（120〜190）／HOME RUN（195〜260）で変え、「DOUBLEなら深い
+//     位置まで／HOME RUNなら外野の更に奥へ」という見た目の違いを維持する。
+//   ・追跡する守備選手は、打球の現在位置へ向かって毎フレーム直線的に距離
+//     を詰める（OUT確定時は通常速度BB_FIELDER_SPEED、HIT確定時は落とした
+//     速度BB_FIELDER_SPEED×BB_HIT_CHASE_FACTORで、追う勢いの違いを見た目
+//     に出す）。ただし、この追跡・距離は結果の決定には一切使わない（v2.3
+//     での変更）。結果は打球が目標地点へ到達した時点（stillFlyingがfalse
+//     になった時点）で、bbPlayIsOut／bbHitBasesの値どおりに確定する。
+//
+// ■ ランナーの簡略化（文字によるRUNS/OUT表示は無いが、走者の状態管理自体は
+//   塁上に小さな人を表示するために必要なため維持している）
+//   ・ランナーは1塁・2塁・3塁の在塁フラグのみで管理する簡易モデル。SINGLE
+//     は1つ進塁、DOUBLEは2つ進塁、HOME RUNは全員生還＋打者も生還、という
+//     シンプルな規則（フォースプレー・タッチアップ等は実装しない）。
+//   ・OUTになってもランナーの位置は変えない。
+//   ・3アウト・イニング・スコアの概念が無いため、強制リセットは実装して
+//     いない。満塁になってもゲームは止まらず、ヒットのたびにbbAdvanceRunners()
+//     が既存の走者を順に進め、ホームへ到達した走者はそのまま消える（生還
+//     扱い）。本塁打なら打者含め全員が生還して塁が空になる。次の投球へは
+//     常に連続して進む（v2.4で明文化。ロジック自体はv1系から変更なし）。
+//
+// ■ レイヤー種別＝【背景(面)】
+//   Missile Defense等と同じく、黒背景の代わりに緑のフィールドへ自前で毎
+//   フレーム全面描画する完結型の背景演出です。既存のLighting・Visualizer・
+//   顔・Sleep Carouselのコード・状態には一切触れません。
+// ============================================================================
+
+// ── 表示領域（他のLighting同様、上部48pxの情報パネルを除く画面下側） ──
+#define BB_TOP     SCENE_TOP
+#define BB_BOTTOM  240
+
+// ── フィールド座標（シミュレーション用。斜め投影前の単純な平面座標） ──
+// 距離判定・追跡・捕球など、ゲームロジックはすべてこの座標系の上で行う
+// （bbProject()で画面座標へ変換するのは描画の直前だけ）。
+#define BB_HOME_X     160.0f
+#define BB_HOME_Y     222.0f
+// v2.2：1塁・3塁の塁マーカー（ダイヤモンド描画・内野の土の形状用）を、
+// bbProject()通過後の画面上の角度がおよそ±60°（ファウルラインと同じく
+// 合計約120°）になるよう外側へ広げた（守備選手の定位置BB_FLD_HOME_X/Yは
+// ゲームロジック用のため変更していない）。
+#define BB_FIRST_X    240.0f
+#define BB_FIRST_Y    178.0f
+#define BB_SECOND_X   160.0f
+#define BB_SECOND_Y   127.0f
+#define BB_THIRD_X     80.0f
+#define BB_THIRD_Y    178.0f
+#define BB_PITCHER_X  160.0f
+#define BB_PITCHER_Y  187.0f
+
+// 守備選手9人の定位置（配列インデックス固定）。0-5が内野（投手・捕手・一塁・
+// 二塁・三塁・遊撃）、6-8が外野（左翼・中堅・右翼）で、ゴロは0-5の範囲だけ、
+// フライは6-8の範囲だけから「最も近い1人」を探す（下のbbStartSwing()参照）。
+// v2.0：斜め投影でホームベース側の角度が約120°になるよう、内野手の左右の
+// 広がり・奥行きを見直した（座標の意味・追跡ロジックはv1系から変更なし）。
+static const float BB_FLD_HOME_X[9] = { 160.0f, 160.0f, 260.0f, 195.0f,  60.0f, 125.0f,  80.0f, 160.0f, 240.0f };
+static const float BB_FLD_HOME_Y[9] = { 187.0f, 212.0f, 167.0f, 147.0f, 167.0f, 147.0f,  97.0f,  72.0f,  97.0f };
+#define BB_INFIELD_LO  0
+#define BB_INFIELD_HI  5
+#define BB_OUTFIELD_LO 6
+#define BB_OUTFIELD_HI 8
+
+// ── 色（芝は緑、内野の土は茶、ライン・選手・塁・ボールは白。文字は使わない） ──
+static const uint16_t BB_FIELD_COL  = (uint16_t)(((40 & 0xF8) << 8) | ((150 & 0xFC) << 3) | (55 >> 3));  // 緑（芝）
+static const uint16_t BB_DIRT_COL   = (uint16_t)(((150 & 0xF8) << 8) | ((100 & 0xFC) << 3) | (55 >> 3));  // 茶（内野の土）
+static const uint16_t BB_LINE_COL   = 0xFFFF;  // 白（塁線・塁・打者ボックス）
+static const uint16_t BB_PLAYER_COL = 0xFFFF;  // 白（選手のユニフォーム・グローブ・バット）
+static const uint16_t BB_BALL_COL   = 0xFFFF;  // 白（ボール）
+static const uint16_t BB_CAP_COL    = (uint16_t)(((25 & 0xF8) << 8) | ((40 & 0xFC) << 3) | (95 >> 3));   // 紺（帽子のアクセント）
+
+// ── タイミング・速度（フィールド座標系での値。v1系から変更なし） ──
+#define BB_PITCH_MS        500     // 投球（投手→本塁）の所要時間
+#define BB_SWING_PAUSE_MS  150     // 投球到達〜打球発生までの一瞬の間
+#define BB_GROUND_SPEED    220.0f  // ゴロの速さ(フィールド座標/s)
+#define BB_FLY_SPEED        170.0f // フライの速さ(フィールド座標/s)
+#define BB_FIELDER_SPEED     90.0f // 守備選手の追跡速度(フィールド座標/s)。OUT確定プレーで使う
+#define BB_MIN_FLIGHT_MS    260.0f // v2.5：打球の最低表示時間(ms)。OUT確定時の近距離プレーが
+                                    // 一瞬で終わって見えなくなるのを防ぐ（発生率には無関係）。
+
+// ── v2.1：結果を先に抽選する方式のための調整値 ──
+#define BB_OUT_JITTER          12  // OUT確定時、狙う守備選手の定位置からのランダムなずれ幅(±)
+#define BB_HIT_GAP_TRIES      140  // HIT確定時、守備の隙間を探すために試す候補地点の数
+#define BB_HIT_CHASE_FACTOR   0.5f // HIT確定時の追跡速度倍率(BB_FIELDER_SPEEDに掛ける。追うが間に合わない)
+
+// ── v2.6：結果の抽選割合（%）。OUT問題の切り分けのため、まずOUTを一時的に
+// 0%にして「必ずヒットになり走者が動く」ことを確認する。動作確認後、必要
+// ならBB_OUT_PCTだけを5〜10程度へ戻せばよい（他の値・下の抽選ロジックは
+// そのまま追従する）。3つの割合の残り（100-OUT-DOUBLE-HR）が自動的に
+// SINGLEになる。 ──
+#define BB_OUT_PCT       0   // OUT確定の割合(%)
+#define BB_DOUBLE_PCT   20   // DOUBLE確定の割合(%)
+#define BB_HR_PCT        5   // HOME RUN確定の割合(%)
+
+// ── v2.6：内野の土の形（1塁・2塁・3塁を結ぶ幅のある帯）用の定数 ──
+// v2.3〜v2.5（円のblob／ホーム中心の扇形・極座標・半径・内側を芝で抜く方式）
+// はすべて廃止した。実機ではいずれも菱形・扇形・逆U字にしか見えなかった
+// ため、v2.6では発想を変え、既にダイヤモンド線の描画で使っている「1塁・
+// 2塁・3塁の画面座標（bbProject済み）」をそのまま使い、その3点を通る1本の
+// 滑らかな曲線に、一定の太さを持たせて帯として塗る（詳細はbbDrawInfieldDirt()
+// 参照）。ホーム周辺・投手マウンドは、この帯とは別に単体の円として置く
+// （複数の円を重ねて輪郭を作るblob方式ではない）。
+#define BB_DIRT_HOME_R        24.0f  // ホーム周辺の土（独立した円）の半径（画面座標）
+#define BB_MOUND_R            14.0f  // 投手マウンド（独立した円）の半径（フィールド座標。bbProject()で投影）
+#define BB_DIRT_BAND_HALFW    14.0f  // 1塁-2塁-3塁を結ぶ帯の半幅（画面座標）
+#define BB_DIRT_CURVE_SEGS      12   // 帯の曲線を近似する分割数
+
+// ── 斜め投影（描画専用。ゲームロジックには一切関与しない） ──
+// ホームベースが手前（画面下）に大きく・奥（2塁より先の外野方向）ほど中心
+// へ寄って小さく見えるよう、単純な線形パースをかける。BB_PERSPECTIVE_POWで
+// 「奥行きに対する縮小のかかり方」を、BB_MIN_SCALEで「最も奥での縮小率」を
+// 調整する。
+#define BB_HOME_SCR_Y      226.0f
+#define BB_HORIZON_SCR_Y    58.0f
+#define BB_MAX_DEPTH       174.0f  // BB_HOME_Y - BB_TOP
+#define BB_MIN_SCALE         0.34f
+#define BB_PERSPECTIVE_POW   1.6f
+
+// フィールド座標(fx,fy)を画面座標(*outX,*outY)へ変換する。*outScaleには
+// その地点の縮小率（1.0=手前のホームベースと同じ大きさ、BB_MIN_SCALEに
+// 近いほど奥で小さい）を返す。ボールや選手の見た目のサイズにも使う。
+static void bbProject(float fx, float fy, float* outX, float* outY, float* outScale) {
+  float depth = BB_HOME_Y - fy;
+  float t = depth / BB_MAX_DEPTH;
+  if (t < -0.15f) t = -0.15f;
+  if (t > 1.05f)  t = 1.05f;
+  float tp = powf(fabsf(t), BB_PERSPECTIVE_POW);
+  if (t < 0.0f) tp = -tp;
+  float scale = 1.0f - tp * (1.0f - BB_MIN_SCALE);
+  if (scale < BB_MIN_SCALE) scale = BB_MIN_SCALE;
+  *outX = 160.0f + (fx - 160.0f) * scale;
+  *outY = BB_HOME_SCR_Y - t * (BB_HOME_SCR_Y - BB_HORIZON_SCR_Y);
+  if (outScale) *outScale = scale;
+}
+
+// ── ファウルライン（境界線）専用：画面座標上の直線として直接定義 ──
+// bbProject()の奥行き圧縮は非線形なため、フィールド座標上の直線をそのまま
+// 変換しても画面上では角度が一定にならない（1塁・3塁を過ぎたあたりから
+// 角度が狭まって見えてしまう）。ファウルラインは見た目の境界を示す装飾線
+// でしかなく、守備・追跡・捕球のシミュレーションには一切関与しないため、
+// bbProject()を経由せず「画面座標上でホームベースを頂点とする、常に一定
+// 角度の直線」として直接引く。これにより1塁・3塁を過ぎても方向が変わら
+// ず、内野だけ120°・外野だけ90°という食い違いも起きない。
+#define BB_HOME_SCR_X          160.0f
+#define BB_FIELD_HALF_ANGLE_DEG 60.0f  // ホームを頂点とする片側の角度（左右合計で約120°）
+
+// 境界線の片側（angleDeg＝画面の真上方向を0とした角度）を、ホームベース
+// から画面端（左右または上端）に達するところまで直線で伸ばした終点を返す。
+static void bbBoundaryRayEndpoint(float angleDeg, float* outX, float* outY) {
+  float rad = angleDeg * (PI / 180.0f);
+  float dx = sinf(rad), dy = -cosf(rad);
+  float lenX = 1e9f, lenY = 1e9f;
+  if (dx > 0.0001f)       lenX = (320.0f - BB_HOME_SCR_X) / dx;
+  else if (dx < -0.0001f) lenX = (0.0f   - BB_HOME_SCR_X) / dx;
+  if (dy < -0.0001f)      lenY = ((float)BB_TOP - BB_HOME_SCR_Y) / dy;
+  float len = (lenX < lenY) ? lenX : lenY;
+  *outX = BB_HOME_SCR_X + dx * len;
+  *outY = BB_HOME_SCR_Y + dy * len;
+}
+
+// ── 状態 ──
+// 結果表示のためにゲームを一時停止する状態は持たない。投球→打球→守備→
+// 次の投球が常に連続して進むよう、状態は3つだけにする。
+enum BbState : uint8_t { BB_ST_PITCH = 0, BB_ST_SWING_PAUSE, BB_ST_BALL_FLIGHT };
+static uint8_t       bbState = BB_ST_PITCH;
+static unsigned long bbStateStartMs = 0;
+static unsigned long bbPrevMs = 0;
+
+static float bbBallX = BB_PITCHER_X, bbBallY = BB_PITCHER_Y;
+static bool  bbIsFly = false;
+static bool  bbFlyIsHR = false;
+static float bbHitTargetX = BB_HOME_X, bbHitTargetY = BB_HOME_Y, bbHitDist = 0.0f;
+static int8_t bbChaserIdx = -1;
+static float bbChaseSpeed = BB_FIELDER_SPEED;  // v2.1：OUT確定時は通常速度、HIT確定時は落とす
+static bool  bbPlayIsOut = false;  // v2.3：このプレーの結果（OUT/HIT）はbbStartSwing()で確定済み。
+                                    // 守備選手との距離による判定は行わず、この値だけで結果を決める
+static uint8_t bbHitBases = 1;     // v2.4：HIT確定時の進塁数(1=SINGLE/2=DOUBLE/4=HOME RUN)。
+                                    // bbIsFly（ゴロ/フライの見た目）とは独立に決める
+
+static float bbFielderX[9], bbFielderY[9];
+
+static bool bbOnFirst = false, bbOnSecond = false, bbOnThird = false;
+
+// 選手1人を、帽子・ユニフォーム（胴）・グローブを持つ丸みのある人型キャラ
+// として描く。fx,fyはフィールド座標（bbProject()で画面座標・奥行きスケール
+// へ変換してから描く）。withBat=trueの時だけ打者用の短いバットを、
+// withGlove=trueの時だけ守備用のグローブを追加する。extraScaleは走者表示
+// など、通常の選手よりさらに小さく見せたい場合の追加倍率（通常は1.0）。
+static void bbDrawPlayer(float fx, float fy, bool withBat, bool withGlove, float extraScale) {
+  float sx, sy, sc;
+  bbProject(fx, fy, &sx, &sy, &sc);
+  sc *= extraScale;
+  int x = (int)lroundf(sx), y = (int)lroundf(sy);
+  int bodyR = (int)lroundf(4.2f * sc); if (bodyR < 2) bodyR = 2;
+  int headR = (int)lroundf(2.6f * sc); if (headR < 2) headR = 2;
+  uint16_t uni = lightBright(BB_PLAYER_COL);
+  uint16_t cap = lightBright(BB_CAP_COL);
+  int headY = y - bodyR - headR + 1;
+  // 胴体（ユニフォーム）
+  GFX.fillCircle(x, y, bodyR, uni);
+  // 頭
+  GFX.fillCircle(x, headY, headR, uni);
+  // 帽子（頭の上側へ紺を重ね、下端に白い顔が少し覗く簡易表現）
+  GFX.fillCircle(x, headY - (headR / 2 + 1), headR, cap);
+  // グローブ（胴の横に小さな丸。打者には持たせない）
+  if (withGlove) {
+    int gR = (int)lroundf(1.8f * sc); if (gR < 1) gR = 1;
+    GFX.fillCircle(x - bodyR - gR + 1, y + 1, gR, uni);
+  }
+  // バット（打者だけ、斜め上に短い線として表現）
+  if (withBat) {
+    int blen = (int)lroundf(9.0f * sc); if (blen < 3) blen = 3;
+    lightDrawLine(x + bodyR, y - 2, x + bodyR + blen, y - 2 - blen, BB_PLAYER_COL);
+  }
+}
+
+// v2.6：内野の土を「1塁・2塁・3塁を横方向につなぐ、幅のある帯」として直接
+// 描く。fan・極座標・半径・内側を芝で抜く方式（v2.3〜v2.5）はすべて廃止
+// した。手順は次の3つだけ。
+//   ① 既にダイヤモンド線の描画で使っている1塁・2塁・3塁の画面座標
+//      （bbProject済み）を求める。
+//   ② その3点を通る1本の2次ベジエ曲線を作る（1塁と3塁を両端、制御点は
+//      「t=0.5でちょうど2塁を通る」ように逆算して求めるため、3点すべてを
+//      通る滑らかな曲線になる）。曲線を12分割してサンプルし、各点で曲線の
+//      接線に垂直な方向へBB_DIRT_BAND_HALFW幅ぶんオフセットした2本の平行線
+//      （帯の両端）を求め、三角形の帯（ストリップ）として塗りつぶす。
+//   ③ ホーム周辺・投手マウンドは、この帯とは別に単体の円として重ねて置く
+//      （円を多数重ねて輪郭を作るblob方式ではない、それぞれ1個の円）。
+// 投手〜ホーム間、および帯の内側の大部分は緑の芝のまま（何も描かないので
+// 自動的に緑になる）。
+static void bbDrawInfieldDirt() {
+  uint16_t dirt = lightBright(BB_DIRT_COL);
+
+  float hx, hy, hs, p1x, p1y, p1s, p2x, p2y, p2s, p3x, p3y, p3s;
+  bbProject(BB_HOME_X,   BB_HOME_Y,   &hx,  &hy,  &hs);
+  bbProject(BB_FIRST_X,  BB_FIRST_Y,  &p1x, &p1y, &p1s);
+  bbProject(BB_SECOND_X, BB_SECOND_Y, &p2x, &p2y, &p2s);
+  bbProject(BB_THIRD_X,  BB_THIRD_Y,  &p3x, &p3y, &p3s);
+
+  // 1塁(P0)→3塁(P2)の2次ベジエ曲線 B(t)=(1-t)²P0+2t(1-t)C+t²P2 が、
+  // t=0.5でちょうど2塁を通るように制御点Cを逆算する：
+  //   B(0.5) = 0.25*P0 + 0.5*C + 0.25*P2 = 2塁  →  C = 2*2塁 - 0.5*(P0+P2)
+  float ccx = 2.0f * p2x - 0.5f * (p1x + p3x);
+  float ccy = 2.0f * p2y - 0.5f * (p1y + p3y);
+
+  const int M = BB_DIRT_CURVE_SEGS;
+  float leftX[BB_DIRT_CURVE_SEGS + 1],  leftY[BB_DIRT_CURVE_SEGS + 1];
+  float rightX[BB_DIRT_CURVE_SEGS + 1], rightY[BB_DIRT_CURVE_SEGS + 1];
+  for (int k = 0; k <= M; k++) {
+    float t = (float)k / (float)M;
+    float omt = 1.0f - t;
+    float bx = omt * omt * p1x + 2.0f * t * omt * ccx + t * t * p3x;
+    float by = omt * omt * p1y + 2.0f * t * omt * ccy + t * t * p3y;
+    // 曲線の接線（導関数）と、それに垂直な単位ベクトル
+    float dx = 2.0f * omt * (ccx - p1x) + 2.0f * t * (p3x - ccx);
+    float dy = 2.0f * omt * (ccy - p1y) + 2.0f * t * (p3y - ccy);
+    float dl = sqrtf(dx * dx + dy * dy);
+    float nx = 0.0f, ny = 1.0f;
+    if (dl > 0.001f) { nx = -dy / dl; ny = dx / dl; }
+    leftX[k]  = bx + nx * BB_DIRT_BAND_HALFW;  leftY[k]  = by + ny * BB_DIRT_BAND_HALFW;
+    rightX[k] = bx - nx * BB_DIRT_BAND_HALFW;  rightY[k] = by - ny * BB_DIRT_BAND_HALFW;
+  }
+  for (int k = 0; k < M; k++) {
+    GFX.fillTriangle((int)leftX[k],     (int)leftY[k],     (int)rightX[k],     (int)rightY[k],     (int)leftX[k + 1],  (int)leftY[k + 1],  dirt);
+    GFX.fillTriangle((int)leftX[k + 1], (int)leftY[k + 1], (int)rightX[k],     (int)rightY[k],     (int)rightX[k + 1], (int)rightY[k + 1], dirt);
+  }
+
+  // ホーム周辺の土（単体の円）
+  int homeR = (int)lroundf(BB_DIRT_HOME_R * hs); if (homeR < 4) homeR = 4;
+  GFX.fillCircle((int)lroundf(hx), (int)lroundf(hy), homeR, dirt);
+
+  // 投手マウンド（単体の円。守備選手の投手位置と一致させる）
+  float mx, my, msc;
+  bbProject(BB_PITCHER_X, BB_PITCHER_Y, &mx, &my, &msc);
+  int mr = (int)lroundf(BB_MOUND_R * msc); if (mr < 3) mr = 3;
+  GFX.fillCircle((int)lroundf(mx), (int)lroundf(my), mr, dirt);
+}
+
+// ランナー1〜3塁ぶんの進塁・生還を反映する。bases=1(単打)/2(二塁打)/
+// 4(本塁打・全員生還扱い)のみを想定する簡易モデル（フォースプレー等は無し。
+// 文字によるRUNS表示は行わないため、得点数のカウントはしない）。
+static void bbAdvanceRunners(int bases) {
+  bool wasFirst = bbOnFirst, wasSecond = bbOnSecond;
+  if (bases >= 4) {
+    bbOnFirst = bbOnSecond = bbOnThird = false;   // 打者含め全員生還（本塁打）
+  } else if (bases == 2) {
+    bbOnThird  = wasFirst;
+    bbOnSecond = true;   // 打者は二塁打で二塁へ
+    bbOnFirst  = false;
+  } else {
+    bbOnThird  = wasSecond;
+    bbOnSecond = wasFirst;
+    bbOnFirst  = true;   // 打者は一塁打で一塁へ
+  }
+}
+
+// 守備選手を全員定位置へ戻し、ボールを投手の手元へ戻す（次の投球の準備）。
+static void bbResetFieldersAndBall() {
+  for (uint8_t i = 0; i < 9; i++) {
+    bbFielderX[i] = BB_FLD_HOME_X[i];
+    bbFielderY[i] = BB_FLD_HOME_Y[i];
+  }
+  bbBallX = BB_PITCHER_X;
+  bbBallY = BB_PITCHER_Y;
+}
+
+static void bbResetGame(unsigned long now) {
+  bbOnFirst = bbOnSecond = bbOnThird = false;
+  bbResetFieldersAndBall();
+  bbState = BB_ST_PITCH;
+  bbStateStartMs = now;
+}
+
+// 守備選手i（フィールド座標での定位置）から点(px,py)までの距離の2乗を返す
+// （HIT確定時の「隙間探し」で大小比較にしか使わないため、sqrtfを省いて
+// 軽量化している）。
+static float bbDistSqToFielder(int i, float px, float py) {
+  float ddx = BB_FLD_HOME_X[i] - px, ddy = BB_FLD_HOME_Y[i] - py;
+  return ddx * ddx + ddy * ddy;
+}
+
+// 投球が本塁へ到達した瞬間に呼ばれる。「打者が自動でスイング」した結果を
+// 決定する。v2.4：このLightingは正式な野球ゲームではなく、レトロな野球
+// 画面がテンポよく延々と動いているように見せるためのものなので、結果は
+// 「野球として現実的な確率」ではなく「眺めていてヒット・走者の動きが
+// 頻繁に見える確率」で先に抽選する。v2.6：OUT問題の切り分けのため、
+// BB_OUT_PCTを一時的に0にしてある（現状：OUT 0% / DOUBLE 20% /
+// HOME RUN 5% / 残り75%がSINGLE）。実機で「必ずヒットになり走者が動く」
+// ことを確認できたら、必要に応じてBB_OUT_PCTを5〜10程度へ戻す。ゴロ/フライ
+// の別は結果が決まった後で見た目のためだけに選ぶ（DOUBLE/HOME RUNは必ず
+// フライ、SINGLEはゴロ主体で一部だけ浅いフライ＝ブルーパー、OUTは従来通り
+// ゴロ55%/フライ45%）。
+static void bbStartSwing(unsigned long now) {
+  int r = random(0, 100);
+  int bases;  // 0=OUT, 1=SINGLE, 2=DOUBLE, 4=HOME RUN
+  if (r < BB_OUT_PCT)                            { bases = 0; }
+  else if (r < BB_OUT_PCT + BB_DOUBLE_PCT)        { bases = 2; }
+  else if (r < BB_OUT_PCT + BB_DOUBLE_PCT + BB_HR_PCT) { bases = 4; }
+  else                                            { bases = 1; }
+
+  // v2.3：結果はここで確定させ、以後は一切変えない（bbPlayIsOut/bbHitBases）。
+  // BB_ST_BALL_FLIGHTでの守備選手との距離判定は行わないため、実機の
+  // フレームレートやタイミングのばらつきに一切左右されない。
+  bbPlayIsOut = (bases == 0);
+  bbHitBases  = (uint8_t)bases;
+  bbFlyIsHR   = (bases == 4);
+
+  if (bases == 0) {
+    bbIsFly = (random(0, 100) < 45);   // OUT：ゴロ55% / フライ45%
+  } else if (bases == 1) {
+    bbIsFly = (random(0, 100) < 25);   // SINGLE：ゴロ75% / 浅いフライ(ブルーパー)25%
+  } else {
+    bbIsFly = true;                     // DOUBLE・HOME RUNは必ずフライ
+  }
+
+  int lo = bbIsFly ? BB_OUTFIELD_LO : BB_INFIELD_LO;
+  int hi = bbIsFly ? BB_OUTFIELD_HI : BB_INFIELD_HI;
+  float tx, ty;
+
+  if (bbPlayIsOut) {
+    // 守備範囲内から1人選び、そのすぐ近くへ打球を飛ばす。追跡速度は通常
+    // 通り（BB_FIELDER_SPEED）のままで、大きな余裕を持って捕球できる
+    // 距離関係になる＝「守備選手が実際に捕球する」自然な見た目になる。
+    int idx = lo + random(0, hi - lo + 1);
+    tx = BB_FLD_HOME_X[idx] + (float)random(-BB_OUT_JITTER, BB_OUT_JITTER + 1);
+    ty = BB_FLD_HOME_Y[idx] + (float)random(-BB_OUT_JITTER, BB_OUT_JITTER + 1);
+    bbChaserIdx = (int8_t)idx;
+    bbChaseSpeed = BB_FIELDER_SPEED;
+  } else {
+    // 候補地点を複数試し、守備範囲内の全選手から見て最も離れている
+    // （＝守備の間を最も大きく抜ける）地点を選ぶ。距離帯はSINGLE(ゴロ)／
+    // SINGLE(浅いフライ)／DOUBLE／HOME RUNで変える（抜ける位置の深さの
+    // 違いを表現）。
+    float bestTx = BB_HOME_X, bestTy = (float)BB_TOP + 8.0f, bestGapSq = -1.0f;
+    int   bestChaser = lo;
+    for (int attempt = 0; attempt < BB_HIT_GAP_TRIES; attempt++) {
+      float angleDeg = -50.0f + (float)random(0, 1001) / 10.0f;
+      float rad = angleDeg * (PI / 180.0f);
+      float dirX = sinf(rad), dirY = -cosf(rad);
+      float dist;
+      if (bases == 1 && !bbIsFly) {
+        dist = 60.0f + (float)random(0, 111);              // 60〜170（ゴロの単打）
+      } else if (bases == 1) {
+        dist = 70.0f + (float)random(0, 41);                 // 70〜110（浅いフライの単打＝ブルーパー）
+      } else if (bases == 2) {
+        dist = 120.0f + (float)random(0, 71);                  // 120〜190（DOUBLE）
+      } else {
+        dist = 195.0f + (float)random(0, 66);                   // 195〜260（HOME RUN）
+      }
+      float cx = BB_HOME_X + dirX * dist;
+      float cy = BB_HOME_Y + dirY * dist;
+      if (cx < 12.0f) cx = 12.0f; else if (cx > 308.0f) cx = 308.0f;
+      if (cy < (float)BB_TOP + 8.0f) cy = (float)BB_TOP + 8.0f;
+      if (cy > BB_HOME_Y - 10.0f) cy = BB_HOME_Y - 10.0f;
+
+      int nb = lo; float nbdSq = 1e18f;
+      for (int i = lo; i <= hi; i++) {
+        float ddSq = bbDistSqToFielder(i, cx, cy);
+        if (ddSq < nbdSq) { nbdSq = ddSq; nb = i; }
+      }
+      if (nbdSq > bestGapSq) { bestGapSq = nbdSq; bestTx = cx; bestTy = cy; bestChaser = nb; }
+    }
+    tx = bestTx;
+    ty = bestTy;
+    bbChaserIdx = (int8_t)bestChaser;
+    // 追跡速度を落とす＝追う動きは見せつつ確実に間に合わないようにする。
+    bbChaseSpeed = BB_FIELDER_SPEED * BB_HIT_CHASE_FACTOR;
+  }
+
+  bbHitTargetX = tx;
+  bbHitTargetY = ty;
+  bbHitDist = sqrtf((tx - BB_HOME_X) * (tx - BB_HOME_X) + (ty - BB_HOME_Y) * (ty - BB_HOME_Y));
+
+  bbState = BB_ST_SWING_PAUSE;
+  bbStateStartMs = now;
+}
+
+// OUT/HITいずれの場合も、結果を確定させたら即座にbbStartNextPitch()を呼んで
+// 次の投球へ連続して進む（結果表示のための待機状態は挟まない。試合が止まっ
+// て見える、という指摘への対応。文字表示も行わないため、確定した結果は
+// ランナーの状態にだけ反映される）。
+static void bbResolveOut(unsigned long now) {
+  bbStartNextPitch(now);
+}
+
+static void bbResolveHit(unsigned long now) {
+  // v2.4：進塁数はbbStartSwing()で確定させたbbHitBasesをそのまま使う
+  // （ゴロ/フライの見た目とは独立。詳細はbbStartSwing()のコメント参照）。
+  bbAdvanceRunners(bbHitBases);
+  bbStartNextPitch(now);
+}
+
+// 打球の決着（捕球 or ヒット）ごとに直接呼ばれる。守備選手・ボールを定位置
+// へ戻して次の投球へ進む。待機時間は無い＝連続進行。
+static void bbStartNextPitch(unsigned long now) {
+  bbResetFieldersAndBall();
+  bbState = BB_ST_PITCH;
+  bbStateStartMs = now;
+}
+
+void lightRenderBaseball(bool needsInit, bool fullRepaint) {
+  (void)fullRepaint;
+  unsigned long now = millis();
+  if (needsInit || bbPrevMs == 0) { bbResetGame(now); bbPrevMs = now; }
+  float dt = (float)(now - bbPrevMs) / 1000.0f;
+  if (dt > 0.12f) dt = 0.12f;
+  bbPrevMs = now;
+
+  // ── 状態更新（フィールド座標のまま。斜め投影は一切関与しない） ──
+  switch (bbState) {
+    case BB_ST_PITCH: {
+      float t = (float)(now - bbStateStartMs) / (float)BB_PITCH_MS;
+      if (t > 1.0f) t = 1.0f;
+      bbBallX = BB_PITCHER_X + (BB_HOME_X - BB_PITCHER_X) * t;
+      bbBallY = BB_PITCHER_Y + (BB_HOME_Y - BB_PITCHER_Y) * t;
+      if (t >= 1.0f) bbStartSwing(now);
+      break;
+    }
+    case BB_ST_SWING_PAUSE: {
+      if (now - bbStateStartMs >= BB_SWING_PAUSE_MS) {
+        bbState = BB_ST_BALL_FLIGHT;
+        bbStateStartMs = now;
+      }
+      break;
+    }
+    case BB_ST_BALL_FLIGHT: {
+      float speed = bbIsFly ? BB_FLY_SPEED : BB_GROUND_SPEED;
+      float travelMs = (bbHitDist / speed) * 1000.0f;
+      // v2.5：OUT確定時（狙われた守備選手のすぐ近くへ飛ぶ）は距離が非常に
+      // 短くなることがあり（捕手・投手への小フライ等）、そのままだと数十ms
+      // で決着してしまい、実機では「一瞬で次の投球に切り替わった」ようにしか
+      // 見えず、HIT/OUTどちらの結果だったかを視認する間もなかった。最低表示
+      // 時間を設け、どの打球も一定時間は目で追えるようにする（発生率には
+      // 一切影響しない、見た目の最低保証時間）。
+      if (travelMs < BB_MIN_FLIGHT_MS) travelMs = BB_MIN_FLIGHT_MS;
+      unsigned long elapsed = now - bbStateStartMs;
+      bool stillFlying = elapsed < (unsigned long)travelMs;
+      float t = (float)elapsed / travelMs;
+      if (t > 1.0f) t = 1.0f;
+      bbBallX = BB_HOME_X + (bbHitTargetX - BB_HOME_X) * t;
+      bbBallY = BB_HOME_Y + (bbHitTargetY - BB_HOME_Y) * t;
+
+      // 追跡選手：ボールの「現在位置」へ向けて毎フレーム直線的に距離を詰める
+      // （見た目のためだけの動き。結果の決定には一切使わない＝下記参照）。
+      if (bbChaserIdx >= 0) {
+        float fx = bbFielderX[bbChaserIdx], fy = bbFielderY[bbChaserIdx];
+        float ddx = bbBallX - fx, ddy = bbBallY - fy;
+        float dd = sqrtf(ddx * ddx + ddy * ddy);
+        if (dd > 0.5f) {
+          float step = bbChaseSpeed * dt;
+          if (step > dd) step = dd;
+          bbFielderX[bbChaserIdx] = fx + ddx / dd * step;
+          bbFielderY[bbChaserIdx] = fy + ddy / dd * step;
+        }
+      }
+
+      // v2.3：結果はbbStartSwing()で先に抽選済みのbbPlayIsOutだけで決まる。
+      // 守備選手とボールの距離による早期判定は行わない。実機のフレーム
+      // レートや描画にかかる時間のばらつきに一切左右されず、抽選した通り
+      // の結果（OUT/SINGLE/DOUBLE/HOME RUN）が確実に成立する。
+      if (!stillFlying) {
+        if (bbPlayIsOut) bbResolveOut(now);
+        else             bbResolveHit(now);
+      }
+      break;
+    }
+  }
+
+  // ── 描画（ここから先だけbbProject()を通して斜め俯瞰の画面座標へ変換する） ──
+  lightFillRect(0, BB_TOP, 320, 240 - BB_TOP, BB_FIELD_COL);
+
+  {
+    float hx, hy, hs, fx1, fy1, fs1, fx3, fy3, fs3, sx2, sy2, ss2;
+    bbProject(BB_HOME_X,  BB_HOME_Y,  &hx,  &hy,  &hs);
+    bbProject(BB_FIRST_X, BB_FIRST_Y, &fx1, &fy1, &fs1);
+    bbProject(BB_THIRD_X, BB_THIRD_Y, &fx3, &fy3, &fs3);
+    bbProject(BB_SECOND_X, BB_SECOND_Y, &sx2, &sy2, &ss2);
+
+    // 内野の土（茶色）。ホーム周辺の土＋ベースライン沿いの帯＋1塁側から
+    // 2塁後方を通って3塁側まで続く滑らかな弧＋独立した投手マウンドの円、
+    // という一般的な野球場の内野に近い形にする（bbDrawInfieldDirt参照）。
+    // 白いファウルライン・ダイヤモンド線・塁より先に描き、土の上に白線が
+    // 重なるようにする。
+    bbDrawInfieldDirt();
+
+    // ファウルライン（本塁を頂点とする左右合計約120°の直線境界）。
+    // bbProject()を経由せず画面座標上で直接引くため、1塁・3塁を過ぎても
+    // 角度が変わらず、画面端に達するまで一直線に伸びる。
+    float brx, bry, blx, bly;
+    bbBoundaryRayEndpoint( BB_FIELD_HALF_ANGLE_DEG, &brx, &bry);  // 右（1塁側）
+    bbBoundaryRayEndpoint(-BB_FIELD_HALF_ANGLE_DEG, &blx, &bly);  // 左（3塁側）
+    lightDrawLine((int)BB_HOME_SCR_X, (int)BB_HOME_SCR_Y, (int)brx, (int)bry, BB_LINE_COL);
+    lightDrawLine((int)BB_HOME_SCR_X, (int)BB_HOME_SCR_Y, (int)blx, (int)bly, BB_LINE_COL);
+
+    // 内野ダイヤモンド（本塁→一塁→二塁→三塁→本塁）
+    lightDrawLine((int)hx, (int)hy, (int)fx1, (int)fy1, BB_LINE_COL);
+    lightDrawLine((int)fx1, (int)fy1, (int)sx2, (int)sy2, BB_LINE_COL);
+    lightDrawLine((int)sx2, (int)sy2, (int)fx3, (int)fy3, BB_LINE_COL);
+    lightDrawLine((int)fx3, (int)fy3, (int)hx, (int)hy, BB_LINE_COL);
+
+    // 塁（白い小さな四角。奥行きスケールぶん小さく描く）と打者ボックス
+    int s1 = (int)lroundf(3.0f * fs1); if (s1 < 1) s1 = 1;
+    int s2 = (int)lroundf(3.0f * ss2); if (s2 < 1) s2 = 1;
+    int s3 = (int)lroundf(3.0f * fs3); if (s3 < 1) s3 = 1;
+    GFX.fillRect((int)fx1 - s1, (int)fy1 - s1, s1 * 2, s1 * 2, lightBright(BB_LINE_COL));
+    GFX.fillRect((int)sx2 - s2, (int)sy2 - s2, s2 * 2, s2 * 2, lightBright(BB_LINE_COL));
+    GFX.fillRect((int)fx3 - s3, (int)fy3 - s3, s3 * 2, s3 * 2, lightBright(BB_LINE_COL));
+    GFX.fillRect((int)hx - 4, (int)hy - 4, 8, 8, lightBright(BB_LINE_COL));
+    GFX.drawRect((int)hx - 20, (int)hy - 8, 10, 18, lightBright(BB_LINE_COL));
+    GFX.drawRect((int)hx + 10, (int)hy - 8, 10, 18, lightBright(BB_LINE_COL));
+
+    // ランナー（在塁中の塁だけ、通常の選手より小さい人型キャラを塁のやや
+    // 手前・内側に表示）
+    // v2.5：走者はOUT/HITの結果を実際に確認できる唯一の手がかりのため、
+    // 通常の選手（extraScale 1.0）より一回り小さい程度（0.9）に留め、
+    // 一目で「誰かが塁に出ている」と分かるサイズを確保する（v2.4までは0.72
+    // で、実機では小さすぎて見落とされやすかった）。
+    if (bbOnFirst)  bbDrawPlayer(BB_FIRST_X  - 14.0f, BB_FIRST_Y  + 8.0f, false, false, 0.9f);
+    if (bbOnSecond) bbDrawPlayer(BB_SECOND_X,          BB_SECOND_Y + 14.0f, false, false, 0.9f);
+    if (bbOnThird)  bbDrawPlayer(BB_THIRD_X  + 14.0f, BB_THIRD_Y  + 8.0f, false, false, 0.9f);
+  }
+
+  // 守備選手9人（現在位置。追跡中の1人だけ定位置から動く。全員グローブ付き）
+  for (uint8_t i = 0; i < 9; i++) {
+    bbDrawPlayer(bbFielderX[i], bbFielderY[i], false, true, 1.0f);
+  }
+  // 打者（本塁に立ち、バットを持つ。グローブは無し）
+  bbDrawPlayer(BB_HOME_X, BB_HOME_Y, true, false, 1.0f);
+
+  // ボール（bbProject()の奥行きスケールで奥ほど小さく＝遠近表現。加えて
+  // フライで宙に上がっている間は頂点付近で通常より大きく見せる）
+  {
+    float bx, by, bscale;
+    bbProject(bbBallX, bbBallY, &bx, &by, &bscale);
+    float ballR = 2.2f * bscale;
+    if (bbState == BB_ST_BALL_FLIGHT && bbIsFly) {
+      float speed = BB_FLY_SPEED;
+      float travelMs = (bbHitDist / speed) * 1000.0f;
+      if (travelMs < 1.0f) travelMs = 1.0f;
+      float t = (float)(now - bbStateStartMs) / travelMs;
+      if (t > 1.0f) t = 1.0f;
+      float airPhase = sinf(t * PI);   // 0→1→0（滞空中ほど大きく見せる）
+      ballR += airPhase * 2.5f * bscale;
+    }
+    if (ballR < 1.0f) ballR = 1.0f;
+    GFX.fillCircle((int)lroundf(bx), (int)lroundf(by), (int)lroundf(ballR), lightBright(BB_BALL_COL));
+  }
+}
+
 // ============================================================================
 // Lighting Manager（描画関数テーブル）
 //
@@ -22186,6 +22870,7 @@ const LightRenderFn LIGHT_RENDER_FN[LIGHT_MODE_COUNT] = {
   lightRenderPixelInvasion,         // LIGHT_PIXELINVASION
   lightRenderFlowerClock,           // LIGHT_FLOWERCLOCK
   lightRenderPinball,                // LIGHT_PINBALL
+  lightRenderBaseball,               // LIGHT_BASEBALL
 };
 
 // LIGHT_LAYER[] / LIGHT_HEADER[] / lightingHeaderDark() / LIGHT_LAYER_BG・OVL /
