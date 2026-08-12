@@ -812,6 +812,7 @@ enum LightingMode : uint8_t {
   LIGHT_RAINBOWWASHER = 18,   // Rainbow Washing Machine（背景・中心から放射状に広がる多数の高彩度三角片が洗濯機の脱水サイクル風に速度・方向を変えながら回転）
   LIGHT_PIXELINVASION = 19,   // Pixel Invasion（背景・1970年代末〜80年代初頭の固定画面シューティングへのオマージュ。黒背景に紫/水色/緑のオリジナルドット絵敵編隊・自機・赤いシールド・UFOが自動で動き続ける）
   LIGHT_FLOWERCLOCK = 20,     // Flower Clock（背景・画面いっぱいの12色花びら＋中央白文字盤のカラフルなアナログ時計）
+  LIGHT_PINBALL = 21,         // PINBALL Arcade（背景・自動プレイのピンボール台。プレイヤー操作なしのスクリーンセーバー）
   // ↓ 将来ここへ追加（Defender / Scramble / Pong / Block Breaker / Fire / Neon …）
   // cfg_lightingMask は uint32_t（今後のLighting追加を見込んで正式採用。bit31=32番目まで拡張余地あり）。
   LIGHT_MODE_COUNT
@@ -863,6 +864,8 @@ const LightModeInfo LIGHT_MODES[LIGHT_MODE_COUNT] = {
     "1970年代末〜1980年代初頭のカラー化された固定画面シューティングゲームの雰囲気を思わせる、レトロアーケード風の自動アニメーションLightingです（実在ゲームのスプライトデータは一切使用せず、上段マゼンタ・中段ターコイズ・下段グリーンに塗り分けたKariPom独自のドット絵敵編隊です）。背景は完全な黒一色で、星や背景スクロールなどの宇宙演出は入れていません。5段の敵編隊が数ピクセル単位でカッ、カッ、カッと左右へ移動し、端に達すると方向転換して少し下降します。画面下部ではオリジナルデザインの自機が自動で左右往復しながら時々弾を発射し、敵側も時おり下方向へ弾を撃ち返します。自機と敵編隊の間には赤いピクセルアートのシールドが4つあり、弾が当たった場所から少しずつ欠けていきます。ときどき画面上部をUFOが横切ります。スコアや残機、GAME OVERの概念は無く、編隊が減ったり画面下に近づいたりすると新しい編隊とシールドへ自然に切り替わり、眺めている間ずっとアニメーションが続きます。Brightness設定が効きます。" },
   { "flowerclock", "Flower Clock",
     "画面いっぱいを使ったカラフルなアナログ時計Lightingです。四角い画面そのものを活かし、円形の文字盤だけを中央に置くのではなく、中央の正円の白い文字盤の外側から画面四辺・四隅までを、12時間に対応する12枚の色面（花びら）で埋め尽くします。花びらは12時の方向から時計回りに赤→橙→黄→黄緑→緑→黄緑がかった緑→シアン→青緑→青→紫→マゼンタ→バラ色と虹色に並び、花びら同士の境界は判別できる程度の細い黒線のみです。数字や分目盛りは表示せず、中央の白い文字盤には黒い時針・分針のみを描きます（秒針はありません）。長針は「分」をそのまま示し、短針は時刻ちょうどで飛ばず分に応じて滑らかに進む通常のアナログ時計動作です。中心軸はシンプルな黒い円です。表示領域は他のLighting同様、上部48pxの情報パネルを除く画面下側です。Brightness設定が効きます。" },
+  { "pinball", "PINBALL Arcade",
+    "いつものかりポムの顔が、そのままピンボール台になった完全自動プレイのスクリーンセーバーLightingです。目・鼻・口は通常のかりポムの顔と同じ位置・大きさのまま表示されます。左右の目は丸型バンパーとして、内側は白・外周はピンクのリング・一番外側は白い輪郭というシンプルな電飾風の見た目になり、白い中央には得点「100」の数字が表示され、ボールが当たると一瞬明るく白くフラッシュします。鼻も普段どおりの見た目のまま、当たった瞬間だけ一瞬白く光る隠れた役物として機能します。口（縦線＋逆Y字の斜め線）は見た目こそ普段どおりですが当たり判定を持たず、ボールはラリーが続きやすいよう素通りします（ただし通過した瞬間だけ、その線全体が一瞬白く光る演出があります）。プレイフィールドは濃紺〜ダークブルーの1枚の閉じた盤面として塗りつぶされ、外周は明るいブルーのレールで縁取られます。下部左右のフリッパーは支点が外側、先端は丸みのある形状で、静止時は先端が中央下（ドレイン側）を向き、ボールが来ると先端が中央上方向へ跳ね上がって自動で打ち返し続けます。フリッパーで受け止めきれずボールが落下した場合は自動的に新しいボールが発射され、プレイは無限に続きます。ゲームオーバー・残機・プレイヤー操作は一切なく、画面左上に表示されるスコアも眺めて楽しむ演出の一部です。表示領域は他のLighting同様、上部48pxの情報パネルを除く画面下側です。Brightness設定が効きます。" },
 };
 
 // Lightingの複数選択状態（ビットマスク・NVS "lightMask" に保存）。0=全OFF。
@@ -940,6 +943,7 @@ const uint8_t LIGHT_LAYER[LIGHT_MODE_COUNT] = {
   LIGHT_LAYER_BG,    // LIGHT_RAINBOWWASHER … 面
   LIGHT_LAYER_BG,    // LIGHT_PIXELINVASION … 面
   LIGHT_LAYER_BG,    // LIGHT_FLOWERCLOCK … 面
+  LIGHT_LAYER_BG,    // LIGHT_PINBALL … 面
 };
 const uint8_t LIGHT_HEADER[LIGHT_MODE_COUNT] = {
   HEADER_LIGHT,      // LIGHT_DISCO  … 明るい原色の床 → 上端は白背景が読みやすい
@@ -967,6 +971,7 @@ const uint8_t LIGHT_HEADER[LIGHT_MODE_COUNT] = {
   HEADER_DARK,       // LIGHT_RAINBOWWASHER … 黒背景に高彩度の色片 → 黒
   HEADER_DARK,       // LIGHT_PIXELINVASION … 完全な黒背景 → 黒
   HEADER_LIGHT,      // LIGHT_FLOWERCLOCK … 中央白文字盤＋明るい原色の花びら → 上端は白背景が読みやすい
+  HEADER_DARK,       // LIGHT_PINBALL … 黒いピンボード台盤面 → 黒
 };
 
 // 上端パネルを黒テーマにすべきか（採用中の背景Lightingのヘッダーに従う）。
@@ -21348,6 +21353,810 @@ void fcDrawHandsForeground() {
   GFX.clearClipRect();
 }
 
+// ############################################################################
+// #  PINBALL Arcade Lighting（v5.6 / 盤面を単一ポリゴンへ再構築・            #
+// #  サブステップ物理によるすり抜け根絶・センターガードを完全撤去・          #
+// #  口の当たり判定を廃止しラリーが続きやすい構成へ・                       #
+// #  口の通過を見た目だけで演出する専用フラッシュを追加・                   #
+// #  ボール投入位置を上辺全体からランダム化・                               #
+// #  口フラッシュが顔レイヤーに上書きされ見えない不具合を修正）             #
+// ############################################################################
+//
+// ■ コンセプト
+//   1970〜80年代のアーケード用ピンボール台をイメージした、完全自動プレイの
+//   スクリーンセーバー型Lightingです。プレイヤー操作は一切無く、白いボールが
+//   重力で落下→役物に当たって跳ね返る→フリッパーで受け止めきれず落下
+//   （ドレイン）したら自動的に新しいボールを発射、というサイクルを無限に
+//   繰り返します。ゲームオーバー・残機・タイトルコールのようなゲーム的な
+//   終了条件は持ちません。
+//
+// ■ v2.0での方針転換（実機確認結果を受けた改修）
+//   v1.0は「ピンボール台の中に顔っぽく役物を並べる」形になってしまい、
+//   目・鼻・口の位置や形が本来のかりポムの顔から大きく外れて見えた。
+//   v2.0は逆に「いつものかりポムの顔が、そのままピンボール台として機能する」
+//   ことを最優先する。具体的には：
+//     ・目・鼻・口は【一切別形状へ描き直さない】。座標・サイズは
+//       drawVisualizerFaceParts()（Lighting中に実際に顔を描く関数。
+//       目=中心(90,90)/(230,90)白リム半径22・黒目半径20、
+//       鼻=中心(noseX,noseY)白backing楕円20×14・黒本体18×12、
+//       口=noseX,noseY+8→+22の縦線＋noseY+22→+32,±20の斜め線）と
+//       完全に同じ値をそのまま使う。
+//     ・顔レイヤー（sceneDrawFaceLayer）はLighting（本関数）の【後】に
+//       毎フレーム必ず上から描かれる合成順のため、本関数がここで何を
+//       描いても目・鼻・口の最終的な見た目は既存の顔描画そのまま
+//       （＝本関数側で顔を破壺・変形することは構造的に起こり得ない）。
+//     ・目は「白リムの外側にわずかにはみ出す色つきの円」を敷くことで、
+//       顔レイヤーが上から白リム＋黒目を描いた後、その円のフチだけが
+//       “縁飾りのリング”として残る（＝目そのものがバンパーになって
+//       見える）。鼻・口は指示により常時の装飾を足さない（当たり判定だけを
+//       同じ座標に設置し、ヒット時だけ一瞬白く光らせる「隠れターゲット」）。
+//     ・フリッパーは「支点が外側、先端が中央（ドレイン方向）を向く」
+//       内向き配置に修正（旧版は先端が外を向く誤った配置だった）。
+//
+// ■ v3.0での追加調整（実機写真・参考画像を受けた再修正）
+//   ・目より上に並べていた6個の点滅ランプは、顔の構成要素ではなく画面上部が
+//     散漫に見えるとの指摘を受け完全に削除した。
+//   ・目の縁飾りを単色の紫リング1本→「内側=ピンク／外周=ブルー／一番外側=
+//     白い輪郭」の3層（ただしリングを増やして複雑なメカ風にはしない）へ
+//     変更。ファミコン版かりポムの目の配色をピンボールの電飾風に寄せた配色。
+//   ・鼻・口の常時装飾（縁飾りリング）は廃止し、ヒット時の一瞬の白フラッシュ
+//     のみへ簡略化（顔レイヤー自身の白backingが既に淡い輪郭として機能して
+//     いるため、これ以上の常時装飾は追加しない）。
+//   ・フリッパーの静止角度を「先端が中央へ向かってやや下向き」から「先端が
+//     中央へ向かってやや上向き」に修正（参考画像の一般的なピンボール配置に
+//     合わせた）。支点位置・長さも先端の間隔が自然なドレイン幅になるよう
+//     微調整した。
+//
+// ■ v4.0での再修正（実機確認結果：物理すり抜け・目デザイン・フリッパー角度）
+//   ・【最優先】右上から落ちたボールが鼻で跳ねた直後に右壁をすり抜けて
+//     画面外へ抜ける不具合を修正。原因は「軸別のif文で判定する壁」と
+//     「線分で判定するガイド」という別方式が継ぎ目（右壁とガイドの接続点）
+//     で噛み合っていなかったことと考えられるため、外周全体を5本の連続した
+//     線分（頂点を完全に共有する1本の折れ線）として作り直し、既存の
+//     pinCollideSegment()だけで統一的に判定するよう変更した。あわせて、
+//     万一すり抜けても自動的に再発射して復帰する保険（画面外180px超で
+//     強制リスタート）も追加した。
+//   ・左右フリッパーの間（ドレイン正面）に、金色本体＋白い輪郭の小さな
+//     三角の屋根「センターガード」を追加。正面から真っ直ぐ落ちたボールを
+//     左右どちらかへ振り分け、フリッパーを介さずに素通りしないようにした。
+//   ・フリッパーの静止角度をv3.0の「先端がやや上向き」から「先端が中央下
+//     （ドレイン側）を向く」へ再修正（実機確認の結果、静止時は下向きが
+//     正しい配置だった）。作動時に先端が中央上方向へ跳ね上がる点は変更なし。
+//   ・目のデザインを再変更。黒い瞳が不要という指示のため、目は「顔レイヤー
+//     が描いた白リム＋黒目の上から、白（内側）＋ピンクのリング＋白い輪郭を
+//     丸ごと再描画して差し替える」方式へ変更した。顔レイヤーの後（最前面）
+//     に描く必要があるため、Flower Clockの4.5フックと全く同じ手法・同じ
+//     ガード条件で、sceneComposeAndPush()に「4.6」として1箇所だけ追加した
+//     （PINBALL Arcadeが背景として採用されている時だけ実行され、他の
+//     Lighting・Visualizer・顔の描画順・処理には一切影響しない）。
+//
+// ■ v5.0での再修正（実機確認結果：右壁すり抜けが依然として解消しない）
+//   ・【最優先・根本対策】v4.0の「5線分に統一」だけでは右壁すり抜けが解消
+//     しなかったため、原因を「継ぎ目の隙間」ではなく「離散的な衝突判定」と
+//     再診断した。1フレームにつき1回だけ移動→判定していたため、最大約31px
+//     （PIN_MAX_SPEED=260px/s × dt上限0.12s）を一気に移動することがあり、
+//     pinCollideSegment()は線分の有限区間にしかヒットしないため、移動前後の
+//     どちらの座標もどの線分の近傍にも入らないまま角を飛び越えるトンネリング
+//     が起きていた。対策として、1フレームの移動を約4px以下（最大10分割）へ
+//     サブステップ化し、分割区間ごとに毎回すべての衝突判定を行うよう変更した
+//     （lightRenderPinball()内）。
+//   ・盤面の定義方法を全面的に見直し、PIN_BOUND_X[6]/PIN_BOUND_Y[6]という
+//     1組の頂点配列だけを「唯一の正」とし、塗りつぶし（頂点0からの扇形
+//     三角形分割）・外周線描画・衝突判定（辺ごとのpinCollideSegment()ループ）
+//     の3つすべてをこの同じ配列から生成するよう変更した。座標を描画用・
+//     判定用で別々に手作業定義する箇所は無くなった。フリッパー間のドレイン
+//     開口部（頂点3-4）だけは辺配列の中の1本として、外周線描画・衝突判定の
+//     両方で明示的にスキップする。
+//   ・信頼性の低かった三角形のセンターガードを廃止し、実際に厚みを持った
+//     矩形の水平バリア（PIN_BARRIER_*）へ置き換えた。線分近傍の判定ではなく
+//     「ボール中心がバリア矩形をボール半径ぶん拡張した範囲に入っているか」
+//     という面としてのAABB判定にしたことで、必ず検出・必ず上方向へ跳ね返す
+//     ようにした（左右にランダムな成分も加え、真上への無限往復を防止）。
+//   ・プレイフィールドの色を、黒背景と区別しやすい濃紺〜ダークブルーの
+//     塗りつぶし＋明るいブルーの外周線という組み合わせへ変更した。
+//   ・左右の目の白い中央部分に、得点バンパーであることを示す「100」の文字を
+//     追加した（pinDrawEyesForeground()内。フラッシュ中は表示しない）。
+//   ・フリッパー・鼻・口の座標・見た目・当たり判定はv4.0から変更していない。
+//
+// ■ v5.1での微調整（実機確認結果：見た目のピンボール感をさらに向上）
+//   ・目の中央の得点数字「100」が小さく読みづらかったため、setTextSize(1)→
+//     (2)へ拡大。太字フォントが無いため、他の強調テキストと同様サイズ倍率で
+//     太さ・大きさの両方を稼ぐ（pinDrawEyesForeground()内）。
+//   ・下部の水平バリアの座標を固定値の決め打ちから、フリッパー自身の座標
+//     定数（PIN_FLIP_L_PY・PIN_FLIPPER_HW・PIN_FLIP_L_PX・PIN_FLIP_R_PX）
+//     から計算する方式へ変更した。Y座標はフリッパー静止時（作動角0度）の
+//     上面ラインと同じ高さ、X座標は左右フリッパーのヒンジ内側端から内側端
+//     までとし、バリアとフリッパーの間に隙間が生じないようにした。
+//   ・フリッパーの描画方式をfillTriangle（先端が鋭い三角）からdrawThickLine
+//     （線分に沿ってfillCircleを敷き詰める既存の共通ヘルパー）へ変更し、
+//     先端が丸みのある「ずんぐりした」形状になるようにした。長さ・太さの
+//     数値は変更していない（pinDrawFlipper()内）。
+//
+// ■ v5.2での修正（実機確認結果：センターガード撤去・目の文字をさらに太く）
+//   ・v5.0〜v5.1で導入していた左右フリッパー間の水平バリア（センターガード）
+//     を完全に削除した。専用定数（PIN_BARRIER_Y_TOP/Y_BOT/X_L/X_R/BOUNCE/
+//     COL）・専用衝突判定関数pinCollideBarrier()・lightRenderPinball()内の
+//     サブステップループからの呼び出し・専用の描画コード（矩形塗りつぶし＋
+//     上下2本の輪郭線）を、他の箇所から一切参照されていないことを確認した
+//     うえですべて削除した。左右フリッパーの間は台の外周ポリゴン側で元々
+//     PIN_BOUND_DRAIN_EDGEとして開けてある開口部（辺3）が唯一のドレイン
+//     経路となり、通常のピンボール同様、フリッパーで受け止められなかった
+//     ボールはそのままここから落下し、既存のドレイン判定（pinBallY -
+//     PIN_BALL_R > PIN_BOTTOMでpinLaunchBall()を呼ぶ処理。変更なし）が
+//     そのまま働く。外周ポリゴン・サブステップ物理・目/鼻/口の当たり判定・
+//     フリッパーの位置/長さ/角度/丸み/自動動作には一切手を加えていない。
+//   ・目の中央の得点数字「100」について、v5.1のsetTextSize(2)だけでは実機で
+//     線が細く見えるとの指摘を受け、同じ文字列を基準位置に加えて右へ1px・
+//     下へ1px・右下へ1pxずらした計4回重ね描き（疑似ボールド）する方式へ
+//     変更した（pinDrawEyesForeground()内）。文字サイズ自体（setTextSize(2)）
+//     は維持しており、可読性が損なわれない範囲でストロークだけを太くして
+//     いる。目のサイズ・位置・配色（外周ピンク／中央白／黒目なし）は
+//     一切変更していない。
+//
+// ■ v5.3での修正（実機確認結果：口の役物でボールが戻され、ラリーが
+//   短くなってしまう。中央の役物は鼻だけにしてほしいとの要望）
+//   ・口（縦線＋左右へ広がる逆Y字の斜め線）の当たり判定を完全に廃止した。
+//     具体的には、専用の衝突判定関数pinCollideMouth()・そのlightRenderPinball()
+//     サブステップループ内での呼び出し・ヒット時専用の状態(pinMouthFlashing/
+//     pinMouthFlashMs)・ヒット時専用の描画関数pinDrawMouthFlash()とその
+//     呼び出し・専用定数(PIN_MOUTH_KICK/PIN_MOUTH_SCORE/PIN_MOUTH_FLASH_THICK)
+//     を、他の箇所から一切参照されていないことを確認したうえですべて削除
+//     した。これにより、口・逆Y字の部分にはボールとの当たり判定そのものが
+//     存在しなくなり、ボールは視覚的にそこに描かれた口の上を単純に素通り
+//     する（内部的には「何もない空間」と同じ扱いになる）。
+//   ・口の見た目（顔レイヤーが描く縦線＋逆Y字の斜め線そのもの）は一切変更
+//     していない。ボールが当たった時の一瞬の白フラッシュとスコア加算だけが
+//     無くなる（判定自体が無いため、そもそも「当たる」という事象が発生
+//     しない）。
+//   ・中央の物理的な役物は鼻（pinCollideNose()、変更なし）だけになった。
+//     目・外周ポリゴン・サブステップ物理・フリッパーの位置/長さ/角度/丸み/
+//     自動動作・ボール・スコア処理・ドレイン後の自動再投入には一切手を
+//     加えていない。
+//
+// ■ v5.4での追加（実機確認結果：v5.3の物理はそのまま維持しつつ、口を
+//   通過した瞬間だけ見た目でも分かるようにしたいとの要望）
+//   ・v5.3の物理挙動（口・逆Y字に当たり判定を持たせない＝ボールは完全に
+//     すり抜ける）は一切変更していない。速度・進行方向・スコアに影響する
+//     処理は今回いっさい追加していない。
+//   ・新たに、ボールの通過を検出するためだけの読み取り専用ヘルパー
+//     pinSegmentTouch()（線分への最近接点までの距離がボール半径以内かを
+//     判定するだけで、位置補正や速度反射は一切行わない）と、それを口の
+//     3線分（縦線＋左右の斜め線）へ適用するpinCheckMouthPass()を追加した。
+//     これらはサブステップループ内でpinCollideEyes()/pinCollideNose()の
+//     直後に呼ぶが、物理応答を持つpinCollideXxx()系とは異なり、ボールの
+//     位置・速度・pinScoreのいずれも書き換えない（読み取るだけ）。
+//   ・通過を検出した場合はpinMouthPassFlashing/pinMouthPassFlashMsという
+//     専用の状態だけを更新し、専用の描画関数pinDrawMouthPassFlash()が
+//     約100ms（PIN_MOUTH_PASS_FLASH_MS）だけ口の3線分全体を白く光らせる。
+//     この描画も既存のdrawThickLine()を使うだけの見た目専用処理で、物理
+//     計算には一切関与しない。
+//   ・鼻の当たり判定・その他PINBALL Arcadeの挙動（外周ポリゴン・サブ
+//     ステップ物理・フリッパー・ボール・スコア処理・ドレイン後の自動
+//     再投入）には一切手を加えていない。
+//
+// ■ v5.5での修正（実機確認結果：右上固定の投入だと毎回似た軌道になる
+//   ため、プレイフィールド上辺全体からランダムに投入してほしいとの要望）
+//   ・変更したのはpinLaunchBall()の内部だけ。投入X座標を、固定値
+//     （PIN_RIGHT-10）から、壁・角に食い込まないようボール半径＋安全
+//     マージン（PIN_LAUNCH_X_MARGIN=24px）ぶん内側へ寄せた範囲
+//     （PIN_LAUNCH_X_MIN〜PIN_LAUNCH_X_MAX）内のランダム値へ変更した。
+//     Y座標は従来と同じ安全な高さ（PIN_LAUNCH_Y＝上端+14px）に固定して
+//     いる。
+//   ・初速度は下向き成分（PIN_LAUNCH_VY_MIN〜MAX＝60〜90px/s）を主体にし、
+//     左右成分（PIN_LAUNCH_VX_RANGE＝±35px/s）だけを小さくランダムに
+//     振ることで、毎回異なる軌道になりつつ、極端な水平射出や投入直後の
+//     壁衝突を避けている。
+//   ・pinLaunchBall()は初回投入（pinResetState()経由）・ドレイン後の
+//     再投入・詰まり検知時の再投入のすべてから共有して呼ばれる唯一の
+//     関数のため、このファイル内の呼び出し元を変更することなく、
+//     どの経路でも自動的に同じランダム投入処理になる。
+//   ・鼻・目・フリッパー・外周・サブステップ物理・ドレイン判定・スコア
+//     処理・v5.4の口・逆Y字通過フラッシュには一切手を加えていない。
+//
+// ■ v5.6での修正（実機確認結果：v5.4で追加した口・逆Y字の通過フラッシュが
+//   実機で一度も光って見えない）
+//   コードを実際に追って原因を特定した（推測ではなく合成パイプラインの
+//   呼び出し順を直接確認した）。
+//   ・sceneComposeAndPush()の描画順は ①Lightingレイヤー
+//     （sceneDrawLightingLayer()→本Lighting＝lightRenderPinball()）→
+//     ③Visualizerレイヤー → ④顔レイヤー（sceneDrawFaceLayer()。
+//     gLightingActive中はdrawVisualizerFaceParts(false)を呼び、目・鼻・口を
+//     【必ず】その場で描き直す）→ 4.5/4.6の最前面フック、という順で進む。
+//   ・v5.4〜v5.5では pinDrawMouthPassFlash() を①のlightRenderPinball()内
+//     （＝Lightingレイヤーの中）から呼んでいた。ここで白いフラッシュを
+//     描いても、直後の④で顔レイヤーが口を黒で無条件に再描画するため、
+//     フラッシュは合成結果が画面へ送られる前に必ず上書きされ、実機では
+//     一度も見えていなかった（＝③描画順の問題。①検出ロジック・②状態
+//     更新自体は正しく動作しており、バグは無かった）。目の得点表示
+//     （pinDrawEyesForeground()）が最初から4.5/4.6の最前面フック方式で
+//     実装されていたのと全く同じ理由・同じ解決策が必要だった。
+//   ・修正：pinDrawMouthPassFlash()の呼び出しをlightRenderPinball()内から
+//     削除し、sceneComposeAndPush()の既存の4.6フック
+//     （pinDrawEyesForeground()と同じガード条件）へ移動した。これにより
+//     顔レイヤーより後（最前面）に描かれるようになり、上書きされずに
+//     画面へ表示される。
+//   ・pinCheckMouthPass()（通過検出ロジック）・pinSegmentTouch()（判定
+//     幅）・PIN_MOUTH_PASS_FLASH_MS（表示時間100ms）・状態変数
+//     （pinMouthPassFlashing/Ms）はいずれも変更していない（④⑤の観点でも
+//     問題は見つからなかったため）。鼻・目・フリッパー・外周・サブ
+//     ステップ物理・v5.5のランダム投入・ドレイン・スコア処理には一切
+//     手を加えていない。
+//
+// ■ レイヤー種別＝【背景(面)】
+//   Missile Defense等と同じく、黒背景の上へ自前で毎フレーム全面描画する
+//   完結型の背景演出です。他のLighting・Visualizer・顔（の描画コード自体）・
+//   Sleep Carouselのコード・状態には一切触れません（顔の座標を「参照」する
+//   だけで、顔の描画関数自体は変更していません。唯一の例外として、目から
+//   黒瞳を消すための最前面フックをsceneComposeAndPush()へ1箇所追加している
+//   が、これはFlower Clockで既に採用済みの手法をPINBALL Arcade専用の
+//   条件でもう1箇所使っただけで、他モードの動作には影響しない）。
+//
+// ■ 物理の簡略化（本格的なピンボール物理は実装しない）
+//   ・ボール：重力／台の外周（5本の連続した線分の折れ線）・センターガード
+//     （線分2本）・目・鼻（円-円の反射＋一定の弾き返し速度）／口（線分3本の
+//     反射）はいずれも既存のpinCollideSegment()／円-円判定に統一している。
+//   ・フリッパー：正確な形状衝突はさせず、「トリガーゾーンに落ちてきた
+//     瞬間に発射角度へキックする」状態遷移で表現する（アーム自体は見た目の
+//     往復アニメーションのみ）。Missile Defenseの照準追尾・Street Fighterの
+//     被弾のけぞり等、既存Lightingで採用している「状態遷移で簡略化する」
+//     という設計方針を踏襲している。
+//   ・行き詰まり対策：一定時間ほとんど動かない場合、または台の外へ大きく
+//     外れてしまった場合は、自動的にドレイン扱いにして再発射する（無人
+//     稼働のスクリーンセーバーが固まったり画面外で止まったままにならない
+//     ようにするための保険）。
+// ============================================================================
+#define PIN_TOP     SCENE_TOP
+#define PIN_BOTTOM  240
+#define PIN_LEFT    16
+#define PIN_RIGHT   304
+
+#define PIN_BALL_R           6.0f
+#define PIN_GRAVITY        260.0f   // px/s^2
+#define PIN_REST             0.82f  // 壁反射の反発係数（1未満で少しずつ減衰）
+#define PIN_MAX_SPEED       260.0f  // px/s（貫通防止の上限）
+#define PIN_MIN_SPEED_STUCK  12.0f  // これ未満の速さが続くと「詰まった」とみなす
+#define PIN_STUCK_MS        2200
+
+// v5.5：ボール投入位置のランダム化（毎回右上固定だと軌道が単調になるため）。
+// プレイフィールド上辺の左右いずれの壁・角にも食い込まないよう、ボール半径
+// （PIN_BALL_R）に加えて余裕を持った安全マージンぶん内側へ寄せたX範囲だけを
+// 使う。Y座標は従来どおり上端から少し下がった安全な位置に固定する。
+#define PIN_LAUNCH_X_MARGIN 24.0f                                    // 壁からの安全マージン
+#define PIN_LAUNCH_X_MIN    (PIN_LEFT  + PIN_BALL_R + PIN_LAUNCH_X_MARGIN)
+#define PIN_LAUNCH_X_MAX    (PIN_RIGHT - PIN_BALL_R - PIN_LAUNCH_X_MARGIN)
+#define PIN_LAUNCH_Y         (PIN_TOP + 14.0f)                       // 上端から十分離れた安全な高さ
+#define PIN_LAUNCH_VX_RANGE  35.0f   // 左右成分＝小さめのランダム値（±この範囲内）
+#define PIN_LAUNCH_VY_MIN    60.0f   // 下向き成分＝主体となる速度（最小）
+#define PIN_LAUNCH_VY_MAX    90.0f   // 下向き成分＝主体となる速度（最大）
+
+#define PIN_FLASH_MS         220    // 目・鼻ヒット時のフラッシュ表示時間
+
+// 目＝バンパー。中心座標はdrawVisualizerFaceParts()の黒目描画（中心90/230,90）
+// と完全に一致させる。eyeOffsetX/Yは意図的に参照しない（Pinball自身は目を
+// 動かさない＝常にオフセット0の既定位置のまま。目の位置をバンパーに合わせて
+// 動かすのではなく、既定の目の位置へバンパーを合わせるという最重要方針のため）。
+// 【実機確認結果を受けた変更】黒い瞳は不要という指示のため、目は顔レイヤーが
+// 描く白リム＋黒目の【上から丸ごと再描画】して差し替える（内側=白・外周=
+// ピンクのリング・一番外側=白い輪郭のシンプルな3層。中央の黒瞳は表示しない）。
+// これは顔レイヤーの後に最前面で描く必要があるため、Flower ClockのfcDraw
+// HandsForeground()と同じ「4.5的な最前面フック」をsceneComposeAndPush()へ
+// 追加している（pinDrawEyesForeground()参照）。
+#define PIN_EYE_Y           90.0f
+static const float PIN_EYE_X[2] = { 90.0f, 230.0f };
+#define PIN_EYE_INNER_R     21.0f   // 内側の白（黒瞳を覆い隠す）
+#define PIN_EYE_RING_R      26.0f   // ピンクのリング外縁
+#define PIN_EYE_OUTLINE_R   29.0f   // 一番外側の白い輪郭の外縁
+#define PIN_EYE_COLLIDE_R   PIN_EYE_OUTLINE_R   // 衝突半径＝見た目の一番外側と一致
+#define PIN_EYE_FLASH_R     32.0f   // ヒット時フラッシュの半径
+#define PIN_EYE_KICK       200.0f
+#define PIN_EYE_SCORE        25
+
+// 鼻＝小さな障害物。中心はnoseX/noseY（drawVisualizerFaceParts()と同一）。
+// 楕円（白backing20×14・黒本体18×12）を単純化した円として近似する
+// （低解像度のレトロ表現として許容範囲の差）。
+#define PIN_NOSE_COLLIDE_R  17.0f
+#define PIN_NOSE_FLASH_R    26.0f
+#define PIN_NOSE_KICK      170.0f
+#define PIN_NOSE_SCORE       15
+
+// v5.3：口の当たり判定（PIN_MOUTH_*定数・pinCollideMouth()）は廃止した。
+// 見た目（顔レイヤーが描く口そのもの）は一切変更していない。詳細はこの
+// ファイル冒頭のPINBALL Arcadeヘッダコメント「v5.3」節を参照。
+//
+// v5.4：物理的な当たり判定は戻さず、「見た目だけの通過検出」を追加する。
+// ボールが口の縦線・逆Y字の斜め線（の近く）を通過した瞬間だけ、その線全体を
+// 約100ms白く光らせる。位置補正・速度反射・スコア加算は一切行わない、
+// 純粋な読み取り専用の距離判定（pinSegmentTouch()）で実現する。
+#define PIN_MOUTH_PASS_FLASH_MS   100     // 通過フラッシュの表示時間（約100ms）
+#define PIN_MOUTH_PASS_TOUCH_R    PIN_BALL_R  // 通過判定の許容距離＝ボール半径
+#define PIN_MOUTH_PASS_FLASH_THICK 11      // フラッシュ時の線の太さ（見た目のみ）
+
+#define PIN_FLIPPER_LEN      48.0f
+#define PIN_FLIPPER_HW        5.0f
+#define PIN_FLIPPER_ZONE_R   30.0f
+#define PIN_FLIP_UP_MS        90
+#define PIN_FLIP_HOLD_MS     130
+#define PIN_FLIP_RETURN_MS   220
+#define PIN_FLIP_LAUNCH_SPEED 210.0f
+#define PIN_FLIP_COOLDOWN_MS 160
+
+// フリッパー支点は左右外側・最下段。静止時(REST)は先端が中央下（ドレイン側）
+// を向き、作動時(FIRE)は先端が中央上方向へ跳ね上がる、一般的なピンボール台の
+// 動きにする（実機確認結果：静止時に先端が上を向く配置は誤りだった。ドレイン
+// 側を向いた状態で待ち構え、ボールが来たら上へ跳ね上げるのが正しい）。
+#define PIN_FLIP_L_PX  82.0f
+#define PIN_FLIP_L_PY 224.0f
+#define PIN_FLIP_R_PX 238.0f
+#define PIN_FLIP_R_PY 224.0f
+#define PIN_FLIP_L_REST_DX   0.978f   // 右（中央）＋わずかに下向き＝静止時は先端が中央下（ドレイン側）を向く
+#define PIN_FLIP_L_REST_DY   0.208f
+#define PIN_FLIP_L_FIRE_DX   0.574f   // 右上（作動時は先端が中央上方向へ跳ね上がる）
+#define PIN_FLIP_L_FIRE_DY  -0.819f
+#define PIN_FLIP_R_REST_DX  -0.978f   // 左（中央）＋わずかに下向き（左フリッパーと左右対称）
+#define PIN_FLIP_R_REST_DY   0.208f
+#define PIN_FLIP_R_FIRE_DX  -0.574f
+#define PIN_FLIP_R_FIRE_DY  -0.819f
+
+// 8bit初期ビデオゲーム風パレット。プレイフィールドは黒背景と区別できる
+// 濃紺〜ダークブルーで塗りつぶし、外周だけ明るいブルー系で縁取る。
+static const uint16_t PIN_BG_COL          = 0x0000;                                                             // 画面背景＝黒
+static const uint16_t PIN_FIELD_COL       = (uint16_t)((( 18 & 0xF8) << 8) | (( 30 & 0xFC) << 3) | ( 70 >> 3));  // 盤面＝濃紺〜ダークブルー
+static const uint16_t PIN_WALL_COL        = (uint16_t)((( 70 & 0xF8) << 8) | ((215 & 0xFC) << 3) | (255 >> 3));  // 外周の縁取り＝明るいブルー／水色
+static const uint16_t PIN_BALL_COL        = (uint16_t)(((235 & 0xF8) << 8) | ((235 & 0xFC) << 3) | (240 >> 3));  // 白
+static const uint16_t PIN_FLIPPER_COL     = (uint16_t)(((255 & 0xF8) << 8) | ((220 & 0xFC) << 3) | ( 40 >> 3));  // 黄
+static const uint16_t PIN_FLIPPER_HUB_COL = 0xFFFF;                                                             // 白ヒンジ
+static const uint16_t PIN_SCORE_COL       = 0xFFFF;                                                             // 白
+// 目の縁飾り3層（内側から順に描く。ピンク→白の順で上塗りすると
+// 各半径の"間"だけが帯として残る＝ファミコン版かりポムの目を電飾風にした配色）。
+static const uint16_t PIN_EYE_PINK_COL    = (uint16_t)(((255 & 0xF8) << 8) | ((140 & 0xFC) << 3) | (190 >> 3));  // ピンク（リング）
+static const uint16_t PIN_FLASH_COL       = 0xFFFF;                                                             // 白（内側・一番外側の輪郭・ヒット時フラッシュ共用）
+static const uint16_t PIN_EYE_SCORE_TXT_COL = 0x0000;                                                           // 目の中央「100」文字＝黒
+
+// ── 台の外周＝「1組の頂点」から塗りつぶし・外周線・当たり判定のすべてを作る ──
+// 【実機確認結果を受けた再修正】これまでは壁・ガイドを別々の座標定義から
+// 描画と衝突判定をそれぞれ作っており、右壁のすり抜けが解消しなかった。
+// 今回はプレイフィールドの輪郭を6頂点の1つの閉じたポリゴン（凸六角形）として
+// 定義し、塗りつぶし（pinDrawPlayfield内の扇形三角形分割）・外周線描画・
+// 衝突判定（下のpinCollideBoundary()）のすべてをこの同じ頂点配列から生成する。
+// 座標を描画用・判定用で別々に手作業定義することは一切していない。
+//   頂点0:左上 1:右上 2:右ガイド起点(右壁下端) 3:右フリッパー支点
+//        4:左フリッパー支点 5:左ガイド起点(左壁下端) →(0へ戻る)
+//   辺i = 頂点i→頂点(i+1)%6。辺3(頂点3→4＝右フリッパー支点→左フリッパー支点)
+//   だけはフリッパー間のドレイン開口部のため、外周線描画・衝突判定の両方で
+//   意図的にスキップする（塗りつぶしはこの開口部の上端＝頂点3-4のライン
+//   までしか届かないため、その下は自然に黒い背景のまま＝ドレインの穴に見える）。
+#define PIN_GUIDE_TOP_Y   150.0f
+#define PIN_BOUND_COUNT     6
+#define PIN_BOUND_DRAIN_EDGE 3
+static const float PIN_BOUND_X[PIN_BOUND_COUNT] = { PIN_LEFT, PIN_RIGHT, PIN_RIGHT,       PIN_FLIP_R_PX, PIN_FLIP_L_PX, PIN_LEFT };
+static const float PIN_BOUND_Y[PIN_BOUND_COUNT] = { PIN_TOP,  PIN_TOP,   PIN_GUIDE_TOP_Y, PIN_FLIP_R_PY, PIN_FLIP_L_PY, PIN_GUIDE_TOP_Y };
+
+// フリッパーの状態（配列インデックスで参照する。0=左, 1=右）。
+// 【重要】mslDrawBurst()直上のコメントと同じ理由により、struct型を関数の
+//   引数に直接使わない（Arduino IDEの自動プロトタイプ生成は、struct定義より
+//   前にプロトタイプを挿入するため "PinFlipper does not name a type" になる）。
+//   そのため pinUpdateFlipper()/pinFlipperPhase() は struct参照ではなく
+//   配列インデックス(uint8_t)を引数に取る。
+enum PinFlipState : uint8_t { PIN_FLIP_IDLE = 0, PIN_FLIP_UP, PIN_FLIP_HOLD, PIN_FLIP_RETURN };
+struct PinFlipper { uint8_t state; unsigned long stateStartMs; unsigned long lastFireMs; };
+static PinFlipper pinFlip[2];   // 0=左フリッパー, 1=右フリッパー
+
+static float         pinBallX, pinBallY, pinBallVX, pinBallVY;
+static unsigned long pinPrevMs = 0;
+static unsigned long pinLastFastMoveMs = 0;   // 詰まり検知用
+static uint32_t      pinScore = 0;
+static bool          pinEyeFlashing[2];
+static unsigned long pinEyeFlashMs[2];
+static bool          pinNoseFlashing = false;
+static unsigned long pinNoseFlashMs = 0;
+static bool          pinMouthPassFlashing = false;   // v5.4：口の見た目専用・通過フラッシュ
+static unsigned long pinMouthPassFlashMs = 0;
+
+// v5.5：ボールを投入する。従来は右上のプランジャーレーン相当の固定位置から
+// 常に同じような斜め軌道で発射していたが、毎回似た軌道になって単調だった
+// ため、プレイフィールド上辺の安全なX範囲（PIN_LAUNCH_X_MIN〜MAX。壁・角に
+// 食い込まないようボール半径＋マージンぶん内側へ寄せてある）からランダムな
+// X座標で投入するように変更した。Y座標は従来どおり上端から少し下がった
+// 安全な高さ（PIN_LAUNCH_Y）に固定する。初速は下向き成分（PIN_LAUNCH_VY_MIN
+// 〜MAX）を主体にし、左右成分（PIN_LAUNCH_VX_RANGE）だけを小さくランダムに
+// 振ることで、毎回同じ軌道にならないようにしつつ、極端な水平射出や投入
+// 直後の壁衝突を避けている。初回投入（pinResetState()経由）・ドレイン後の
+// 再投入・詰まり検知時の再投入のすべてがこの1つの関数を共有して呼ぶため、
+// どの経路でも同じランダム投入処理になる。
+static void pinLaunchBall(unsigned long now) {
+  float xRange = PIN_LAUNCH_X_MAX - PIN_LAUNCH_X_MIN;
+  pinBallX  = PIN_LAUNCH_X_MIN + (float)random(0, (long)xRange + 1);
+  pinBallY  = PIN_LAUNCH_Y;
+  pinBallVX = (float)random(0, (long)(PIN_LAUNCH_VX_RANGE * 2.0f) + 1) - PIN_LAUNCH_VX_RANGE;
+  pinBallVY = PIN_LAUNCH_VY_MIN + (float)random(0, (long)(PIN_LAUNCH_VY_MAX - PIN_LAUNCH_VY_MIN) + 1);
+  pinLastFastMoveMs = now;
+}
+
+static void pinResetState(unsigned long now) {
+  pinScore = 0;
+  pinEyeFlashing[0] = pinEyeFlashing[1] = false;
+  pinNoseFlashing = false;
+  pinMouthPassFlashing = false;
+  for (uint8_t i = 0; i < 2; i++) {
+    pinFlip[i].state        = PIN_FLIP_IDLE;
+    pinFlip[i].stateStartMs = now;
+    pinFlip[i].lastFireMs   = 0;
+  }
+  pinLaunchBall(now);
+}
+
+// 円(cx,cy,r)と線分(x0,y0)-(x1,y1)の衝突判定＋反射。衝突していればtrueを返し、
+// cx/cy/vx/vyをその場で押し出し・反射後の値へ書き換える。
+static bool pinCollideSegment(float& cx, float& cy, float& vx, float& vy, float r,
+                               float x0, float y0, float x1, float y1) {
+  float dx = x1 - x0, dy = y1 - y0;
+  float lenSq = dx * dx + dy * dy;
+  if (lenSq < 1e-6f) return false;
+  float t = ((cx - x0) * dx + (cy - y0) * dy) / lenSq;
+  if (t < 0.0f) t = 0.0f; else if (t > 1.0f) t = 1.0f;
+  float px = x0 + dx * t, py = y0 + dy * t;
+  float ex = cx - px, ey = cy - py;
+  float dist2 = ex * ex + ey * ey;
+  float rr = r * r;
+  if (dist2 >= rr) return false;
+  float dist = sqrtf(dist2);
+  float nx, ny;
+  if (dist > 1e-4f) { nx = ex / dist; ny = ey / dist; }
+  else              { nx = 0.0f; ny = -1.0f; }   // 中心が線上に完全一致した場合の保険（通常発生しない）
+  cx = px + nx * r;
+  cy = py + ny * r;
+  float vn = vx * nx + vy * ny;
+  if (vn < 0.0f) {   // 壁へ向かう速度成分がある時だけ反射する（離れる方向なら何もしない）
+    vx = (vx - 2.0f * vn * nx) * PIN_REST;
+    vy = (vy - 2.0f * vn * ny) * PIN_REST;
+  }
+  return true;
+}
+
+// 目（左右2箇所）との円-円衝突。座標・半径はdrawVisualizerFaceParts()の
+// 白リム（半径22）と一致させているため、見た目のリムの位置でちょうど
+// 跳ね返る。当たると常に一定以上の勢いで弾き返し、リングをフラッシュさせる。
+static void pinCollideEyes(unsigned long now) {
+  for (uint8_t i = 0; i < 2; i++) {
+    float dx = pinBallX - PIN_EYE_X[i];
+    float dy = pinBallY - PIN_EYE_Y;
+    float dist2 = dx * dx + dy * dy;
+    float minD = PIN_BALL_R + PIN_EYE_COLLIDE_R;
+    if (dist2 >= minD * minD || dist2 < 1e-6f) continue;
+    float dist = sqrtf(dist2);
+    float nx = dx / dist, ny = dy / dist;
+    pinBallX = PIN_EYE_X[i] + nx * minD;
+    pinBallY = PIN_EYE_Y     + ny * minD;
+    float speed = sqrtf(pinBallVX * pinBallVX + pinBallVY * pinBallVY);
+    if (speed < PIN_EYE_KICK) speed = PIN_EYE_KICK;
+    pinBallVX = nx * speed;
+    pinBallVY = ny * speed;
+    pinEyeFlashing[i] = true;
+    pinEyeFlashMs[i]  = now;
+    pinScore += PIN_EYE_SCORE;
+    pinLastFastMoveMs = now;
+  }
+}
+
+// 鼻との円-円衝突（noseX/noseYはファイル前半で定義済みの既存グローバル定数）。
+static void pinCollideNose(unsigned long now) {
+  float dx = pinBallX - (float)noseX;
+  float dy = pinBallY - (float)noseY;
+  float dist2 = dx * dx + dy * dy;
+  float minD = PIN_BALL_R + PIN_NOSE_COLLIDE_R;
+  if (dist2 >= minD * minD || dist2 < 1e-6f) return;
+  float dist = sqrtf(dist2);
+  float nx = dx / dist, ny = dy / dist;
+  pinBallX = (float)noseX + nx * minD;
+  pinBallY = (float)noseY + ny * minD;
+  float speed = sqrtf(pinBallVX * pinBallVX + pinBallVY * pinBallVY);
+  if (speed < PIN_NOSE_KICK) speed = PIN_NOSE_KICK;
+  pinBallVX = nx * speed;
+  pinBallVY = ny * speed;
+  pinNoseFlashing = true;
+  pinNoseFlashMs  = now;
+  pinScore += PIN_NOSE_SCORE;
+  pinLastFastMoveMs = now;
+}
+
+// v5.4：口の通過検出専用ヘルパー（見た目のみ・物理応答なし）。
+// pinCollideSegment()は衝突を検出すると位置補正・速度反射まで行ってしまう
+// ため使わず、「線分への最近接点までの距離がr以内か」だけを判定する読み取り
+// 専用の関数を別に用意する。ボールの位置・速度は一切書き換えない。
+static bool pinSegmentTouch(float px, float py, float r, float x0, float y0, float x1, float y1) {
+  float dx = x1 - x0, dy = y1 - y0;
+  float len2 = dx * dx + dy * dy;
+  float t = (len2 < 1e-6f) ? 0.0f : ((px - x0) * dx + (py - y0) * dy) / len2;
+  if (t < 0.0f) t = 0.0f; else if (t > 1.0f) t = 1.0f;
+  float cx = x0 + dx * t, cy = y0 + dy * t;
+  float ddx = px - cx, ddy = py - cy;
+  return (ddx * ddx + ddy * ddy) <= (r * r);
+}
+
+// v5.4：口・逆Y字の通過検出（見た目専用）。drawVisualizerFaceParts()の
+// 閉じ口backing線と同じ3線分（縦線＋左右の斜め線）に対し、上のpinSegmentTouch()
+// で「近くを通ったか」だけを判定する。当たり判定ではないため、位置補正も
+// 速度反射もスコア加算も一切行わない。触れていたらフラッシュ開始時刻を
+// 更新するだけ。
+static void pinCheckMouthPass(unsigned long now) {
+  float mx = (float)noseX, my = (float)noseY;
+  bool touch = pinSegmentTouch(pinBallX, pinBallY, PIN_MOUTH_PASS_TOUCH_R, mx, my + 8.0f,  mx,        my + 22.0f)
+            || pinSegmentTouch(pinBallX, pinBallY, PIN_MOUTH_PASS_TOUCH_R, mx, my + 22.0f, mx - 20.0f, my + 32.0f)
+            || pinSegmentTouch(pinBallX, pinBallY, PIN_MOUTH_PASS_TOUCH_R, mx, my + 22.0f, mx + 20.0f, my + 32.0f);
+  if (touch) {
+    pinMouthPassFlashing = true;
+    pinMouthPassFlashMs  = now;
+  }
+}
+
+
+// フリッパー1枚ぶんのトリガー判定＋状態遷移（IDLE→UP→HOLD→RETURN→IDLE）。
+// idx: 0=左, 1=右。pivotX/Y=支点、restDX/DY=静止時の向き、fireDX/DY=発射時の向き
+// （どちらも単位ベクトル相当）。
+static void pinUpdateFlipper(uint8_t idx, unsigned long now,
+                              float pivotX, float pivotY,
+                              float restDX, float restDY,
+                              float fireDX, float fireDY) {
+  PinFlipper& f = pinFlip[idx];
+  if (f.state == PIN_FLIP_IDLE && (now - f.lastFireMs) >= PIN_FLIP_COOLDOWN_MS) {
+    float zoneX = pivotX + restDX * PIN_FLIPPER_LEN * 0.55f;
+    float zoneY = pivotY + restDY * PIN_FLIPPER_LEN * 0.55f;
+    float dx = pinBallX - zoneX, dy = pinBallY - zoneY;
+    if (dx * dx + dy * dy <= PIN_FLIPPER_ZONE_R * PIN_FLIPPER_ZONE_R && pinBallVY > 0.0f) {
+      f.state        = PIN_FLIP_UP;
+      f.stateStartMs = now;
+      f.lastFireMs   = now;
+      float speed  = PIN_FLIP_LAUNCH_SPEED + (float)random(0, 40);
+      float jitter = ((float)random(0, 21) - 10.0f) * 0.01f;   // ±0.10ぶんの方向ゆらぎ
+      pinBallVX = fireDX * speed + jitter * speed;
+      pinBallVY = fireDY * speed;
+      pinLastFastMoveMs = now;
+    }
+  }
+  unsigned long el = now - f.stateStartMs;
+  if      (f.state == PIN_FLIP_UP     && el >= PIN_FLIP_UP_MS)     { f.state = PIN_FLIP_HOLD;   f.stateStartMs = now; }
+  else if (f.state == PIN_FLIP_HOLD   && el >= PIN_FLIP_HOLD_MS)   { f.state = PIN_FLIP_RETURN; f.stateStartMs = now; }
+  else if (f.state == PIN_FLIP_RETURN && el >= PIN_FLIP_RETURN_MS) { f.state = PIN_FLIP_IDLE;   f.stateStartMs = now; }
+}
+
+// フリッパーの現在の角度を0.0(静止)〜1.0(発射しきった状態)で返す（描画専用）。
+static float pinFlipperPhase(uint8_t idx, unsigned long now) {
+  PinFlipper& f = pinFlip[idx];
+  unsigned long el = now - f.stateStartMs;
+  switch (f.state) {
+    case PIN_FLIP_UP:     return fminf(1.0f, (float)el / (float)PIN_FLIP_UP_MS);
+    case PIN_FLIP_HOLD:   return 1.0f;
+    case PIN_FLIP_RETURN: return fmaxf(0.0f, 1.0f - (float)el / (float)PIN_FLIP_RETURN_MS);
+    default:              return 0.0f;
+  }
+}
+
+// フリッパー1枚を描く（v5.1：先端の丸め）。
+// v5.0までは支点→先端の三角形（fillTriangle）で描いており先端が鋭い三角に
+// 尖っていた。今回は既存のdrawThickLine()（口のヒットフラッシュ描画などで
+// 既に使っている、線分に沿ってfillCircleを敷き詰める共通ヘルパー）へ描画
+// 方式を変更する。fillCircleを線に沿って並べる方式のため、経路の両端に
+// 自動的に半円が残り、先端が三角に尖らず丸みのある「ずんぐりした」形状に
+// なる（支点側の丸みは、この後に描く白ヒンジ円で上から隠れるため見た目には
+// 影響しない）。全体の長さ・太さはv5.0から変更していない
+// （PIN_FLIPPER_LEN／太さ=PIN_FLIPPER_HW*2は据え置き）。
+static void pinDrawFlipper(float pivotX, float pivotY, float dirX, float dirY, uint16_t color) {
+  float tipX = pivotX + dirX * PIN_FLIPPER_LEN;
+  float tipY = pivotY + dirY * PIN_FLIPPER_LEN;
+  drawThickLine((int)lroundf(pivotX), (int)lroundf(pivotY), (int)lroundf(tipX), (int)lroundf(tipY),
+                (int)(PIN_FLIPPER_HW * 2.0f), lightBright(color));
+  GFX.fillCircle((int)lroundf(pivotX), (int)lroundf(pivotY), (int)(PIN_FLIPPER_HW + 1.0f), lightBright(PIN_FLIPPER_HUB_COL));
+}
+
+// 目を丸ごと描き直す（最前面フック専用。sceneDrawFaceLayer()の【後】に呼ばれる
+// 前提の関数で、Lighting層からは呼ばない）。内側=白（黒瞳を覆い隠す）・
+// 外周=ピンクのリング・一番外側=白い輪郭という3層構成で、複雑なメカ風には
+// しない。ヒット時は3層をやめて単色の白フラッシュにする。
+static void pinDrawEyesForeground(unsigned long now) {
+  for (uint8_t i = 0; i < 2; i++) {
+    int ex = (int)PIN_EYE_X[i], ey = (int)PIN_EYE_Y;
+    if (pinEyeFlashing[i]) {
+      if ((now - pinEyeFlashMs[i]) < PIN_FLASH_MS) {
+        GFX.fillCircle(ex, ey, (int)PIN_EYE_FLASH_R, lightBright(PIN_FLASH_COL));
+        continue;
+      }
+      pinEyeFlashing[i] = false;
+    }
+    GFX.fillCircle(ex, ey, (int)PIN_EYE_OUTLINE_R, lightBright(PIN_FLASH_COL));    // 白い輪郭（一番外側）
+    GFX.fillCircle(ex, ey, (int)PIN_EYE_RING_R,    lightBright(PIN_EYE_PINK_COL)); // ピンクのリング
+    GFX.fillCircle(ex, ey, (int)PIN_EYE_INNER_R,   lightBright(PIN_FLASH_COL));    // 内側の白（黒瞳は表示しない）
+    // 得点バンパーの数字「100」を白い中央部分に重ねて表示する（フラッシュ中は
+    // 上のcontinueで既に抜けているため、ここへは通常表示の時だけ到達する）。
+    // v5.1でsetTextSize(1)→(2)へ拡大したが、実機確認では線がまだ細く見える
+    // との指摘を受けた。このコードベースには太字フォントアセットが無いため、
+    // 新規フォントは追加せず、同じ文字列を1pxずつずらして複数回重ね描きする
+    // 疑似ボールド（基準位置／x+1px／y+1px／x+1px&y+1pxの計4回）へ変更した。
+    // 文字サイズ（setTextSize(2)）自体はv5.1から変更しておらず、1px単位の
+    // ずらし幅にとどめているため文字が潰れて判読できなくなることはない。
+    // 内側の白い円（半径PIN_EYE_INNER_R=21px＝直径42px）に対し、1pxずらし
+    // ぶんを含めても収まることを確認済み。
+    GFX.setTextDatum(MC_DATUM);
+    GFX.setTextColor(PIN_EYE_SCORE_TXT_COL);
+    GFX.setTextSize(2);
+    GFX.drawString("100", ex,     ey);
+    GFX.drawString("100", ex + 1, ey);
+    GFX.drawString("100", ex,     ey + 1);
+    GFX.drawString("100", ex + 1, ey + 1);
+    GFX.setTextDatum(TL_DATUM);
+  }
+}
+
+// 鼻はヒット時だけ一瞬白く光らせる（常時の縁飾りは描かない。顔レイヤー自身の
+// 白backing楕円が既に淡い縁取りとして機能しているため、これ以上の常時装飾は
+// 追加しない、というシンプルさの方針のため）。
+static void pinDrawNoseFlash(unsigned long now) {
+  if (!pinNoseFlashing) return;
+  if ((now - pinNoseFlashMs) < PIN_FLASH_MS) {
+    GFX.fillCircle(noseX, noseY, (int)PIN_NOSE_FLASH_R, lightBright(PIN_FLASH_COL));
+  } else {
+    pinNoseFlashing = false;
+  }
+}
+
+// v5.4：口・逆Y字の通過フラッシュ（見た目専用）。当たり判定は持たないため、
+// pinCheckMouthPass()がpinMouthPassFlashingを立てた時だけ、閉じ口backing線と
+// 同じ3線分を既存のdrawThickLine()で約100ms白く光らせる。速度・スコアには
+// 一切関与しない、純粋な描画関数。
+// 【v5.6で移動】pinDrawEyesForeground()と同じく最前面フック専用（
+// sceneComposeAndPush()の4.6から呼ばれる前提）の関数で、Lighting層
+// （lightRenderPinball()）からは呼ばない。理由：ここで描いても、顔レイヤー
+// （sceneDrawFaceLayer→drawVisualizerFaceParts()）が毎フレーム必ず口を黒で
+// 再描画して上書きしてしまい、白フラッシュが画面に一切表示されない不具合が
+// あったため（実機確認で発覚。v5.4〜v5.5ではlightRenderPinball()内から
+// 呼んでいたが、これが原因だった）。
+static void pinDrawMouthPassFlash(unsigned long now) {
+  if (!pinMouthPassFlashing) return;
+  if ((now - pinMouthPassFlashMs) >= PIN_MOUTH_PASS_FLASH_MS) { pinMouthPassFlashing = false; return; }
+  int mx = noseX, my = noseY;
+  uint16_t col = lightBright(PIN_FLASH_COL);
+  drawThickLine(mx, my + 8,  mx,      my + 22, PIN_MOUTH_PASS_FLASH_THICK, col);
+  drawThickLine(mx, my + 22, mx - 20, my + 32, PIN_MOUTH_PASS_FLASH_THICK, col);
+  drawThickLine(mx, my + 22, mx + 20, my + 32, PIN_MOUTH_PASS_FLASH_THICK, col);
+}
+
+void lightRenderPinball(bool needsInit, bool fullRepaint) {
+  (void)fullRepaint;
+  unsigned long now = millis();
+  if (needsInit || pinPrevMs == 0) { pinResetState(now); pinPrevMs = now; }
+  float dt = (float)(now - pinPrevMs) / 1000.0f;
+  if (dt > 0.12f) dt = 0.12f;
+  pinPrevMs = now;
+
+  // ── 物理更新（サブステップ化＝⑥右壁すり抜けの根本対策）──
+  // これまでは1フレームにつき1回だけ「移動→衝突判定」を行っていたため、
+  // 最大で約31px（PIN_MAX_SPEED=260px/s × dt上限0.12s）を一気に移動する
+  // ことがあった。pinCollideSegment()は線分の有限区間にしかヒットしない
+  // ため、大きく移動した際に始点・終点のどちらもどの線分の近傍判定にも
+  // 入らないまま角（特に右上〜右壁の頂点）を飛び越えてしまう「トンネリ
+  // ング」が根本原因だった。これを解消するため、1フレームの移動量を
+  // 約4px以下の小さな区間へ分割し、分割した区間を1つ動かすたびに毎回
+  // すべての衝突判定（外周・目・鼻・口）を行う。
+  pinBallVY += PIN_GRAVITY * dt;
+  float speedNow = sqrtf(pinBallVX * pinBallVX + pinBallVY * pinBallVY);
+  if (speedNow > PIN_MAX_SPEED) {
+    float sc = PIN_MAX_SPEED / speedNow;
+    pinBallVX *= sc; pinBallVY *= sc;
+  }
+  {
+    float moveDist = speedNow * dt;
+    int steps = (int)ceilf(moveDist / 4.0f);
+    if (steps < 1) steps = 1;
+    if (steps > 10) steps = 10;
+    float subDt = dt / (float)steps;
+    for (int s = 0; s < steps; s++) {
+      pinBallX += pinBallVX * subDt;
+      pinBallY += pinBallVY * subDt;
+
+      // 台の外周＝PIN_BOUND_X[]/PIN_BOUND_Y[]の同じ頂点配列を辺ごとに
+      // ループして判定する（PIN_BOUND_DRAIN_EDGEの辺だけはドレイン開口部
+      // のため判定・描画の両方でスキップする）。頂点を共有した連続した
+      // 折れ線として扱うため、継ぎ目に判定の隙間は生じない。
+      for (uint8_t i = 0; i < PIN_BOUND_COUNT; i++) {
+        if (i == PIN_BOUND_DRAIN_EDGE) continue;
+        uint8_t j = (i + 1) % PIN_BOUND_COUNT;
+        if (pinCollideSegment(pinBallX, pinBallY, pinBallVX, pinBallVY, PIN_BALL_R,
+                               PIN_BOUND_X[i], PIN_BOUND_Y[i], PIN_BOUND_X[j], PIN_BOUND_Y[j])) {
+          pinLastFastMoveMs = now;
+        }
+      }
+
+      // 目・鼻（顔と同じ座標の役物）。v5.3で口の当たり判定は廃止したため、
+      // ここで物理的な衝突判定（位置補正・速度反射）を行うのは目と鼻だけ
+      // （口は見た目だけ残り、ボールはすり抜ける。詳細は下のv5.3コメント
+      // 参照）。v5.4で追加したpinCheckMouthPass()は見た目専用の読み取り
+      // 判定であり、ボールの位置・速度は一切書き換えない。
+      pinCollideEyes(now);
+      pinCollideNose(now);
+      pinCheckMouthPass(now);
+    }
+  }
+
+  // フリッパー（トリガー判定＋状態更新）
+  pinUpdateFlipper(0, now, PIN_FLIP_L_PX, PIN_FLIP_L_PY, PIN_FLIP_L_REST_DX, PIN_FLIP_L_REST_DY, PIN_FLIP_L_FIRE_DX, PIN_FLIP_L_FIRE_DY);
+  pinUpdateFlipper(1, now, PIN_FLIP_R_PX, PIN_FLIP_R_PY, PIN_FLIP_R_REST_DX, PIN_FLIP_R_REST_DY, PIN_FLIP_R_FIRE_DX, PIN_FLIP_R_FIRE_DY);
+
+  // ドレイン（フリッパーで受け止められず落下しきった＝正面から抜けた場合のみ）
+  if (pinBallY - PIN_BALL_R > PIN_BOTTOM) pinLaunchBall(now);
+
+  // 詰まり検知：一定時間ほとんど動かない場合は自動的に再発射して復帰する
+  float spd = sqrtf(pinBallVX * pinBallVX + pinBallVY * pinBallVY);
+  if (spd > PIN_MIN_SPEED_STUCK) pinLastFastMoveMs = now;
+  else if ((now - pinLastFastMoveMs) > PIN_STUCK_MS) pinLaunchBall(now);
+
+  // 保険（③④の対策後も念のため）：万一すり抜けて台の外へ大きく外れてしまった
+  // 場合は、すぐに再発射して復帰する。通常の衝突判定だけで自己完結していれば
+  // ここへは到達しない想定の、無人稼働スクリーンセーバーのための最終防御。
+  if (pinBallX < PIN_LEFT - 40.0f || pinBallX > PIN_RIGHT + 40.0f ||
+      pinBallY < PIN_TOP  - 40.0f || pinBallY > PIN_BOTTOM + 80.0f) {
+    pinLaunchBall(now);
+  }
+
+  // ── 描画 ──
+  // 顔（目・鼻・口）はこの後の顔レイヤー（sceneDrawFaceLayer）が必ず最前面へ
+  // 上書きするため、ここでは「顔の周りの役物」だけを描けばよい（目だけは
+  // 黒瞳を隠す必要があるため、顔レイヤーのさらに後で最前面フックから描く。
+  // pinDrawEyesForeground()参照）。
+  GFX.setClipRect(0, PIN_TOP, 320, 240 - PIN_TOP);
+  lightFillRect(0, PIN_TOP, 320, 240 - PIN_TOP, PIN_BG_COL);
+
+  // プレイフィールドの塗りつぶし＝PIN_BOUND_X[]/PIN_BOUND_Y[]の同じ頂点配列を
+  // 頂点0からの扇形三角形分割（0-1-2, 0-2-3, 0-3-4, 0-4-5）で塗る。凸六角形
+  // なのでこの分割で必ず内部全体を過不足なくカバーできる。ドレイン開口部
+  // （辺3＝頂点3-4）はここでは塗りつぶしの一部として自然に含まれるが、
+  // その下側は黒い背景のまま＝穴として見える。
+  GFX.fillTriangle((int)PIN_BOUND_X[0], (int)PIN_BOUND_Y[0], (int)PIN_BOUND_X[1], (int)PIN_BOUND_Y[1],
+                    (int)PIN_BOUND_X[2], (int)PIN_BOUND_Y[2], lightBright(PIN_FIELD_COL));
+  GFX.fillTriangle((int)PIN_BOUND_X[0], (int)PIN_BOUND_Y[0], (int)PIN_BOUND_X[2], (int)PIN_BOUND_Y[2],
+                    (int)PIN_BOUND_X[3], (int)PIN_BOUND_Y[3], lightBright(PIN_FIELD_COL));
+  GFX.fillTriangle((int)PIN_BOUND_X[0], (int)PIN_BOUND_Y[0], (int)PIN_BOUND_X[3], (int)PIN_BOUND_Y[3],
+                    (int)PIN_BOUND_X[4], (int)PIN_BOUND_Y[4], lightBright(PIN_FIELD_COL));
+  GFX.fillTriangle((int)PIN_BOUND_X[0], (int)PIN_BOUND_Y[0], (int)PIN_BOUND_X[4], (int)PIN_BOUND_Y[4],
+                    (int)PIN_BOUND_X[5], (int)PIN_BOUND_Y[5], lightBright(PIN_FIELD_COL));
+
+  // 外周線＝同じ頂点配列を辺ごとにループして描く（ドレイン開口部の辺だけは
+  // 衝突判定と同様にスキップし、そこだけ壁が無い＝穴に見えるようにする）。
+  for (uint8_t i = 0; i < PIN_BOUND_COUNT; i++) {
+    if (i == PIN_BOUND_DRAIN_EDGE) continue;
+    uint8_t j = (i + 1) % PIN_BOUND_COUNT;
+    lightDrawLine((int)PIN_BOUND_X[i], (int)PIN_BOUND_Y[i], (int)PIN_BOUND_X[j], (int)PIN_BOUND_Y[j], PIN_WALL_COL);
+  }
+
+  pinDrawNoseFlash(now);
+  // 口・逆Y字の通過フラッシュ（pinDrawMouthPassFlash()）はここでは呼ばない。
+  // v5.6で判明した不具合の原因そのもので、詳細はファイル冒頭のv5.6コメントと
+  // pinDrawMouthPassFlash()自身のコメントを参照。ここ（Lightingレイヤー＝
+  // sceneComposeAndPush()の②の中）で描いても、その後の④sceneDrawFaceLayer()
+  // が毎フレーム必ず口を黒で再描画して上書きしてしまうため、目のフラッシュ
+  // （pinDrawEyesForeground()）と同じく sceneComposeAndPush() の4.6フック
+  // （顔レイヤーより後＝最前面）から呼ぶように変更した。
+
+  {
+    float pl  = pinFlipperPhase(0, now);
+    float dxL = PIN_FLIP_L_REST_DX + (PIN_FLIP_L_FIRE_DX - PIN_FLIP_L_REST_DX) * pl;
+    float dyL = PIN_FLIP_L_REST_DY + (PIN_FLIP_L_FIRE_DY - PIN_FLIP_L_REST_DY) * pl;
+    pinDrawFlipper(PIN_FLIP_L_PX, PIN_FLIP_L_PY, dxL, dyL, PIN_FLIPPER_COL);
+
+    float pr  = pinFlipperPhase(1, now);
+    float dxR = PIN_FLIP_R_REST_DX + (PIN_FLIP_R_FIRE_DX - PIN_FLIP_R_REST_DX) * pr;
+    float dyR = PIN_FLIP_R_REST_DY + (PIN_FLIP_R_FIRE_DY - PIN_FLIP_R_REST_DY) * pr;
+    pinDrawFlipper(PIN_FLIP_R_PX, PIN_FLIP_R_PY, dxR, dyR, PIN_FLIPPER_COL);
+  }
+
+  GFX.fillCircle((int)lroundf(pinBallX), (int)lroundf(pinBallY), (int)PIN_BALL_R, lightBright(PIN_BALL_COL));
+
+  GFX.setTextDatum(TL_DATUM);
+  GFX.setTextColor(lightBright(PIN_SCORE_COL));
+  GFX.setTextSize(1);
+  GFX.drawString("SCORE " + String(pinScore), PIN_LEFT + 2, PIN_TOP + 2);
+
+  GFX.clearClipRect();
+}
+
 // ============================================================================
 // Lighting Manager（描画関数テーブル）
 //
@@ -21376,6 +22185,7 @@ const LightRenderFn LIGHT_RENDER_FN[LIGHT_MODE_COUNT] = {
   lightRenderRainbowWashingMachine, // LIGHT_RAINBOWWASHER
   lightRenderPixelInvasion,         // LIGHT_PIXELINVASION
   lightRenderFlowerClock,           // LIGHT_FLOWERCLOCK
+  lightRenderPinball,                // LIGHT_PINBALL
 };
 
 // LIGHT_LAYER[] / LIGHT_HEADER[] / lightingHeaderDark() / LIGHT_LAYER_BG・OVL /
@@ -21606,6 +22416,16 @@ void sceneComposeAndPush(bool lightInit, bool lightFull,
   //   他のLighting・Visualizer・顔の描画順・処理には一切影響しない。
   if (cfg_lightingMask != 0 && gLightingActive && gLightActiveBgMode == LIGHT_FLOWERCLOCK) {
     fcDrawHandsForeground();
+  }
+  // 4.6: PINBALL Arcade専用──目の丸型バンパー（黒瞳を隠した白＋ピンクリング＋
+  //   白い輪郭）と、口・逆Y字の通過フラッシュ（v5.4で追加。v5.6で③のバグを
+  //   修正しここへ移動した）を、顔より後（最前面）に描く。4.5のFlower Clockと
+  //   全く同じ手法・同じガード条件で、PINBALL Arcadeが現在の背景(BG)Lighting
+  //   として採用されている時だけ実行する。他のLighting・Visualizer・顔の
+  //   描画順・処理には一切影響しない。
+  if (cfg_lightingMask != 0 && gLightingActive && gLightActiveBgMode == LIGHT_PINBALL) {
+    pinDrawEyesForeground(millis());
+    pinDrawMouthPassFlash(millis());
   }
   sceneEndCompose(onCanvas);
   if (onCanvas) scenePush(px, py, pw, ph);                     // 5
