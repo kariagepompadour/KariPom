@@ -21716,6 +21716,10 @@ static const uint16_t PIN_SCORE_COL       = 0xFFFF;                             
 static const uint16_t PIN_EYE_PINK_COL    = (uint16_t)(((255 & 0xF8) << 8) | ((140 & 0xFC) << 3) | (190 >> 3));  // ピンク（リング）
 static const uint16_t PIN_FLASH_COL       = 0xFFFF;                                                             // 白（内側・一番外側の輪郭・ヒット時フラッシュ共用）
 static const uint16_t PIN_EYE_SCORE_TXT_COL = 0x0000;                                                           // 目の中央「100」文字＝黒
+// 2026-08-12：鼻（中央の役物）の通常時の色。通常の顔と同じ黒ではなく、
+// PINBALL Arcade中だけオレンジで上書き表示する（形状・大きさ・位置・
+// 当たり判定・反射挙動・ヒット時フラッシュには一切影響しない。pinDrawNoseIdle()参照）。
+static const uint16_t PIN_NOSE_COL        = (uint16_t)(((255 & 0xF8) << 8) | ((140 & 0xFC) << 3) | ( 20 >> 3));  // オレンジ
 
 // ── 台の外周＝「1組の頂点」から塗りつぶし・外周線・当たり判定のすべてを作る ──
 // 【実機確認結果を受けた再修正】これまでは壁・ガイドを別々の座標定義から
@@ -22003,6 +22007,20 @@ static void pinDrawNoseFlash(unsigned long now) {
   }
 }
 
+// 2026-08-12：鼻の通常時の色をオレンジにするための最前面フック専用関数。
+// 顔レイヤー（drawVisualizerFaceParts()）は毎フレーム必ず鼻を黒
+// （fillEllipse(noseX, noseY, 18, 12, BLACK)）で再描画するため、
+// pinDrawEyesForeground()/pinDrawMouthPassFlash()と同じく、その【後】＝
+// sceneComposeAndPush()の4.6フックから呼んで、同じ形・大きさ・位置に
+// オレンジを上書きする。形状・大きさ・位置・当たり判定（PIN_NOSE_COLLIDE_R
+// 等）・反射挙動（pinCollideNose()）には一切触れておらず、色だけを重ね
+// 塗りする。鼻ヒット時のフラッシュ（pinDrawNoseFlash()、半径26の白い円）
+// は鼻本体（18×12）より外側まで広がるため、この上書きの後もフラッシュの
+// 縁は隠れず、従来通り見える。
+static void pinDrawNoseIdle() {
+  GFX.fillEllipse(noseX, noseY, 18, 12, lightBright(PIN_NOSE_COL));
+}
+
 // v5.4：口・逆Y字の通過フラッシュ（見た目専用）。当たり判定は持たないため、
 // pinCheckMouthPass()がpinMouthPassFlashingを立てた時だけ、閉じ口backing線と
 // 同じ3線分を既存のdrawThickLine()で約100ms白く光らせる。速度・スコアには
@@ -22154,11 +22172,9 @@ void lightRenderPinball(bool needsInit, bool fullRepaint) {
 
   GFX.fillCircle((int)lroundf(pinBallX), (int)lroundf(pinBallY), (int)PIN_BALL_R, lightBright(PIN_BALL_COL));
 
-  GFX.setTextDatum(TL_DATUM);
-  GFX.setTextColor(lightBright(PIN_SCORE_COL));
-  GFX.setTextSize(1);
-  GFX.drawString("SCORE " + String(pinScore), PIN_LEFT + 2, PIN_TOP + 2);
-
+  // 2026-08-12：画面左上のスコア表示（"SCORE xxx"の文字描画）だけを削除。
+  // pinScoreの計算・加算処理（PIN_EYE_SCORE/PIN_NOSE_SCORE加算箇所）は
+  // 従来通り維持しており、内部的な得点集計自体は変更していない。
   GFX.clearClipRect();
 }
 
@@ -23104,13 +23120,15 @@ void sceneComposeAndPush(bool lightInit, bool lightFull,
   }
   // 4.6: PINBALL Arcade専用──目の丸型バンパー（黒瞳を隠した白＋ピンクリング＋
   //   白い輪郭）と、口・逆Y字の通過フラッシュ（v5.4で追加。v5.6で③のバグを
-  //   修正しここへ移動した）を、顔より後（最前面）に描く。4.5のFlower Clockと
-  //   全く同じ手法・同じガード条件で、PINBALL Arcadeが現在の背景(BG)Lighting
-  //   として採用されている時だけ実行する。他のLighting・Visualizer・顔の
-  //   描画順・処理には一切影響しない。
+  //   修正しここへ移動した）、鼻の通常色のオレンジ上書き（2026-08-12追加）を、
+  //   顔より後（最前面）に描く。4.5のFlower Clockと全く同じ手法・同じガード
+  //   条件で、PINBALL Arcadeが現在の背景(BG)Lightingとして採用されている時
+  //   だけ実行する。他のLighting・Visualizer・顔の描画順・処理には一切影響
+  //   しない。
   if (cfg_lightingMask != 0 && gLightingActive && gLightActiveBgMode == LIGHT_PINBALL) {
     pinDrawEyesForeground(millis());
     pinDrawMouthPassFlash(millis());
+    pinDrawNoseIdle();
   }
   sceneEndCompose(onCanvas);
   if (onCanvas) scenePush(px, py, pw, ph);                     // 5
