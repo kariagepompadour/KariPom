@@ -18022,45 +18022,74 @@ static void marDrawPlayer(int px, int py, float legPhase, bool jumping) {
   const uint16_t SKIN_COL = (uint16_t)(((250 & 0xF8) << 8) | ((205 & 0xFC) << 3) | (160 >> 3));   // 肌色
   const uint16_t SHOE_COL = (uint16_t)(((70  & 0xF8) << 8) | ((45  & 0xFC) << 3) | (25  >> 3));   // 濃茶の靴
 
-  int legOff = jumping ? 4 : (int)(legPhase * 5.0f);
-  int legAY  = py - 14 + (jumping ? 0 : legOff);
-  int legBY  = py - 14 - (jumping ? 0 : legOff);
+  // 走行モーションは legPhase の符号だけを見る2フレーム。
+  // frameA＝接地（前脚を前へ踏み出す）／frameB＝振り出し（前脚を体の下へ引き、後脚が前へ出る）。
+  bool frameA = (legPhase >= 0.0f);
 
-  // 靴（脚の下端4px分。走行モーションにそのまま追従）
-  lightFillRect(px - 7, legAY + 10, 6, 4, SHOE_COL);
-  lightFillRect(px + 1, legBY + 10, 6, 4, SHOE_COL);
-  // 脚（青いオーバーオール。靴の上10px分）
-  lightFillRect(px - 7, legAY, 6, 10, OVER_COL);
-  lightFillRect(px + 1, legBY, 6, 10, OVER_COL);
-
-  // 胴：赤いシャツを土台にし、中央へ青いオーバーオールのビブ＋サスペンダーを重ねる
   int torsoY = py - 30;
   int torsoH = 17;
-  lightFillRect(px - 9, torsoY, 18, torsoH, RED_COL);
-  lightFillRect(px - 5, torsoY + 4, 10, torsoH - 4, OVER_COL);   // ビブ（胸当て）
-  lightFillRect(px - 5, torsoY,     2, 5, OVER_COL);              // サスペンダー左
-  lightFillRect(px + 3, torsoY,     2, 5, OVER_COL);              // サスペンダー右
 
-  // 腕：赤いシャツの袖＋肌色の手。ジャンプ中は右腕を高く突き上げるポーズにする。
+  // 脚は「腿6px＋脛4px＋靴4px」の3ブロックで折れを付け、前脚は膝から靴先が右（進行方向）へ出る。
+  int fThX, fThY, fShinX, fShinY, fShoeX, fShoeY;   // 手前＝前脚
+  int bThX, bThY, bShinX, bShinY, bShoeX, bShoeY;   // 奥＝後脚
   if (jumping) {
-    lightFillRect(px - 13, torsoY - 2, 5, 10, RED_COL);
-    lightFillRect(px + 8,  torsoY - 10, 5, 12, RED_COL);
-    GFX.fillCircle(px - 11, torsoY + 8,  3, lightBright(SKIN_COL));
-    GFX.fillCircle(px + 10, torsoY - 11, 3, lightBright(SKIN_COL));
+    fThX = px;     fThY = py - 19; fShinX = px + 4; fShinY = py - 13; fShoeX = px + 4; fShoeY = py - 9;
+    bThX = px - 6; bThY = py - 15; bShinX = px - 9; bShinY = py - 9;  bShoeX = px - 10; bShoeY = py - 5;
+  } else if (frameA) {
+    fThX = px - 1; fThY = py - 14; fShinX = px + 2; fShinY = py - 8;  fShoeX = px + 2; fShoeY = py - 4;   // 前へ踏み出し接地
+    bThX = px - 6; bThY = py - 14; bShinX = px - 7; bShinY = py - 8;  bShoeX = px - 8;  bShoeY = py - 5;  // 体の下〜やや後ろで蹴り上げ
   } else {
-    lightFillRect(px - 13, torsoY + 2, 5, 10, RED_COL);
-    lightFillRect(px + 8,  torsoY + 2, 5, 10, RED_COL);
-    GFX.fillCircle(px - 11, torsoY + 12, 3, lightBright(SKIN_COL));
-    GFX.fillCircle(px + 10, torsoY + 12, 3, lightBright(SKIN_COL));
+    fThX = px;     fThY = py - 18; fShinX = px + 3; fShinY = py - 12; fShoeX = px + 3; fShoeY = py - 8;   // 膝を上げて引き戻す
+    bThX = px - 5; bThY = py - 14; bShinX = px - 5; bShinY = py - 8;  bShoeX = px - 6;  bShoeY = py - 4;  // 前へ振り出して接地
   }
 
-  // 顔
+  // 奥側の脚 → 胴 → 手前側の脚 の順で前後関係を作る
+  lightFillRect(bThX,   bThY,   6, 6, OVER_COL);
+  lightFillRect(bShinX, bShinY, 6, 4, OVER_COL);
+  lightFillRect(bShoeX, bShoeY, 7, 4, SHOE_COL);
+
+  // 奥側の腕：通常は描かない。後方から振り出された瞬間（frameB）だけ前腕と手先が少し覗く。
+  if (!jumping && !frameA) {
+    lightFillRect(px - 10, torsoY + 9, 4, 5, RED_COL);
+    GFX.fillCircle(px - 9, torsoY + 15, 2, lightBright(SKIN_COL));
+  }
+
+  // 胴（横向きシルエット：奥行き14px。肩は張り出させず、前側のビブ／ストラップと片腕だけで左右非対称にする）
+  lightFillRect(px - 7, torsoY,     11, 4,          RED_COL);   // シャツ上段（肩口は背中側だけ。前へ張り出さない）
+  lightFillRect(px - 7, torsoY + 4, 14, 5,          RED_COL);   // シャツ下段
+  lightFillRect(px - 7, torsoY + 9, 14, torsoH - 9, OVER_COL);  // 腰まわり
+  lightFillRect(px + 1, torsoY + 4,  6, 5,          OVER_COL);  // 前側のビブ（胸当て）
+  lightFillRect(px + 2, torsoY,      2, 4,          OVER_COL);  // 肩ストラップ（横から見える1本）
+
+  // 手前側の脚（胴より前に描く）
+  lightFillRect(fThX,   fThY,   6, 6, OVER_COL);
+  lightFillRect(fShinX, fShinY, 6, 4, OVER_COL);
+  lightFillRect(fShoeX, fShoeY, 7, 4, SHOE_COL);
+
+  // 手前側の腕：前方へ肩を張り出させない。腕を後ろへ振るフレームでは肩位置ごと背中側へ寄せる。
+  if (jumping) {
+    lightFillRect(px + 2, torsoY + 1, 5, 8, RED_COL);   // 上腕：胴の上端付近から開始（首の高さからは描かない）
+    GFX.fillCircle(px + 4, torsoY + 11, 3, lightBright(SKIN_COL));
+  } else if (frameA) {
+    // 腕を後ろへ振るフレーム：肩そのものを首の真下〜やや後方に置き、前方に赤い張り出しを作らない
+    lightFillRect(px - 9, torsoY + 2, 5, 6, RED_COL);            // 上腕（肩は胴の背中側へ。前方へは出さない）
+    lightFillRect(px - 8, torsoY + 7, 6, 5, RED_COL);            // 前腕（後方＝左下へ流す）
+    GFX.fillCircle(px - 6, torsoY + 12, 3, lightBright(SKIN_COL));
+  } else {
+    lightFillRect(px + 1, torsoY + 3, 4, 5, RED_COL);            // 上腕（肩は胴に残したまま真下へ下ろす）
+    lightFillRect(px + 4, torsoY + 7, 6, 4, RED_COL);            // 肘から先だけを進行方向へ振り出す
+    GFX.fillCircle(px + 8, torsoY + 12, 3, lightBright(SKIN_COL));
+  }
+
+  // 頭（右向きの横顔）
   GFX.fillCircle(px, py - 36, 9, lightBright(SKIN_COL));
-  // 黒い髭（顔の下側）
-  lightFillRect(px - 4, py - 34, 8, 3, BLACK);
-  // 帽子（つば付き）
-  lightFillRect(px - 10, py - 46, 20, 6, RED_COL);
-  lightFillRect(px - 3,  py - 42, 13, 4, RED_COL);
+  lightFillRect(px - 10, py - 40, 5, 9, BLACK);    // 後頭部の黒髪（左＝後方）
+  lightFillRect(px + 2,  py - 38, 2, 3, BLACK);    // 目（前寄りに1つ）
+  lightFillRect(px + 7,  py - 37, 6, 4, lightBright(SKIN_COL));   // 鼻（右へ突出）
+  lightFillRect(px - 1,  py - 33, 10, 3, BLACK);   // 黒い髭（鼻の下から後方へ）
+  // 帽子：クラウン＋右向きのつば
+  lightFillRect(px - 10, py - 46, 19, 6, RED_COL);
+  lightFillRect(px + 1,  py - 42, 11, 4, RED_COL);
 }
 
 void lightRenderMario(bool needsInit, bool fullRepaint) {
