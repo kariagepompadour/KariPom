@@ -381,6 +381,17 @@ unsigned long lastMotionTime = 0;
 unsigned long nextBlinkInterval = 3000;
 unsigned long sleepStartTime = 0;
 
+// ── アイドル時の自然な瞬き（handleBlinkMotion専用）の非ブロッキング状態 ──────
+// 従来はblinkEyes()内のdelay(80)で閉眼時間を作っていたが、delay()はloop()全体を
+// 止めてしまうため、その間はLighting/Visualizerの合成（updateScreenEffects→
+// sceneComposeAndPush）が1回も呼ばれず、共通合成パイプラインが閉眼状態を
+// 1フレームも描けなかった。handleBlinkMotion()のアイドル瞬きだけをmillis()ベースの
+// 状態機械に置き換える（wakeUp()等の演出シーケンスが使うblinkEyes()自体は無改造）。
+bool          gIdleBlinkClosing       = false;  // true=アイドル瞬きで閉眼を保持中
+unsigned long gIdleBlinkOpenAt        = 0;      // 開眼へ戻す時刻（millis、gIdleBlinkClosing中のみ有効）
+bool          gIdleBlinkDoublePending = false;  // 開眼直後に二重まばたきの2回目を控えているか
+unsigned long gIdleBlinkSecondAt      = 0;      // 二重まばたき2回目の開始時刻（0=待機なし）
+
 // ── sleep解除用 連続確認カウンタ ─────────────────────────
 // 1回のADC読み取りやIMU値だけでwakeしないよう、
 // 複数回連続して条件を満たした場合のみwakeする設計。
@@ -5918,17 +5929,47 @@ void handleNoseMotion() {
 }
 
 void handleBlinkMotion() {
+  // 1. 閉眼を保持中 → 経過時間で開眼へ戻す（delay()を使わない）。
+  //    Lighting/Visualizer合成中でもgFaceEyeModeの変化をここで確実に区切るため、
+  //    「閉じる／開ける」の2状態をmillis()だけで管理する。
+  if (gIdleBlinkClosing) {
+    if ((long)(millis() - gIdleBlinkOpenAt) >= 0) {
+      gIdleBlinkClosing = false;
+      drawOpenEyes();
+      updateNose(toggle ? -1 : 1);  // 旧blinkEyes()末尾の鼻再描画（保険）と同じ
+
+      if (gIdleBlinkDoublePending) {
+        gIdleBlinkDoublePending = false;
+        gIdleBlinkSecondAt = millis() + 180;  // 旧: smartDelay(180) → 二重まばたき間隔
+      }
+    }
+    return;
+  }
+
+  // 2. 二重まばたきの2回目を待っている
+  if (gIdleBlinkSecondAt != 0) {
+    if ((long)(millis() - gIdleBlinkSecondAt) >= 0) {
+      gIdleBlinkSecondAt = 0;
+      showEvent("N");
+      drawBlinkEyes();
+      gIdleBlinkClosing = true;
+      gIdleBlinkOpenAt = millis() + 80;  // 旧: blinkEyes()内のdelay(80)と同じ閉眼時間
+    }
+    return;
+  }
+
+  // 3. 通常の間隔待ち→抽選（従来と同じ確率・間隔）
   if (!imageFaceMode && !alertMode && !petMode && millis() - lastBlinkCheck > nextBlinkInterval) {
 
     lastBlinkCheck = millis();
 
     if (random(0, 100) < 45) {  // 瞬き発生率 45%
-      blinkEyes();
+      drawBlinkEyes();
+      gIdleBlinkClosing = true;
+      gIdleBlinkOpenAt = millis() + 80;  // 旧: blinkEyes()内のdelay(80)と同じ閉眼時間
 
       if (random(0, 100) < 8) {  // 次の瞬きまで 3～10秒
-        smartDelay(180);  // 旧:delay(180) → 二重まばたき間隔
-        showEvent("N");
-        blinkEyes();
+        gIdleBlinkDoublePending = true;
       }
     }
 
@@ -12180,17 +12221,29 @@ void drawVisualizerFaceParts(bool forceClear) {
   // 2026-07-23: Eye Slot（お目々スロット）中は、黒目の位置にリールをすでに
   //   lightRenderEyeSlot() 側で描いているため、ここでの黒目描画だけをスキップする
   //   （鼻・口・まゆ毛など他の顔パーツは今まで通りここで描き、通常の顔を維持する）。
+  // 2026-08-13: gFaceEyeMode（通常Faceと共用の状態）を参照し、まばたき中は
+  //   通常Faceと同じ形（faceShapeBlinkEyes()）を描くよう対応。Lighting中は
+  //   色付き背景でも見えるよう、白縁取りを先に敷いてから重ねる（黒目と同じ手法）。
   if (!gEyeSlotActive) {
-    if (gLightingActive) {
-      GFX.fillCircle(90  + eyeOffsetX, 90 + eyeOffsetY, 22, WHITE);
-      GFX.fillCircle(230 + eyeOffsetX, 90 + eyeOffsetY, 22, WHITE);
+    if (gFaceEyeMode == FACE_EYE_BLINK) {
+      if (gLightingActive) {
+        drawThickLine(72  + eyeOffsetX, 90 + eyeOffsetY, 108 + eyeOffsetX, 90 + eyeOffsetY, 6 + SLEEP_OUTLINE_PX, WHITE);
+        drawThickLine(212 + eyeOffsetX, 90 + eyeOffsetY, 248 + eyeOffsetX, 90 + eyeOffsetY, 6 + SLEEP_OUTLINE_PX, WHITE);
+      }
+      faceShapeBlinkEyes();
+    } else {
+      if (gLightingActive) {
+        GFX.fillCircle(90  + eyeOffsetX, 90 + eyeOffsetY, 22, WHITE);
+        GFX.fillCircle(230 + eyeOffsetX, 90 + eyeOffsetY, 22, WHITE);
+      }
+      GFX.fillCircle(90  + eyeOffsetX, 90 + eyeOffsetY, 20, BLACK);
+      GFX.fillCircle(230 + eyeOffsetX, 90 + eyeOffsetY, 20, BLACK);
     }
-    GFX.fillCircle(90  + eyeOffsetX, 90 + eyeOffsetY, 20, BLACK);
-    GFX.fillCircle(230 + eyeOffsetX, 90 + eyeOffsetY, 20, BLACK);
   }
 
   // ミスかりポムのまつ毛（既存関数を再利用。オフセットは一時的に0へ退避）
-  if (cfg_characterStyle == CHARACTER_MISS_KARIPOM) {
+  // 2026-08-13: まばたき中は通常Face（faceShapeBlinkEyes()）と同じくまつ毛を描かない。
+  if (cfg_characterStyle == CHARACTER_MISS_KARIPOM && gFaceEyeMode != FACE_EYE_BLINK) {
     int savedEX = eyeOffsetX, savedEY = eyeOffsetY;
     eyeOffsetX = 0; eyeOffsetY = 0;
     drawEyelashes();
@@ -12209,26 +12262,30 @@ void drawVisualizerFaceParts(bool forceClear) {
   // backingの太さ・拡張量はSleep Carouselと同じSLEEP_OUTLINE_PXを流用。黒/赤本体の
   // drawThickLine/fillEllipse呼び出し（座標・太さ・形状・色）は元のコードと完全に
   // 同一で一切変更していない。
+  // 2026-08-13: gFaceNoseOffset（通常Faceと共用の鼻ヒク状態）を反映する。
+  //   通常Face側のfaceShapeNoseAndVMouth()/faceShapeNoseAndTalkMouth()と同じく、
+  //   鼻の楕円中心と縦線の始点だけをオフセットし、他の座標（口・線の折れ点等）は
+  //   従来どおり固定のまま＝鼻先だけが小さく上下するヒクヒク動作になる。
   const int o = SLEEP_OUTLINE_PX;
   if (gLightingActive) {
-    GFX.fillEllipse(noseX, noseY, 20, 14, WHITE);
+    GFX.fillEllipse(noseX, noseY + gFaceNoseOffset, 20, 14, WHITE);
     if (mouthOpen) {
-      drawThickLine(noseX, noseY + 8, noseX, noseY + 25, 6 + o, WHITE);
+      drawThickLine(noseX, noseY + gFaceNoseOffset + 8, noseX, noseY + 25, 6 + o, WHITE);
       GFX.fillEllipse(noseX, noseY + 26, 19, 13, WHITE);  // 実機確認2026-08-05: 赤い口backingのみ縮小
     } else {
-      drawThickLine(noseX, noseY +  8, noseX,      noseY + 22, 6 + o, WHITE);
+      drawThickLine(noseX, noseY + gFaceNoseOffset +  8, noseX,      noseY + 22, 6 + o, WHITE);
       drawThickLine(noseX, noseY + 22, noseX - 20, noseY + 32, 6 + o, WHITE);
       drawThickLine(noseX, noseY + 22, noseX + 20, noseY + 32, 6 + o, WHITE);
     }
   }
 
-  GFX.fillEllipse(noseX, noseY, 18, 12, BLACK);
+  GFX.fillEllipse(noseX, noseY + gFaceNoseOffset, 18, 12, BLACK);
 
   if (mouthOpen) {
-    drawThickLine(noseX, noseY + 8, noseX, noseY + 25, 6, BLACK);
+    drawThickLine(noseX, noseY + gFaceNoseOffset + 8, noseX, noseY + 25, 6, BLACK);
     GFX.fillEllipse(noseX, noseY + 26, 18, 12, RED);
   } else {
-    drawThickLine(noseX, noseY +  8, noseX,      noseY + 22, 6, BLACK);
+    drawThickLine(noseX, noseY + gFaceNoseOffset +  8, noseX,      noseY + 22, 6, BLACK);
     drawThickLine(noseX, noseY + 22, noseX - 20, noseY + 32, 6, BLACK);
     drawThickLine(noseX, noseY + 22, noseX + 20, noseY + 32, 6, BLACK);
   }
