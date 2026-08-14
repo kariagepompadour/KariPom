@@ -665,6 +665,57 @@ CharacterStyle cfg_characterStyle = CHARACTER_KARIPOM;  // デフォルト: か�
 const char* characterStyleName(CharacterStyle s);
 
 // ====================================================
+// Face Mode（2026-08-14 追加）
+// ユーザーから見た「顔の3択」をコード上の1つの概念として明示するための設定。
+//
+//   FACE_MODE_KARIPOM      … 通常のKariPom顔（従来の CHARACTER_KARIPOM 相当）
+//   FACE_MODE_MISS_KARIPOM … Miss KariPom顔（従来の CHARACTER_MISS_KARIPOM 相当）
+//   FACE_MODE_GALLERY      … Face Gallery（PNG顔 または None＝顔なし）
+//
+// cfg_characterStyle は廃止せず、意味も変えずそのまま残す。
+//   ・まつ毛の描画判定（faceShapeOpenEyes() / drawVisualizerFaceParts()）は
+//     従来どおり cfg_characterStyle だけを見る（この2箇所は無改造）。
+//   ・Face Mode が KariPom / Miss KariPom のときは setFaceMode() が
+//     cfg_characterStyle を同じ値へ同期する。
+//   ・Face Mode が Gallery の間は cfg_characterStyle を変更せず、
+//     「最後に選んでいたキャラクター」として保持する。/resetface で
+//     Gallery を抜けるときの復帰先になる。
+//
+// Face Gallery の選択値は cfg_faceGallerySel（"/faces/" を含まないファイル名）。
+// **空文字 "" が None（顔を表示しない）を表す唯一の表現**であり、
+// 実在しないPNGファイル名をNoneの代用にはしない。
+// ====================================================
+enum FaceMode : uint8_t {
+  FACE_MODE_KARIPOM      = 0,
+  FACE_MODE_MISS_KARIPOM = 1,
+  FACE_MODE_GALLERY      = 2,
+  FACE_MODE_COUNT        = 3,
+};
+
+FaceMode cfg_faceMode       = FACE_MODE_KARIPOM;  // デフォルト: KariPom（従来の起動時挙動と同じ）
+String   cfg_faceGallerySel = "";                 // デフォルト: None（顔なし）
+
+const char* faceModeName(FaceMode m);
+void applyFaceSelection();
+void setFaceMode(FaceMode m);
+void setFaceGallery(const String& name);
+
+// ====================================================
+// faceDrawingEnabled()
+// 「現在の設定で顔（目・まつ毛・鼻・口）を描画すべきか」の共通判定。
+// 顔を描くすべての経路（通常画面・Lighting・Visualizer・Sleep Carousel・
+// mutter・液晶直描きフォールバック）がこの1関数だけを見る。
+// Lighting/Visualizerの各モードに個別の分岐は追加しない。
+//
+// false になるのは Face Mode = Face Gallery かつ selection = None のときだけ。
+// Face Mode が KariPom / Miss KariPom なら、selection が None でも従来どおり
+// 顔を表示する（＝初期状態は KariPom + None で、これまでと同じ見た目）。
+// ====================================================
+static inline bool faceDrawingEnabled() {
+  return !(cfg_faceMode == FACE_MODE_GALLERY && cfg_faceGallerySel.length() == 0);
+}
+
+// ====================================================
 // 内蔵マイク閾値設定変数
 // constではなくintにすることで、Webから実行時変更・NVS永続化できる設計にしている。
 // Web設定化: saveConfig()/loadConfig() に putInt/getInt 追加済み。
@@ -1141,6 +1192,8 @@ void saveConfig() {
     + "," + String(cfg_lightingRandomIntervalMin)
     + "," + String(cfg_lightingBrightness)
     + "," + String((uint8_t)cfg_characterStyle)
+    + "," + String((uint8_t)cfg_faceMode)          // Face Mode（KariPom/Miss KariPom/Face Gallery）
+    + "," + cfg_faceGallerySel                     // Face Gallery selection（"" = None）
     + "," + cfg_karipomName;
 
   if (configEverSaved && snapshot == lastSavedConfigSnapshot) {
@@ -1168,6 +1221,12 @@ void saveConfig() {
   karipomPrefs.putUChar("lightBri",   cfg_lightingBrightness);        // Lighting共通の明るさ(%)
   karipomPrefs.putString("kpName", cfg_karipomName);
   karipomPrefs.putUChar("charStyle", (uint8_t)cfg_characterStyle);
+  // Face Mode / Face Gallery selection（2026-08-14 追加）
+  //   charStyle は「最後に選んだキャラクター」として意味・値とも従来のまま維持する
+  //   （旧ファームへ戻した場合でも KariPom / Miss KariPom がそのまま復元される）。
+  //   faceGalSel は空文字 "" が None（顔を表示しない）を表す。
+  karipomPrefs.putUChar("faceMode",   (uint8_t)cfg_faceMode);
+  karipomPrefs.putString("faceGalSel", cfg_faceGallerySel);
   karipomPrefs.end();
 
   // NVSへの書き込みが完了してからスナップショットを更新する。
@@ -1187,6 +1246,8 @@ void saveConfig() {
        + " IDLE_CH=" + String(cfg_idleChance)
        + " KARIPOM_NAME=" + String(cfg_karipomName.length() > 0 ? cfg_karipomName : String("(empty)"))
        + " CHARACTER=" + String(characterStyleName(cfg_characterStyle))
+       + " FACE_MODE=" + String(faceModeName(cfg_faceMode))
+       + " FACE_GAL=" + (cfg_faceGallerySel.length() > 0 ? cfg_faceGallerySel : String("(None)"))
        + " VIZ=" + String(VIZ_MODES[cfg_vizManualMode].id)
        + " VIZ_RND=" + String(cfg_vizRandomOn ? "ON" : "OFF") + "/" + String(cfg_vizRandomIntervalMin) + "min"
        + " LIGHT=" + String(cfg_lightingManualMask)
@@ -1283,6 +1344,29 @@ void loadConfig() {
   }
   cfg_karipomName       = karipomPrefs.getString("kpName", "");  // NVS未保存時: 空欄（IP表示にフォールバック）
   cfg_characterStyle    = (CharacterStyle)karipomPrefs.getUChar("charStyle", CHARACTER_KARIPOM);  // NVS未保存時: KariPom
+  if ((uint8_t)cfg_characterStyle > (uint8_t)CHARACTER_MISS_KARIPOM) cfg_characterStyle = CHARACTER_KARIPOM;  // 無効値フォールバック
+
+  // ── Face Mode / Face Gallery selection（2026-08-14 追加・既存NVSからの移行込み）──
+  // faceMode が未保存（sentinel 0xFF）または範囲外の場合は、旧版で唯一保存されていた
+  // charStyle から移行する。これにより KariPom / Miss KariPom しか保存していない
+  // 既存ユーザーが、アップデート後に異常値や「顔なし」へ勝手に変わることはない。
+  //   旧 CHARACTER_KARIPOM(0)      → FACE_MODE_KARIPOM
+  //   旧 CHARACTER_MISS_KARIPOM(1) → FACE_MODE_MISS_KARIPOM
+  // faceGalSel は未保存なら "" = None（新規追加項目のデフォルト）。
+  {
+    uint8_t fm = karipomPrefs.getUChar("faceMode", 0xFF);
+    if (fm >= (uint8_t)FACE_MODE_COUNT) {
+      fm = (cfg_characterStyle == CHARACTER_MISS_KARIPOM)
+             ? (uint8_t)FACE_MODE_MISS_KARIPOM
+             : (uint8_t)FACE_MODE_KARIPOM;
+    }
+    cfg_faceMode = (FaceMode)fm;
+    // Face ModeがKariPom/Miss KariPomのときは、まつ毛判定に使う cfg_characterStyle を
+    // 必ず一致させておく（両者が食い違った状態を残さないための保険）。
+    if (cfg_faceMode == FACE_MODE_KARIPOM)           cfg_characterStyle = CHARACTER_KARIPOM;
+    else if (cfg_faceMode == FACE_MODE_MISS_KARIPOM) cfg_characterStyle = CHARACTER_MISS_KARIPOM;
+  }
+  cfg_faceGallerySel = karipomPrefs.getString("faceGalSel", "");  // NVS未保存時: None（顔なし選択肢の既定値）
   karipomPrefs.end();
   addLog("CFG LOADED: CAMERA=" + String(cfg_enableCamera ? "ON" : "OFF")
        + " TOILET_CAM=" + String(cfg_enableToiletCam ? "ON" : "OFF")
@@ -1296,6 +1380,8 @@ void loadConfig() {
        + " IDLE_CH=" + String(cfg_idleChance)
        + " KARIPOM_NAME=" + String(cfg_karipomName.length() > 0 ? cfg_karipomName : String("(empty)"))
        + " CHARACTER=" + String(characterStyleName(cfg_characterStyle))
+       + " FACE_MODE=" + String(faceModeName(cfg_faceMode))
+       + " FACE_GAL=" + (cfg_faceGallerySel.length() > 0 ? cfg_faceGallerySel : String("(None)"))
        + " VIZ=" + String(VIZ_MODES[cfg_visualizerMode].id)
        + " VIZ_RND=" + String(cfg_vizRandomOn ? "ON" : "OFF") + "/" + String(cfg_vizRandomIntervalMin) + "min"
        + " LIGHT=" + String(cfg_lightingMask)
@@ -2483,6 +2569,36 @@ bool canSleep() {
 }
 
 // ====================================================
+// autoSleepEnabled()（2026-08-14 追加）
+//
+// **Face Mode = Face Gallery は「選択した表示をそのまま維持するモード」**なので、
+// Face Gallery selection が None / PNG のどちらであっても自動スリープへ入らない
+// （selectionの内容は見ない）。自動スリープするのは KariPom / Miss KariPom の2モードだけ。
+//
+//   ・Face Gallery + PNG  … 選択PNGを表示し続ける（Lighting/Visualizerは既存どおり停止）。
+//     途中で時計・ランダムPNG・寝顔へ勝手に切り替わらない。
+//   ・Face Gallery + None … 顔レイヤーを出さず、選択中のLighting/Visualizerを継続表示。
+//     顔が無い状態で「寝る→時計→Face Gallery→起きる」に入るのは不自然なため。
+//
+// どちらの場合も結果として
+//   ・Sleep Carousel へ遷移しない／時計へ自動切替しない
+//   ・ランダムFace Gallery PNGへ自動切替しない
+//   ・寝顔・目・鼻・口・Zzz も出ない
+// が同時に満たされる。Lighting本体に含まれる演出（Eye Slotのリール・Flower Clockの針・
+// PINBALLの目バンパー/鼻障害物/口通過フラッシュ等）は「通常の顔レイヤー」ではないため
+// 従来どおり表示される（faceDrawingEnabled()側も同様の扱い）。
+//
+// **faceDrawingEnabled() とは役割が異なるため、独立した判定として維持する**
+// （faceDrawingEnabled() は「顔を描くか」だけを意味し、スリープ制御の意味は持たせない。
+//  実際、Face Gallery + PNG では faceDrawingEnabled()=true だが autoSleepEnabled()=false と
+//  両者の値が食い違う）。KariPom / Miss KariPom では常に true を返すため、
+// 既存のスリープ・Sleep Carousel挙動は一切変わらない。
+// ====================================================
+bool autoSleepEnabled() {
+  return cfg_faceMode != FACE_MODE_GALLERY;
+}
+
+// ====================================================
 // 安全設定：まずはWeb操作を基準にする
 // ====================================================
 // trueにするとカメラ差分で左右を見る。安定確認後にONにする。
@@ -3452,7 +3568,10 @@ void handleDiagnosticHeartbeat() {
 
   // imageFaceMode/sleepMode 等で鼻を意図的に止めている場合は誤検出しない。
   // （updateNose自身がimageFaceMode/yawnModeでreturnするため、それらは正常な停止）
-  bool noseIntentionallyPaused = imageFaceMode || alertMode || petMode || yawnMode;
+  // 2026-08-14: Face Mode = Face Gallery + None（顔なし）も updateNose() が
+  //   意図的にreturnする正常な停止なので、NOSE STALLの誤検出対象から外す。
+  bool noseIntentionallyPaused = imageFaceMode || alertMode || petMode || yawnMode
+                                 || !faceDrawingEnabled();
 
   if (!noseIntentionallyPaused &&
       lastNoseDrawTime != 0 &&
@@ -3773,6 +3892,7 @@ static void faceShapePetEyes() {
 // ====================================================
 void drawOpenEyes() {
   if (imageFaceMode) return;
+  if (!faceDrawingEnabled()) return;   // Face Gallery + None：顔を一切描かない
   gFaceEyeMode = FACE_EYE_OPEN;
 
   if (sceneFaceOnCanvas()) { sceneRenderFace(FACE_EYES_X, FACE_EYES_Y, FACE_EYES_W, FACE_EYES_H); return; }
@@ -3787,6 +3907,7 @@ void drawOpenEyes() {
 
 void drawBlinkEyes() {
   if (imageFaceMode) return;
+  if (!faceDrawingEnabled()) return;   // Face Gallery + None：顔を一切描かない
   gFaceEyeMode = FACE_EYE_BLINK;
 
   if (sceneFaceOnCanvas()) { sceneRenderFace(FACE_EYES_X, FACE_EYES_Y, FACE_EYES_W, FACE_EYES_H); return; }
@@ -3799,6 +3920,7 @@ void drawBlinkEyes() {
 
 void drawPetEyes() {
   if (imageFaceMode) return;
+  if (!faceDrawingEnabled()) return;   // Face Gallery + None：顔を一切描かない
   gFaceEyeMode = FACE_EYE_PET;
 
   if (sceneFaceOnCanvas()) { sceneRenderFace(FACE_EYES_X, FACE_EYES_Y, FACE_EYES_W, FACE_EYES_H); return; }
@@ -3832,7 +3954,8 @@ void drawSleepEyes() {
   // 消去範囲を y=55〜125 に制限（鼻上端に被らないよう）
   // 旧: fillRect(55, 55, 210, 70) → y=55〜125 でギリギリ。明示的に75に制限。
   CoreS3.Display.fillRect(55, 55, 210, 70, WHITE);
-  drawClosedEyeLines(BLACK);
+  // Face Gallery + None：睡眠画面でも顔（閉じ目）を描かない。IP表示は従来どおり残す。
+  if (faceDrawingEnabled()) drawClosedEyeLines(BLACK);
 
   drawIpStatusOnly();
 }
@@ -4211,6 +4334,9 @@ void drawFace() {
   // ── フォールバック（Canvas未確保／睡眠・あくび中）：従来どおり液晶へ直接描く ──
   CoreS3.Display.fillScreen(WHITE);
 
+  // Face Gallery + None：白背景だけにして顔パーツは一切描かない。
+  if (!faceDrawingEnabled()) return;
+
   drawOpenEyes();
 
   CoreS3.Display.fillEllipse(noseX, noseY, 18, 12, BLACK);
@@ -4284,6 +4410,55 @@ void drawFaceImage(const char* path) {
   showSensors();
 }
 
+// ====================================================
+// Face Mode 適用（2026-08-14 追加）
+//
+// applyFaceSelection()
+//   現在の cfg_faceMode / cfg_faceGallerySel を実際の画面へ反映する統一入口。
+//   ・Face Gallery かつ PNG選択あり … 既存の drawFaceImage()（320×240直接表示・
+//     imageFaceMode=true）をそのまま呼ぶ。従来のFace Gallery表示挙動は無変更で、
+//     この間 Lighting / Visualizer が停止するのも従来どおり。
+//   ・それ以外（KariPom / Miss KariPom / Face Gallery + None）… drawFace() で
+//     imageFaceMode=false へ戻す。顔なしの場合は faceDrawingEnabled()=false のため
+//     白背景だけが残り、Lighting / Visualizer は通常どおり動作する。
+// ====================================================
+void applyFaceSelection() {
+  if (cfg_faceMode == FACE_MODE_GALLERY && cfg_faceGallerySel.length() > 0) {
+    String path = "/faces/" + cfg_faceGallerySel;
+    drawFaceImage(path.c_str());   // 既存経路（内部で imageFaceMode=true / showSensors()）
+    return;
+  }
+  drawFace();      // imageFaceMode=false ＋ 標準顔（顔なし時は白背景のみ）
+  showSensors();
+}
+
+// Face Mode を変更して保存・画面反映まで行う。
+// KariPom / Miss KariPom を選んだ場合だけ cfg_characterStyle（まつ毛判定用の
+// 既存変数）を同期する。Face Gallery を選んだ間は cfg_characterStyle を変更せず、
+// 「最後に選んでいたキャラクター」として保持する（/resetface の復帰先になる）。
+void setFaceMode(FaceMode m) {
+  if (m >= FACE_MODE_COUNT) return;
+  cfg_faceMode = m;
+  if      (m == FACE_MODE_KARIPOM)      cfg_characterStyle = CHARACTER_KARIPOM;
+  else if (m == FACE_MODE_MISS_KARIPOM) cfg_characterStyle = CHARACTER_MISS_KARIPOM;
+  saveConfig();
+  addLog("FACE MODE: " + String(faceModeName(cfg_faceMode))
+       + " GALLERY=" + (cfg_faceGallerySel.length() > 0 ? cfg_faceGallerySel : String("(None)")));
+  applyFaceSelection();
+}
+
+// Face Gallery の選択を変更する（name が空文字なら None＝顔を表示しない）。
+// Web の「Wear」／「None」ボタンから呼ぶため、同時に Face Mode も Face Gallery にする
+// （押した操作の意図と表示状態を一致させるため）。
+void setFaceGallery(const String& name) {
+  cfg_faceGallerySel = name;
+  cfg_faceMode       = FACE_MODE_GALLERY;
+  saveConfig();
+  addLog("FACE GALLERY SELECT: "
+       + (cfg_faceGallerySel.length() > 0 ? cfg_faceGallerySel : String("(None / 顔を表示しない)")));
+  applyFaceSelection();
+}
+
 // yawnMode（あくび中フラグ）は Unified Scene Canvas ブロックで宣言済み。
 
 // 鼻の形（GFXへ描く）。逆Y口も従来どおりここに含む。
@@ -4320,6 +4495,7 @@ static void faceShapeNoseAndTalkMouth() {
 
 void updateNose(int newOffset) {
   if (imageFaceMode) return;
+  if (!faceDrawingEnabled()) return;   // Face Gallery + None：鼻・口も描かない
 
   // あくび中は鼻エリアの消去も逆Y口の描画もスキップする。
   // fillRect が赤い丸の上半分を消してしまうのを防ぐ。
@@ -4351,6 +4527,7 @@ void updateNose(int newOffset) {
 // ====================================================
 void sceneDrawNormalFace() {
   if (imageFaceMode) return;
+  if (!faceDrawingEnabled()) return;   // Face Gallery + None：通常表示でも顔レイヤーを描かない
 
   switch (gFaceEyeMode) {
     case FACE_EYE_BLINK: faceShapeBlinkEyes(); break;
@@ -4384,6 +4561,7 @@ void drawSleepScreen() {
 
 void blinkEyes() {
   if (imageFaceMode) return;
+  if (!faceDrawingEnabled()) return;   // Face Gallery + None：まばたき描画も行わない
   drawBlinkEyes();
   delay(80);
   drawOpenEyes();
@@ -4399,13 +4577,18 @@ void yawn() {
   sceneInvalidate();   // あくび画面は統合Canvasの対象外。復帰時に全面転送させる
 
   CoreS3.Display.fillScreen(WHITE);
-  drawOpenEyes();
-  CoreS3.Display.fillEllipse(noseX, noseY, 18, 12, BLACK);
+  // Face Gallery + None：あくびの顔（目・鼻・赤い口）も描かない。
+  // あくびのWAV再生・タイミング・yawnMode遷移そのものは従来どおり実行する。
+  bool yawnFace = faceDrawingEnabled();
+  if (yawnFace) {
+    drawOpenEyes();
+    CoreS3.Display.fillEllipse(noseX, noseY, 18, 12, BLACK);
+  }
 
   showSensors();  // showSensors を先に呼んでから赤い丸を描く
 
   // あくびの口（赤い丸）を最後に描く（他の描画に上書きされないよう）
-  CoreS3.Display.fillCircle(noseX, noseY + 45, 25, RED);
+  if (yawnFace) CoreS3.Display.fillCircle(noseX, noseY + 45, 25, RED);
 
   unsigned long savedInteractionTime = lastInteractionTime;
 
@@ -4431,6 +4614,7 @@ void yawn() {
 
 void drawMouthOpen() {
   if (imageFaceMode) return;
+  if (!faceDrawingEnabled()) return;   // Face Gallery + None：口パクも描かない
 
   // おしゃべり用の口：鼻に近い横長楕円。ゆらぎの抽選は従来と同じ（呼ばれるたびに再抽選）。
   gFaceMouthMx = noseX + random(-1, 2) * 2;
@@ -4471,6 +4655,7 @@ void drawMouthOpen() {
 
 void drawMouthClosed() {
   if (imageFaceMode) return;
+  if (!faceDrawingEnabled()) return;   // Face Gallery + None：口パクも描かない
 
   gFaceMouthTalk = false;
 
@@ -4496,6 +4681,7 @@ void drawMouthClosed() {
 
 void mouthPakuPaku() {
   if (imageFaceMode) return;
+  if (!faceDrawingEnabled()) return;   // Face Gallery + None：口パクも描かない
 
   for (int i = 0; i < 4; i++) {
     drawMouthOpen();
@@ -5160,7 +5346,9 @@ void wakeUp(String wakeReason) {
   lastInteractionTime = millis();
 
   // スリープ中Face表示フラグをリセット
-  // （wakeUp後は drawFace() が通常顔に戻すため imageFaceMode も自動解除される）
+  // （wakeUp後は末尾の applyFaceSelection() が Face Mode に従って画面を確定させる。
+  //  KariPom / Miss KariPom / Face Gallery+None なら drawFace() 経由で imageFaceMode も
+  //  自動解除され、Face Gallery+PNG なら選択PNGが改めて表示される）
   sleepFaceActive = false;
   lastSleepFaceRotateTime = 0;
   lastSleepFaceAttemptTime = 0;
@@ -5189,10 +5377,16 @@ void wakeUp(String wakeReason) {
     moveToCenterWithEyeLead(servoLR, lrNow, HEAD_HORIZONTAL_CENTER, 25);
   }
 
-  drawFace();
-  showSensors();
+  // 2026-08-14: 起床時の画面復元を drawFace()+showSensors() から applyFaceSelection() へ変更。
+  //   KariPom / Miss KariPom では applyFaceSelection() の中身がそのまま
+  //   drawFace()+showSensors() なので従来と完全に同じ動作。
+  //   Face Gallery + PNG のときだけ、選択PNGを復元する（drawFace()だけだと
+  //   imageFaceMode=false になって通常顔に戻ってしまい、選択が失われるため）。
+  //   Face Gallery + None は白背景のみになり、直後からLighting/Visualizerが継続する。
+  //   タッチ/IMU/カメラ/音など、どの起床経路もこのwakeUp()を通るため、ここ1か所で揃う。
+  applyFaceSelection();
 
-  blinkEyes();
+  blinkEyes();   // imageFaceMode / 顔なしのときは既存ガードで自動的に何もしない
 
   if (ENABLE_SLEEP_WAKE_SERVO) {
     lookAround();
@@ -5207,8 +5401,9 @@ void wakeUp(String wakeReason) {
     moveToCenterWithEyeLead(servoLR, lrNow, HEAD_HORIZONTAL_CENTER, 20);
   }
 
-  drawFace();
-  showSensors();
+  // 起床演出の最後にもう一度 Face Mode に従って画面を確定させる
+  // （上と同じ理由。KariPom / Miss KariPom では従来の drawFace()+showSensors() と同一）。
+  applyFaceSelection();
 
   {
     char wbuf[128];
@@ -5532,6 +5727,10 @@ void mutter() {  // ⚠️ レガシー: 呼び出し箇所なし（WAV方式 pl
 // SDが無い・/facesが無い・PNGが1枚も無い場合は false を返す（演出なし）。
 // ====================================================
 bool tryShowMutterFace() {
+  // Face Gallery + None：ユーザーが「顔を表示しない」を選んでいるので、
+  // 独り言の変顔演出でも勝手にPNG顔を出さない（呼び出し元は showEvent("N") へフォールバックする）。
+  if (!faceDrawingEnabled()) return false;
+
   File dir = SD.open("/faces");
   if (!dir) return false;
 
@@ -5576,6 +5775,11 @@ bool tryShowMutterFace() {
 //   鼻ヒクヒク・口パクが handleNoseMotion() の既存ガードで自動停止する
 // ====================================================
 bool showSleepFace() {
+  // Face Gallery + None：Sleep Carouselへ入っても勝手にPNG顔を出さない。
+  // （updateSleepLightingCarousel()側でもGalleryパターンを抽選しないようにしているが、
+  //   将来ほかの経路から呼ばれても顔なしが一貫するよう、ここでも同じ判定で止める）
+  if (!faceDrawingEnabled()) return false;
+
   File dir = SD.open("/faces");
   if (!dir) return false;
 
@@ -6149,6 +6353,16 @@ bool handleSleepMode(bool touchedHead,
                      bool soundStimulus) {
 
   if (!sleepMode) return false;
+
+  // 睡眠中にWeb操作等で Face Gallery（PNG / None どちらでも）へ切り替えられた場合の後始末。
+  // Face Galleryはスリープを使わないモード（autoSleepEnabled()参照）なので、
+  // Sleep Carouselを開始せずに即座に起床する。起床後の画面は wakeUp() 末尾の
+  // applyFaceSelection() が Face Mode に従って復元する（PNGならPNG、Noneなら顔なし）。
+  // KariPom / Miss KariPom では autoSleepEnabled() が常にtrueなので、この分岐には入らない。
+  if (!autoSleepEnabled()) {
+    wakeUp("FACE_MODE_GALLERY");
+    return true;
+  }
 
   // ── 眺めて楽しいSleep表示（Sleep Lighting Carousel）──
   // 入眠直後 SLEEP_FACE_DURATION（3分）は、既存どおり静止した閉じ目のまま何もしない
@@ -7084,6 +7298,16 @@ void handleJoystick() {
 }
 
 bool handleSleepTransition() {
+  // Face Mode = Face Gallery（PNG / None どちらでも）はスリープを使わないモード
+  // （autoSleepEnabled()参照）。isActiveAudioSession()と同じ手法で lastInteractionTime を
+  // 更新し続けることで、KariPom / Miss KariPom へ戻した“その時点”から通常の
+  // SLEEP_TIMEOUT を計測し直す（Face Gallery中の無操作時間を引き継いで、
+  // 切替直後に即スリープしてしまうのを防ぐ）。
+  if (!autoSleepEnabled()) {
+    lastInteractionTime = millis();
+    return false;
+  }
+
   // 音楽再生・口パク中（＝発話中 or 新鮮なFFT受信中）はスリープしない。
   // かつ、その間は lastInteractionTime を更新し続けることで、音が止まった
   // “その時点”から通常のSLEEP_TIMEOUTを計測する（古い時刻での即時スリープ防止）。
@@ -8155,6 +8379,16 @@ const char* characterStyleName(CharacterStyle s) {
   switch (s) {
     case CHARACTER_KARIPOM:      return "KariPom";
     case CHARACTER_MISS_KARIPOM: return "MissKariPom";
+    default:                     return "UNKNOWN";
+  }
+}
+
+// Face Mode のログ用ラベル（ユーザーから見た3択と1対1）。
+const char* faceModeName(FaceMode m) {
+  switch (m) {
+    case FACE_MODE_KARIPOM:      return "KariPom";
+    case FACE_MODE_MISS_KARIPOM: return "MissKariPom";
+    case FACE_MODE_GALLERY:      return "FaceGallery";
     default:                     return "UNKNOWN";
   }
 }
@@ -9796,16 +10030,44 @@ void setup() {
         html += cfg_enableToiletCam ? "<b style='color:var(--led-ok);'>ON</b>" : "<b style='color:var(--led-err);'>OFF</b>";
         html += "</small></div>";
 
-        // キャラクタースタイル選択（顔の着せ替えではなく、最初に選ぶキャラクター人格）
-        html += "<div class='lab-card' style='border:1px solid var(--border);'>";
-        html += "<h3>🎭 Character Style</h3>";
-        html += "<p>現在：<b style='color:var(--led-ok);'>● " + String(characterStyleName(cfg_characterStyle)) + "</b></p>";
-        html += "<p>";
-        html += "<a href='/character_style?v=karipom'><button class='onbtn'" + String(cfg_characterStyle == CHARACTER_KARIPOM ? " style='font-weight:bold;border:2px solid green;'" : "") + ">🐰 KariPom</button></a> ";
-        html += "<a href='/character_style?v=miss'><button class='onbtn'" + String(cfg_characterStyle == CHARACTER_MISS_KARIPOM ? " style='font-weight:bold;border:2px solid green;'" : "") + ">🎀 Miss KariPom</button></a>";
-        html += "</p>";
-        html += "<p class='note'>違いはまつ毛のみです。NVSに保存され、再起動後も保持されます。</p>";
-        html += "</div>";
+        // Face Mode 選択（KariPom / Miss KariPom / Face Gallery の3択）
+        // 2026-08-14: 旧「Character Style」（KariPom / Miss KariPom の2択）に
+        //   Face Gallery を加えて3択へ整理した。Face Gallery を選んでいるときだけ
+        //   Face Gallery の選択値（PNG / None）が意味を持つことが分かるよう、
+        //   その行を Face Gallery 選択時のみ強調表示する。カード自体の枠組み・
+        //   ボタンのクラス（onbtn）・選択中の緑枠表現は既存デザインのまま。
+        {
+          bool fmGallery = (cfg_faceMode == FACE_MODE_GALLERY);
+          String galLabel = (cfg_faceGallerySel.length() > 0)
+                              ? cfg_faceGallerySel
+                              : String("None（顔を表示しない）");
+
+          html += "<div class='lab-card' style='border:1px solid var(--border);'>";
+          html += "<h3>🎭 Face Mode</h3>";
+          html += "<p>現在：<b style='color:var(--led-ok);'>● " + String(faceModeName(cfg_faceMode)) + "</b></p>";
+          html += "<p>";
+          html += "<a href='/face_mode?v=karipom'><button class='onbtn'" + String(cfg_faceMode == FACE_MODE_KARIPOM ? " style='font-weight:bold;border:2px solid green;'" : "") + ">🐰 KariPom</button></a> ";
+          html += "<a href='/face_mode?v=miss'><button class='onbtn'" + String(cfg_faceMode == FACE_MODE_MISS_KARIPOM ? " style='font-weight:bold;border:2px solid green;'" : "") + ">🎀 Miss KariPom</button></a> ";
+          html += "<a href='/face_mode?v=gallery'><button class='onbtn'" + String(fmGallery ? " style='font-weight:bold;border:2px solid green;'" : "") + ">🖼 Face Gallery</button></a>";
+          html += "</p>";
+
+          // Face Gallery の選択値（Face Gallery モードのときだけ有効に働く）
+          html += "<p style='margin-top:10px;";
+          if (!fmGallery) html += "opacity:0.5;";
+          html += "'>";
+          html += "🖼 Face Gallery selection：<b>" + galLabel + "</b><br>";
+          html += "<a href='/faces'><button" + String(fmGallery ? " class='onbtn'" : "") + ">🎨 顔を選ぶ / None</button></a>";
+          html += "</p>";
+
+          html += "<p class='note'>";
+          html += "KariPom と Miss KariPom の違いはまつ毛のみです。<br>";
+          html += "Face Gallery を選ぶと、上の selection で選んだPNGを表示します。";
+          html += "selection が <b>None</b> のときは顔を表示しません";
+          html += "（Lighting・Visualizer はそのまま動作し、顔だけが消えます）。<br>";
+          html += "Face Mode と selection はNVSに保存され、再起動後も保持されます。";
+          html += "</p>";
+          html += "</div>";
+        }
 
         html += "<div class='lab-card' style='border:1px solid var(--border);'>";
         html += "<h3>📡 Network Status</h3>";
@@ -10556,15 +10818,28 @@ function sendCmd(url) {
         server.send(302, "text/plain", "");
       });
 
-      // ── キャラクタースタイル選択（KariPom / Miss KariPom）──
+      // ── Face Mode 選択（KariPom / Miss KariPom / Face Gallery）──
+      // /face_mode?v=karipom|miss|gallery  （&from=faces で /faces へ戻る）
+      server.on("/face_mode", []() {
+        String v = server.arg("v");
+        FaceMode m;
+        if      (v == "karipom") m = FACE_MODE_KARIPOM;
+        else if (v == "miss")    m = FACE_MODE_MISS_KARIPOM;
+        else if (v == "gallery") m = FACE_MODE_GALLERY;
+        else { server.send(400, "text/plain", "bad value: " + v); return; }
+        setFaceMode(m);   // NVS保存 + 画面へ即反映
+        server.sendHeader("Location", server.arg("from") == "faces" ? "/faces" : "/");
+        server.send(302, "text/plain", "");
+      });
+
+      // ── キャラクタースタイル選択（旧URL・ブックマーク互換）──
+      // 2026-08-14: Face Mode へ統合。KariPom / Miss KariPom はそれぞれ
+      // 同名の Face Mode を選ぶのと同じ意味になった（/face_mode の別名）。
       server.on("/character_style", []() {
         String v = server.arg("v");
-        if (v == "karipom") { cfg_characterStyle = CHARACTER_KARIPOM; }
-        else if (v == "miss") { cfg_characterStyle = CHARACTER_MISS_KARIPOM; }
+        if      (v == "karipom") setFaceMode(FACE_MODE_KARIPOM);
+        else if (v == "miss")    setFaceMode(FACE_MODE_MISS_KARIPOM);
         else { server.send(400, "text/plain", "bad value: " + v); return; }
-        saveConfig();
-        addLog("CHARACTER STYLE: " + String(characterStyleName(cfg_characterStyle)));
-        if (!imageFaceMode) drawOpenEyes();  // 即座に見た目へ反映
         server.sendHeader("Location", "/");
         server.send(302, "text/plain", "");
       });
@@ -11569,6 +11844,35 @@ function sendCmd(url) {
         html += "※ リセットすると標準の表情に戻ります。";
         html += "</p>";
 
+        // ── 現在の Face Mode と、この画面の位置づけ（2026-08-14 追加）──
+        // ここでの選択（PNG / None）は Face Mode = Face Gallery のときに表示へ反映される。
+        // Wear / None を押すと Face Mode も Face Gallery へ切り替わる。
+        {
+          bool fmGallery = (cfg_faceMode == FACE_MODE_GALLERY);
+          html += "<div class='box'>";
+          html += "現在の Face Mode：<b>" + String(faceModeName(cfg_faceMode)) + "</b>　/　";
+          html += "選択中：<b>" + (cfg_faceGallerySel.length() > 0 ? cfg_faceGallerySel
+                                                                  : String("None（顔を表示しない）")) + "</b><br>";
+          if (!fmGallery) {
+            html += "<span class='note'>※ Face Mode が Face Gallery のときだけ、この選択が画面に反映されます。"
+                    "下の <b>Wear</b> / <b>None</b> を押すと Face Mode も Face Gallery に切り替わります。</span><br>";
+          }
+          html += "<a href='/face_mode?v=karipom&from=faces'><button>🐰 KariPom</button></a> ";
+          html += "<a href='/face_mode?v=miss&from=faces'><button>🎀 Miss KariPom</button></a> ";
+          html += "<a href='/face_mode?v=gallery&from=faces'><button" + String(fmGallery ? " class='onbtn'" : "") + ">🖼 Face Gallery</button></a>";
+          html += "</div>";
+
+          // ── None（顔を表示しない）：一覧の先頭に固定で置く ──
+          // Noneは実在しないPNGファイル名ではなく、選択値が空文字であることで表す。
+          html += "<div class='box' style='display:inline-block; margin:10px; text-align:center;";
+          if (cfg_faceGallerySel.length() == 0) html += " border:2px solid green;";
+          html += "'>";
+          html += "<div style='width:120px;height:90px;line-height:90px;background:#000;color:#888;'>—</div>";
+          html += "<b>None</b><br>顔を表示しない<br>";
+          html += "<a href='/showface?name='><button" + String(cfg_faceGallerySel.length() == 0 ? " class='onbtn'" : "") + ">🚫 None</button></a>";
+          html += "</div>";
+        }
+
         if (!root) {
           html += "<div class='box'>/faces folder not found.</div>";
         } else {
@@ -11578,7 +11882,9 @@ function sendCmd(url) {
             String name = String(file.name());
 
             if (!name.startsWith(".")) {
-              html += "<div class='box' style='display:inline-block; margin:10px; text-align:center;'>";
+              html += "<div class='box' style='display:inline-block; margin:10px; text-align:center;";
+              if (name == cfg_faceGallerySel) html += " border:2px solid green;";
+              html += "'>";
               html += "<a href='/facefile?name=" + name + "' target='_blank'>";
               html += "<img src='/facefile?name=" + name + "' width='120'>";
               html += "</a><br>";
@@ -11619,26 +11925,38 @@ function sendCmd(url) {
         file.close();
       });
 
+      // /showface?name=<PNGファイル名>  … そのPNGをFace Galleryの選択値にして表示する
+      // /showface?name=（空）           … None（顔を表示しない）を選択する
+      // 2026-08-14: 選択値をNVSへ保存し、Face Mode も Face Gallery に切り替えるようにした。
+      //   PNGの実表示そのもの（drawFaceImage()による320×240直接表示・imageFaceMode）は
+      //   従来と同じ経路のままで、表示内容は一切変わらない。
       server.on("/showface", []() {
         String filename = server.arg("name");
-        String path = "/faces/" + filename;
+        filename.trim();
 
-        addLog("SHOW FACE: " + path);
+        String showFaceLog = String("(None / 顔を表示しない)");
+        if (filename.length() > 0) showFaceLog = "/faces/" + filename;
+        addLog("SHOW FACE: " + showFaceLog);
 
-        drawFaceImage(path.c_str());
+        setFaceGallery(filename);   // "" = None。NVS保存 + 画面へ即反映
 
         server.sendHeader("Location", "/faces");
         server.send(302, "text/plain", "");
       });
 
-      // /resetface: Web顔固定（imageFaceMode=true）を解除し、標準表情管理に復帰する。
-      // drawFace() は imageFaceMode=false にした上で標準顔を描画するため、
-      // 以降 瞬き・sleep・mutter・口パク等の通常表情制御がそのまま再開される。
-      // /faces や /showface の挙動は一切変更しない。
+      // /resetface: Face Gallery（PNG／None）を抜けて、最後に選んでいたキャラクターの
+      // 顔（KariPom または Miss KariPom）へ戻す。
+      // 2026-08-14: Face Mode 導入前は「imageFaceMode を解除して標準顔を描く」だけの
+      //   一時的な操作だったが、Face Mode が永続設定になったため、Face Mode 自体を
+      //   キャラクター側へ戻す意味に変更した（cfg_characterStyle が復帰先になるので、
+      //   Miss KariPom を使っていた人は Miss KariPom に戻る）。
+      //   戻した後は imageFaceMode=false となり、瞬き・sleep・mutter・口パク等の
+      //   通常表情制御が従来どおり再開される。Face Gallery selection（PNG名）は
+      //   消さずに保持するため、あとで Face Gallery へ戻せば同じPNGが再選択される。
       server.on("/resetface", []() {
-        addLog("RESET FACE: imageFaceMode -> false");
-        drawFace();   // imageFaceMode=false & 標準顔を即時描画
-        showSensors();
+        addLog("RESET FACE: back to character face");
+        setFaceMode(cfg_characterStyle == CHARACTER_MISS_KARIPOM
+                      ? FACE_MODE_MISS_KARIPOM : FACE_MODE_KARIPOM);
         server.sendHeader("Location", "/files");
         server.send(302, "text/plain", "");
       });
@@ -11981,7 +12299,13 @@ function sendCmd(url) {
   // drawBootFace()等の起動画面はこの前に描かれるため、従来どおり液晶へ直接描画される。
   sceneCanvasInit();
 
-  drawFace();
+  // 2026-08-14: 起動時の顔は Face Mode / Face Gallery selection に従って復元する。
+  //   ・Face Mode = KariPom / Miss KariPom … 従来の drawFace() と同じ（既存挙動そのまま）
+  //   ・Face Mode = Face Gallery + PNG      … 保存されていたPNGを再表示
+  //   ・Face Mode = Face Gallery + None     … 白背景のみ（顔なし）
+  //   NVSに faceMode が無い既存ユーザーは loadConfig() 側の移行で必ず
+  //   KariPom / Miss KariPom になるため、起動時の見た目は従来と変わらない。
+  applyFaceSelection();
   playWavFromSD("/sounds/online_ready.wav");
 
   randomSeed(millis());
@@ -12213,6 +12537,12 @@ static inline void vizOutlineRect(int x, int y, int w, int h) {
 }
 
 void drawVisualizerFaceParts(bool forceClear) {
+  // Face Gallery + None：Lighting全種・Visualizer全種の顔レイヤーをここ1か所で無効化する。
+  // 本関数はLighting中（sceneDrawFaceLayer経由）とVisualizer単体表示中（各vizRender*経由）の
+  // 両方が通る唯一の共通顔描画関数なので、各モードへ個別の分岐を足す必要がない。
+  // Lighting・Visualizer本体（背景・FFT・アニメーション）には一切影響しない。
+  if (!faceDrawingEnabled()) return;
+
   static bool prevMouthOpen = false;
   bool mouthOpen = (externalSpeaking && mouthPakuOpen);
   // Lighting中は背景が照明なので白で消さない（タイル塗りが旧口形状を消す）。
@@ -13452,7 +13782,10 @@ void vizRenderKaleidoscope(bool needsInit) {
   GFX.clearClipRect();   // 顔描画・他の描画に影響しないよう必ず解除する
 
   // ── 顔（単体表示時のみ自前で描く。既存drawVisualizerFaceParts()は無変更）──
-  if (!gLightingActive) {
+  // 2026-08-14: Face Gallery + None のとき、白下地（この関数内の固定座標描画）が
+  //   drawVisualizerFaceParts()の外側にあり共通ガードで消えないため、ここにも
+  //   faceDrawingEnabled()を足す。Kaleidoscope本体の描画・FFT・アニメーションは無変更。
+  if (!gLightingActive && faceDrawingEnabled()) {
     // Kaleidoscopeは黒背景のため、白背景前提の白リム省略（gLightingActive=false分岐）
     // のままだと黒地に黒目・黒鼻が埋もれる。既存関数は変更せず、直前に同じ固定
     // 座標（既存関数がgLightingActive時に描く縁と同一サイズ）へ白い下地だけ
@@ -13787,7 +14120,9 @@ void vizRenderAnalogVu(bool needsInit) {
   // ── 6. 顔（Visualizer → 顔 の描画順。目・鼻・口が最前面）──
   //    Kaleidoscopeと同じく黒背景のため、既存drawVisualizerFaceParts()は変更せず
   //    直前に同じ固定座標へ白い下地だけ敷く（顔の位置・サイズは一切変更しない）。
-  if (!gLightingActive) {
+  // 2026-08-14: Face Gallery + None のときは白下地ごとスキップする（Kaleidoscopeと同じ理由）。
+  //   Analog VU本体の針・目盛り・FFT処理は無変更。
+  if (!gLightingActive && faceDrawingEnabled()) {
     if (!gEyeSlotActive) {
       GFX.fillCircle(90  + eyeOffsetX, 90 + eyeOffsetY, 22, WHITE);
       GFX.fillCircle(230 + eyeOffsetX, 90 + eyeOffsetY, 22, WHITE);
@@ -24437,6 +24772,12 @@ void sceneComposeAndPush(bool lightInit, bool lightFull,
   //   条件で、PINBALL Arcadeが現在の背景(BG)Lightingとして採用されている時
   //   だけ実行する。他のLighting・Visualizer・顔の描画順・処理には一切影響
   //   しない。
+  // 2026-08-14: このフックは Face Gallery + None（顔なし）でも **意図的にそのまま描く**。
+  //   ここで描く目のバンパー・鼻の障害物・口の通過フラッシュは「かりポムの顔」ではなく
+  //   PINBALL Arcade固有のゲームオブジェクトであり、当たり判定（pinCollideNose()等）は
+  //   Layer0の物理更新側に常に存在するため、描画だけ消すと「見えない障害物」になってしまう。
+  //   Eye Slotのリールを顔なしでも残すのと同じ考え方（Lighting本体に含まれる演出は残す）。
+  //   顔なしで消すのはあくまで共通の顔レイヤー（drawVisualizerFaceParts/sceneDrawNormalFace）のみ。
   if (cfg_lightingMask != 0 && gLightingActive && gLightActiveBgMode == LIGHT_PINBALL) {
     pinDrawEyesForeground(millis());
     pinDrawMouthPassFlash(millis());
@@ -24634,6 +24975,9 @@ void sleepComposeEyeLightFrame(bool bgNeedsInit) {
   sleepPanelDark = dark;
 
   // ── Layer1：目（3種のいずれか。背景の上に重ねて描く）──
+  // 2026-08-14: Face Gallery + None のときは目・鼻・口をまとめて描かず、背景Lightingだけを
+  //   表示し続ける（Sleep Carousel自体は停止しない）。Lighting側の描画内容は無変更。
+  if (faceDrawingEnabled()) {
   switch (sleepEyeKind) {
     case SLEEP_EYE_EYESLOT: {
       // Eye Slotは例外：リール領域は背景Lightingのテーマに関わらず常に白背景にする
@@ -24651,6 +24995,7 @@ void sleepComposeEyeLightFrame(bool bgNeedsInit) {
       drawClockEyeDigitsOutlined();
       break;
   }
+  }  // if (faceDrawingEnabled())
 
   // Flower Clockが背景に選ばれた場合、針は最前面オーバーレイなので
   // sceneComposeAndPush()の4.5フックと同じ手法でここでも描く
@@ -24660,7 +25005,8 @@ void sleepComposeEyeLightFrame(bool bgNeedsInit) {
   }
 
   // ── 鼻・鼻口線・口（黒＋白縁取りで統一。既存faceShapeNoseAndVMouth()は無改造のまま利用）──
-  drawNoseAndMouthOutlined();
+  // Face Gallery + None のときは描かない（上の目レイヤーと同じ判定）。
+  if (faceDrawingEnabled()) drawNoseAndMouthOutlined();
 
   sceneEndCompose(onCanvas);
   if (onCanvas) scenePush(0, SCENE_TOP, SCENE_W, SCENE_H - SCENE_TOP);
@@ -24680,7 +25026,11 @@ void updateSleepLightingCarousel() {
   if (sleepCarouselNextSwitchMs == 0 || (long)(now - sleepCarouselNextSwitchMs) >= 0) {
     sleepCarouselNextSwitchMs = now + SLEEP_FACE_ROTATE_MS;
 
-    uint8_t pattern = (uint8_t)random(0, 2);   // 0=Face Gallery, 1=目×Lighting
+    // 0=Face Gallery, 1=目×Lighting
+    // 2026-08-14: Face Gallery + None のときは Face Gallery パターンを抽選せず、
+    //   必ず「目×Lighting」側（＝顔なし時は背景Lightingのみ）を選ぶ。
+    //   Sleep Carousel そのものは停止せず、Lightingの切替も従来どおり続く。
+    uint8_t pattern = faceDrawingEnabled() ? (uint8_t)random(0, 2) : (uint8_t)1;
     sleepLastPattern = (int8_t)pattern;
 
     if (pattern == 0) {

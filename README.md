@@ -10,7 +10,7 @@
 
 ## 主な機能
 
-表情表示と音声再生、サーボによる首の上下・左右動作、PC音声とのリアルタイム口パク連動（BBX）、Visualizer（8種）・Lighting（24種）による画面演出、Webブラウザから操作できるWeb UI（KariPom Lab）、ジョイスティック操作、独り言機能、睡眠・起床モード、SDカードによるログ・音声ファイル管理など。拡張ハードウェア「Karipom Ear」（PCM1808＋Raspberry Pi Pico 2 H）を追加すると、PCなしでライン入力の音に反応するBBXを楽しめます。
+表情表示と音声再生、サーボによる首の上下・左右動作、PC音声とのリアルタイム口パク連動（BBX）、Visualizer（8種）・Lighting（24種）による画面演出、Webブラウザから操作できるWeb UI（KariPom Lab）、ジョイスティック操作、独り言機能、睡眠・起床モード、SDカードによるログ・音声ファイル管理など。画面に表示する顔は「KariPom」「Miss KariPom」「Face Gallery」の3つのFace Modeから選べ、Face Galleryで「None」を選ぶと顔を表示せずLighting・Visualizerだけを画面いっぱいに楽しめます。拡張ハードウェア「Karipom Ear」（PCM1808＋Raspberry Pi Pico 2 H）を追加すると、PCなしでライン入力の音に反応するBBXを楽しめます。
 
 ## リポジトリ構成
 
@@ -45,7 +45,7 @@ Karipom Ear（PCM1808＋Pico2）を収納する筐体は`stl/`内の`karipom_hip
 
 利用する際は、`sdcard` フォルダそのものではなく、フォルダの**中身**（`faces/`・`sounds/`）を、フォルダ構成を保ったままmicroSDカードのルートへコピーしてください。
 
-- `faces/` — Face Gallery・ランダムFace（睡眠時・独り言時）などで使える公開用の表情PNG13点
+- `faces/` — Face Gallery（Face Modeで選ぶ固定表示）・ランダムFace（睡眠時・独り言時）などで使える公開用の表情PNG13点
 - `sounds/` — 音声ファイルの配置方法を説明する `README.md`（WAVファイル自体は収録していません）
 
 音声合成サービスや音声素材ごとのライセンス・再配布条件を本リポジトリへ持ち込まないため、WAV音声ファイル（固定音声・独り言用とも）は同梱していません。音声を使いたい場合は、お好みの音声合成ソフト等でWAVファイルをご自身でご用意ください。固定音声として必要なファイル名や、独り言音声の配置場所については [`sdcard/sounds/README.md`](sdcard/sounds/README.md) をご覧ください。音声ファイルが無くても本体のプログラムは停止せず動作を継続し、該当する音声再生のみ行われません。
