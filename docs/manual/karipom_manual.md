@@ -1,6 +1,6 @@
 ---
 title: "かりポム ユーザーマニュアル"
-subtitle: "KariPom User Manual — Ver. 4.8"
+subtitle: "KariPom User Manual — Ver. 4.10"
 date: "2026年8月"
 lang: ja
 ---
@@ -9,6 +9,11 @@ lang: ja
 
 このたびは「かりポム（KariPom）」をお迎えいただき、ありがとうございます。
 本書は、電子工作がはじめての方でも、かりポムを安心して楽しんでいただけるように作られたユーザーマニュアルです。ご使用の前に必ずお読みいただき、いつでも読み返せるよう大切に保管してください。
+
+> **For international visitors**
+> KariPom is an experimental robot project combining the M5Stack CoreS3, a PCM1808 audio ADC, and a Raspberry Pi Pico 2 to capture and visualize external audio in real time.
+> KariPom itself does not require direct access to an AI API, an API key, or usage-based AI API fees. It can react to voice conversations and audio from AI services such as ChatGPT running normally on your computer.
+> The documentation is currently available only in Japanese. If you are interested in building or exploring KariPom, please use your preferred AI translation tool to translate this documentation. Technical terms, code, pin assignments, and component names have been kept explicit to make AI-assisted translation easier.
 
 ```{=openxml}
 <w:p><w:r><w:br w:type="page"/></w:r></w:p>
@@ -120,7 +125,7 @@ KariPom DesktopのGitHubリポジトリ：`https://github.com/kariagepompadour/K
 3. **音に反応させる（BBX体験）** — 音声入力機能「Karipom Ear（かりポム・イヤー）」で、内蔵マイク・PC音声（Wi-Fi）・LINE INの3つの音源を切り替えて、音に合わせて口を動かせます。さらに**Visualizer（第13章）**を使うと、音そのものを画面いっぱいの光や図形として楽しめます。
 4. **画面の演出を眺める** — **Lighting（第14章）**で、ディスコ調の光の演出やレトロゲーム風のスクリーンセーバーなど、音とは独立した画面の演出も楽しめます。
 
-CoreS3の実機がなくても3の一部はKariPom Desktop（2.3）で、CoreS3の全機能はKariPom Companion（第9章・第15章）と組み合わせることで楽しめます。かりポム本体がAPIを使って自律的に会話する機能は、本書執筆時点では開発中です。
+CoreS3の実機がなくても3の一部はKariPom Desktop（2.3）で、CoreS3の全機能はKariPom Companion（第9章・第15章）と組み合わせることで楽しめます。かりポム本体にAI APIを組み込んで自律的に会話させる設計にはしておらず、APIキーや従量課金も不要です。その代わり、PC等で普段お使いのChatGPTなどの音声AIの会話・音声出力にかりポムが反応する、という構成を採っています。
 
 ## 2.5 どこから始める？（3つの構成）
 
@@ -172,7 +177,7 @@ CoreS3の実機がなくても3の一部はKariPom Desktop（2.3）で、CoreS3�
 |---|---|---|
 | Karipom Ear | PC音声（Wi-Fi）・LINE IN・内蔵マイクの3音源を切り替えて、音に合わせて口を動かします。PCM1808＋Pico2拡張を追加すると、PCなしでも楽しめます。 | 第12章、詳しくはKaripom Ear設計・製作マニュアル |
 | Talk（PC連携口パク） | PCで再生中の音声に合わせて、リアルタイムに口パクします。 | 第15章 |
-| Visualizer（音の可視化） | 音の強さやリズムを、画面いっぱいのグラフや図形として表示します。8種類から選べます。 | 第13章 |
+| Visualizer（音の可視化） | 音の強さやリズムを、画面いっぱいのグラフや図形として表示します。9種類から選べます。 | 第13章 |
 | Lighting（背景演出） | ディスコ調の光やレトロゲーム風のスクリーンセーバーなど、24種類の画面演出を楽しめます。Visualizerと組み合わせ可能です。 | 第14章 |
 
 **■ PC連携**
@@ -700,7 +705,7 @@ Visualizerは、Home画面の「📊 Audio Visualizer」欄から選びます。
 
 ❗ Visualizerは、音源がPC音声（Wi-Fi）またはLINE INのときに表示されます。内蔵マイク（MIC）モードでは表示されません（第12章）。
 
-## 13.2 選べる8種類のVisualizer
+## 13.2 選べる9種類のVisualizer
 
 | 名前 | どんな見た目か |
 |---|---|
@@ -712,14 +717,15 @@ Visualizerは、Home画面の「📊 Audio Visualizer」欄から選びます。
 | Kaleidoscope（万華鏡） | 実物の万華鏡のような、6分割の模様が音に合わせてゆっくり回転・変形します。 |
 | Analog VU | 昔のオーディオ機器に並んでいたアナログ針式VUメーターを、8個並べたような見た目で音の帯域ごとの強さを表示します。 |
 | **Tetromino Dance**（新機能） | 落ち物パズルを思わせる大きなブロックが、かりポムの顔の周りを落下・回転・横移動します。ブロックの大きさは目や口と同じくらいで、細かい粒がたくさん流れるような演出ではありません。 |
+| Flash Spotlight | 8バンドFFTに反応する半透明のカラースポットが、音に合わせてランダムに現れます。 |
 
-【図：Visualizer各モードの画面写真（8枚）】
+【図：Visualizer各モードの画面写真（9枚）】
 
 💡 どのVisualizerを選んでも、かりポムの顔は常に一番手前（最前面）に表示されるように作られています。Visualizerの演出で顔が完全に隠れてしまうことはありません。
 
 ## 13.3 Visualizer Random（おまかせ切り替え）
 
-「🎲 Visualizer Random」をONにすると、OFFを除く7種類の中から一定時間ごとに自動でランダムに切り替わります。切り替え間隔は5分・10分・15分から選べます。個別のVisualizerを手動で選び直すと、Randomは自動的にOFFに戻ります。
+「🎲 Visualizer Random」をONにすると、OFFを除く8種類の中から一定時間ごとに自動でランダムに切り替わります。切り替え間隔は5分・10分・15分から選べます。個別のVisualizerを手動で選び直すと、Randomは自動的にOFFに戻ります。
 
 ```{=openxml}
 <w:p><w:r><w:br w:type="page"/></w:r></w:p>
@@ -827,7 +833,7 @@ IPアドレスを保存すると、このタブの中にWebUI（第9章）がそ
 
 かりポムの実機が手元になくても、PC画面の中に「かりポムの顔」を表示し、PC音声に合わせて口パクさせて動作を確認できるタブです。IPアドレスを設定していなくても使えるので、実機到着前のお試しや、音声連携の動作確認に便利です。CoreS3をまだお持ちでない方は、この体験をさらに独立させた**KariPom Desktop**（第2章）もあわせてご覧ください。
 
-この顔の部分はクリックすると表示が切り替わり、**Face → 7種類のVisualizer → Face**の順に一巡します。PC音声（Talk）に反応するVisualizer（第13章）の演出を、CoreS3実機がなくてもCompanion単体で確認できます。
+この顔の部分はクリックすると表示が切り替わり、**Face → 8種類のVisualizer → Face**の順に一巡します。PC音声（Talk）に反応するVisualizer（第13章）の演出を、CoreS3実機がなくてもCompanion単体で確認できます。
 
 ## 15.4 💬 Talkタブ（PC連携口パク）
 
@@ -1070,7 +1076,7 @@ Home画面の各詳細設定欄から行います（第13章・第14章）。
 
 | 項目 | 説明 |
 |---|---|
-| Visualizer選択 | 8種類から1つ選択。 |
+| Visualizer選択 | 9種類から1つ選択。 |
 | Visualizer Random | ON/OFFと切り替え間隔（5/10/15分）。 |
 | Lighting選択 | 24種類から選択（面演出は1つ、オーバーレイは重ねて選択可）。 |
 | Lighting Random | ON/OFFと切り替え間隔（5/10/15分）。 |
@@ -1224,7 +1230,7 @@ A. ランダムなタイミングで自動再生されます。頻度はWebUIか
 A. いいえ、自由に選べます。筐体は3Dプリントで製作するため、お好きな色・フィラメントで作れます。本書に登場するピンクとティファニーブルーは、作者が製作した2台の例です。機能に色による違いはありません。「かりポム」「Miss かりポム」というキャラクター表示の違いも、機能的な差はありません。
 
 **Q. ChatGPTと会話できますか？**
-A. かりポム本体がAPIを使って自律的に会話する機能は、本書執筆時点では開発中です。ただし、「AIと会話しているように見える」体験は、今すぐ2通りの方法で楽しめます。
+A. かりポム本体がAI APIを直接利用して自律的に会話する設計にはなっていません（APIキーや従量課金は不要です）。その代わり、PC等で普段お使いのChatGPTなどの音声AIの会話・音声出力にかりポムが反応する、という構成で「AIと会話しているように見える」体験を、今すぐ2通りの方法で楽しめます。
 
 1. **CoreS3実機＋KariPom Companion** — PCでChatGPTなどのAI音声を再生しながら、音源をPC音声（Wi-Fi）モード（第15章）にすると、かりポムがその声に合わせて口パクします。
 2. **KariPom Desktop**（第2章） — 起動するだけで自動的にブラウザのChatGPTが開き、音声会話に合わせてかりポムが口パクします。CoreS3の実機がなくても体験できます。
@@ -1272,6 +1278,7 @@ A. はい。かりポムはGitHubで公開されている、今も継続的に�
 | Ver. 4.7 | 2026年8月 | 実機の実装状況に合わせて更新。第10章に「10.3 睡眠モード（Sleep）」を新設し、Sleep Lighting Carousel（眠り始め3分間の閉じ目＋Zzz、以降のFace Gallery／目×Lightingの3分周期切り替え）を追記（第3章の機能一覧にも追加）。第15章・第20章にmacOS「複数出力装置」に関する注意点を追記。第5章に、サーボ・ジョイスティック・Karipom Earが未接続でもCoreS3本体は動作を続ける旨の補足を追記。第9章・第2章のAIによるセットアップ案内に、ダブルクリックで起動できるランチャー作成を依頼する運用を追記。 |
 | Ver. 4.8 | 2026年8月 | 新しいLighting「Flower Clock」の追加に合わせて更新。第14.4章のLighting一覧を20種類→21種類に更新し、Flower Clockの説明行を追加。第3章の機能一覧・19.2・用語集のLighting種類数表記も21種類へ更新。 |
 | Ver. 4.9 | 2026年8月 | 新しいLighting「SKY BURNER」の追加に合わせて更新。第14.4章のLighting一覧にSKY BURNERの説明行を追加するとともに、以前から一覧に未掲載だったPINBALL ArcadeとBASEBALL Arcadeの説明行も追加し、実装済みの全24種類と一致させた（21種類→24種類）。第3章の機能一覧・19.2・用語集のLighting種類数表記も24種類へ更新。 |
+| Ver. 4.10 | 2026年8月 | 新しいVisualizer「Flash Spotlight」の追加に合わせて更新。第13.2章のVisualizer一覧にFlash Spotlightの説明行を追加し、8種類→9種類に更新（第13.3章のVisualizer Random対象数、第3章の機能一覧・19.2・用語集のVisualizer種類数表記も9種類へ更新）。あわせて、海外の読者向けに本書冒頭へ英語の簡単な案内文（For international visitors）を追加し、そこにも「AI APIを直接使わず、普段使いの音声AIに反応する」という特徴を明記した。また、第2.4章・FAQ「ChatGPTと会話できますか？」に残っていた「かりポム本体がAPIを使って自律的に会話する機能は開発中」という記述を、現在のコンセプト（かりポム本体はAI APIを直接利用せず、PC等で普段利用している音声AIの会話・音声出力に反応して動作する）に沿った説明へ修正した。 |
 
 ※かりポムは、ファームウェアの更新により機能が追加・変更される場合があります。本書の内容と実機の動作が異なる場合は、最新のWebUI表示を優先してください。
 
@@ -1313,7 +1320,7 @@ A. はい。かりポムはGitHubで公開されている、今も継続的に�
 | Mutter | マター。「つぶやく」の意味。かりポムの独り言機能の名称。 |
 | Karipom Ear | かりポムの音声入力（耳）機能の名称。PC音声（Wi-Fi）／LINE IN／内蔵マイクを切替可能。PCM1808＋Pico2拡張ハードウェアの製品名でもある（第12章、詳しくはKaripom Ear設計・製作マニュアル）。 |
 | Karipom Ear 設計・製作マニュアル | PCM1808＋Pico2拡張（およびLINE OUT増設・Bluetooth入力オプション）の配線・回路・組み立て手順をまとめた、GitHub公開の発展編マニュアル。 |
-| Visualizer | ビジュアライザー。音の大きさやリズムを画面いっぱいの図形として表示する機能。8種類。 |
+| Visualizer | ビジュアライザー。音の大きさやリズムを画面いっぱいの図形として表示する機能。9種類。 |
 | Lighting | ライティング。画面の背景演出機能。24種類。音に反応するものと反応しないものがある。 |
 | Random（🎲） | VisualizerまたはLightingを、一定時間ごとに自動でランダム切り替えする機能。 |
 | Tetromino Dance | 落ち物パズルを思わせる大型ブロックが顔の周囲を動くVisualizerの名称。 |

@@ -716,6 +716,7 @@ enum VisualizerMode : uint8_t {
   VIZ_MODE_KALEIDO=5,   // Kaleidoscope（万華鏡・6分割の頂点鏡映方式）
   VIZ_MODE_AVU   = 6,   // Analog VU（8バンドFFTを8個のアナログVUメーターへ / 4×2配置）
   VIZ_MODE_BLOCKS= 7,   // Mega Blocks（大型落ち物ブロック。8-Lane Rhythmとは無関係の独立モード。仮称）
+  VIZ_MODE_SPOTLIGHT = 8,   // Flash Spotlight（8バンドFFTを最大8個の半透明カラースポットとして表現。位置・色は約120msごとにランダム切替）
   VIZ_MODE_COUNT
 };
 
@@ -746,6 +747,8 @@ const VizModeInfo VIZ_MODES[VIZ_MODE_COUNT] = {
     "1970〜80年代のオーディオアンプ／ミキサーに並んでいたアナログVUメーターを、左右2chではなく『8バンドFFTそれぞれに1個ずつ』割り当てた8連アナログ・スペクトラムメーターです。上部48pxを除く画面へ4個×2段で配置し、上段左からband0〜band3、下段左からband4〜band7＝左上から右下へ低域→高域になります。クリーム色の盤面・黒い主目盛り・右端の赤いピークゾーン・赤い針・濃色の外枠という実機的な意匠で、背景は黒い機器パネル調です。8本の針は完全に独立して振れ、低音の強い曲は左上側、ボーカル中心は中央寄り、ハイハット等は右下側がよく動きます。針は立ち上がりに素早く追従し、下降時だけ機械式メーターらしい慣性でゆっくり戻ります。各バンドの絶対値と8バンド内での相対的な強弱の両方を使うため、小音量でも帯域ごとの違いが残り、音量を上げれば全体の振れ幅も大きくなります。顔・上部48pxの扱いは他のVisualizerと同じです。" },
   { "blocks", "Tetromino Dance",
     "落ち物パズルを連想させる大型ブロックが、かりポムの顔の周囲を少数（最大4個）落下・回転・移動するビジュアライザーです。8-Lane Rhythmのような固定8レーンの縦流しではなく、各ブロックが画面内を独立して自由に動きます。ブロックの一辺は目の直径・口の幅と同程度の大きさで、細かい粒を大量に流す表現にはしていません。回転は瞬間切り替えではなく、ブロック中心を軸に数フレームかけてクルッと回るアニメーションです。普段はまっすぐ落下し、ときどき数フレームかけて真横へ滑るように移動してからまた落下する、落ち物パズル特有の動きを再現しています。音の強さで落下速度が、低音の立ち上がりで回転・真横移動の発生が変化します。FFTの8バンドを画面の8列へ直接対応させる方式は採用していません。下端に到達したブロックは積み上がらず消え、新しいブロックが上部から出現します。他の白背景Visualizerと同じ白背景の上にブロックを描いた後、既存のdrawVisualizerFaceParts()を最後に描くため、かりポムの顔は常にブロックの手前に表示されます。" },
+  { "spotlight", "Flash Spotlight",
+    "8バンドFFTの各バンドを、半透明の色付きスポットライトのような円として個別に表示するビジュアライザーです。バンドの強さに応じて円の大きさが独立に変わり、無音や小音量のバンドは円ごと消えるため、常に0〜8個の円が現れては入れ替わります。位置と色は約120msごとにランダムに切り替わり、背景は塗りつぶさないためLightingと重ねて楽しめます。" },
 };
 
 // 現在のVisualizerモード（Wi-Fi / LINE IN / 将来のBluetooth 共通・NVS永続化）
@@ -14103,6 +14106,195 @@ void vizRenderMegaBlocks(bool needsInit) {
 }
 
 // ============================================================================
+// Visualizer #8 : Flash Spotlight
+//
+// 8バンドFFTの各バンドを、それぞれ独立した半透明の色付きスポットライトの
+// ような円として表現するビジュアライザーです。各円の半径は対応バンド自身の
+// FFTレベルだけから独立に計算されるため、8個が同じ大きさになることは
+// ありません。位置と色はSPOT_INTERVAL_MS(約120ms)ごとにまとめてランダムへ
+// 切り替わります（＝円自体は連続移動・ドリフトしない。切り替わる瞬間だけ
+// 配置が変わる）。白フラッシュ・Fake Lighting・背景の暗い円・フェード/残像・
+// ストロボ用の別エフェクトは行いません。
+//
+// ■ 無音時の扱い
+//   Analog VUと同じvizBandGain()（VIZ_EQ_GAIN8）をバンドごとに適用した
+//   gained[]を作り、SPOT_BAND_FLOOR（Analog VUのAVU_BAND_FLOORと同値）と
+//   比較する。閾値未満のバンドはそのフレームで円を一切描かない（最低半径
+//   での表示もしない）。したがって画面上の円の数は毎フレーム0〜8個の間で
+//   変動し、完全な無音時は0個＝背後のLightingと通常の顔だけが見える。
+//
+// ■ 半径＝絶対成分＋相対成分のブレンド
+//   Analog VUのabs/rel合成ロジック（vizRenderAnalogVu内）を踏襲し、絶対成分
+//   （gained[i]をSPOT_ABS_FULLでフルスケール化）と、8バンド平均に対する
+//   相対成分（比率をSPOT_REL_LO〜SPOT_REL_HIで0..1化）をSPOT_W_ABS・
+//   SPOT_W_RELで重み付け合成してから半径へマップする。絶対成分の重みを必ず
+//   残すため、全体が静かなときは相対的に最も強いバンドでも円が最大化
+//   しない。指数カーブによる小音量伸長は採用していない。
+//
+// ■ 半透明スポットライト描画
+//   円は均一alpha（SPOT_ALPHA、256段階中約128＝約50%）の半透明で、内側にも
+//   背後のLightingが透けて見える。M5GFX(LGFXBase)のfillCircle()にはアルファ
+//   引数が無いため、既存のfillRectAlpha()（矩形単位でRGB565背景とover合成
+//   する既存API）を走査線（横スパン）単位で呼び出すspotFillCircleAlpha()で
+//   円を組み立てる。中心だけ濃くする・グラデーション・ぼかし・発光効果・
+//   輪郭フェードは行わない、均一alphaのみのシンプルな塗りつぶし。
+//
+// ■ 描画方式
+//   専用Canvasは新設せず、既存のLighting→Visualizer→顔の統合Canvas合成
+//   （sceneComposeAndPush / sceneCanvas）にそのまま乗る。GFXマクロは合成中
+//   sceneCanvasを指すため、本関数のGFX.fillRectAlpha()呼び出しは全てCanvas
+//   上へ描かれ、その時点で表示対象となった円が揃った完成フレームだけが
+//   最後に一括で液晶へpushされる（scenePush()は本関数の外・
+//   sceneComposeAndPush()の最後で1回だけ呼ばれる）。
+//
+// ■ 背景
+//   本関数はfillScreen等の背景塗りを一切行わない。Lighting併用時はLighting
+//   の出力が、Lighting OFF時はsceneBeginCompose()が塗る白背景がそのまま
+//   残り、その上に半透明の円だけを重ねる。Canvas未確保の稀な例外時
+//   （gSceneOnCanvas==false）だけは、既存Visualizerと同じ作法で
+//   gLightingActive==falseのときに限り白で初期化する。
+//
+// ■ 重なり対策
+//   毎フレーム、閾値を超えて表示対象になったバンドだけを対象に半径の降順で
+//   並べ替え、大きい円を先に・小さい円を後に描く。後から描かれる半透明円が
+//   既に合成済みの結果へさらにブレンドされる通常の重なり方になる。
+// ============================================================================
+#define SPOT_INTERVAL_MS    120     // 新しいランダム配置（位置・色）へ切り替える周期
+#define SPOT_BAND_FLOOR     0.020f  // バンド単位の無音閾値（gained[]基準）。AVU_BAND_FLOORと同値
+#define SPOT_R_MIN           20.0f  // 閾値を超えて表示される円の最小半径（無音時の床ではない）
+#define SPOT_R_MAX           94.0f  // FFTレベル最大時の半径
+#define SPOT_TOP             SCENE_TOP   // 48。上部情報パネルには描かない（他Visualizerと同じ作法）
+#define SPOT_COLOR_COUNT     14
+#define SPOT_ALPHA           128    // 円の不透明度（0=完全透明〜255=不透明）。約50%
+
+// ── 半径の絶対成分＋相対成分ブレンド用パラメータ（Analog VUのAVU_*と同値を踏襲）──
+#define SPOT_ABS_FULL         1.30f  // gained[]がこの値でフルスケール（絶対成分）。AVU_ABS_FULLと同値
+#define SPOT_REL_EPS          0.060f // 相対比の分母下限。無音付近での比率暴走を防ぐ。AVU_REL_EPSと同値
+#define SPOT_REL_LO           0.35f  // 8band平均のこの倍率以下 → 相対成分0。AVU_REL_LOと同値
+#define SPOT_REL_HI           1.90f  // 8band平均のこの倍率以上 → 相対成分1。AVU_REL_HIと同値
+#define SPOT_W_ABS            0.55f  // 絶対成分の重み。AVU_W_ABSと同値
+#define SPOT_W_REL            0.60f  // 相対成分の重み。AVU_W_RELと同値
+
+// 鮮やかな色のみで構成した固定パレット（RGB565）。色相を連続計算するのではなく、
+// 固定パレットからの抽選で鮮やかな色をランダムに選ぶ。
+static const uint16_t SPOT_PALETTE[SPOT_COLOR_COUNT] = {
+  0xF800, 0xFB60, 0xFDA0, 0xFF40, 0xAFE0, 0x06E7, 0x07F1,
+  0x06FF, 0x04BF, 0x3ADF, 0x89FF, 0xF81B, 0xF9F1, 0xF8AB,
+};
+
+static bool           spotReady        = false;
+static int             spotX[VIZ_SRC_BAND_COUNT];
+static int             spotY[VIZ_SRC_BAND_COUNT];
+static uint16_t        spotColor[VIZ_SRC_BAND_COUNT];
+static unsigned long  spotLastSwitchMs = 0;
+
+// バンドnぶんの位置・色を新しくランダム抽選する（半径はここでは決めない。
+// 半径は毎フレーム、gained[]からその都度計算するため）。
+// 閾値未満で今は非表示のバンドも含め、常に全バンド分を抽選しておく。こう
+// することで、そのバンドが後で閾値を超えて表示され始めた瞬間には、既に
+// 決まった位置・色をすぐ使える（表示開始時に古い座標が残らない）。
+static void spotReshuffle(uint8_t n) {
+  for (uint8_t i = 0; i < n; i++) {
+    spotX[i]     = (int)random(0, SCENE_W);
+    spotY[i]     = (int)random((int)SPOT_TOP, SCENE_H);
+    spotColor[i] = SPOT_PALETTE[(int)random(0, SPOT_COLOR_COUNT)];
+  }
+}
+
+// 均一な半透明の塗りつぶし円を、走査線（横スパン）単位のGFX.fillRectAlpha()
+// で組み立てる。fillCircle()相当の一括円塗りつぶしにはアルファ引数が無い
+// ため、既存のfillRectAlpha()（矩形単位でRGB565背景とover合成する既存API）
+// を1行ずつ呼び出す。中心だけ濃くする・ぼかし等は行わず、円内は一律alpha。
+static void spotFillCircleAlpha(int cx, int cy, int r, uint16_t color, uint8_t alpha) {
+  if (r <= 0) return;
+  for (int dy = -r; dy <= r; dy++) {
+    int dx = (int)lroundf(sqrtf((float)(r * r - dy * dy)));
+    int x0 = cx - dx;
+    int w  = dx * 2 + 1;
+    GFX.fillRectAlpha(x0, cy + dy, w, 1, alpha, color);
+  }
+}
+
+void vizRenderFlashSpotlight(bool needsInit) {
+  const AudioVizState& s = gViz;
+  uint8_t n = s.bandCount;
+  if (n == 0) return;
+  if (n > VIZ_SRC_BAND_COUNT) n = VIZ_SRC_BAND_COUNT;
+
+  unsigned long now = millis();
+
+  if (needsInit || !spotReady) {
+    if (!gLightingActive && !gSceneOnCanvas) GFX.fillScreen(WHITE);   // Canvas未確保時のみの例外（他Visualizerと同じ作法）
+    spotReshuffle(n);
+    spotLastSwitchMs = now;
+    spotReady        = true;
+    if (!gLightingActive) drawVisualizerFaceParts(true);
+  } else if (now - spotLastSwitchMs >= (unsigned long)SPOT_INTERVAL_MS) {
+    spotReshuffle(n);
+    spotLastSwitchMs = now;
+  }
+
+  // ── 1. 入力：既存の8バンド補正(vizBandGain)を適用した値だけを使う ──
+  //    （Analog VUと同一のゲイン。FFT本体・vizUpdateState()には一切触れない）
+  float gained[VIZ_SRC_BAND_COUNT];
+  float mean = 0.0f;
+  for (uint8_t i = 0; i < n; i++) {
+    float g = s.band[i] * vizBandGain(i, n);
+    if (g < 0.0f) g = 0.0f;
+    gained[i] = g;
+    mean += g;
+  }
+  mean /= (float)n;
+  float relDen = (mean > SPOT_REL_EPS) ? mean : SPOT_REL_EPS;   // 相対比の分母（下限つき）
+
+  // ── 2. バンドごとに独立して表示/非表示を判定し、表示対象だけ絶対＋相対
+  //    ブレンドで半径を求める（Analog VUのabs/rel合成と同じ考え方）。
+  static float   r[VIZ_SRC_BAND_COUNT];
+  static uint8_t order[VIZ_SRC_BAND_COUNT];
+  uint8_t visibleCount = 0;
+  for (uint8_t i = 0; i < n; i++) {
+    if (gained[i] < SPOT_BAND_FLOOR) continue;   // 無音/十分小さい → このバンドの円は描かない
+
+    float aAbs = gained[i] / SPOT_ABS_FULL;                  // 絶対音量（音量を上げれば全体が大きくなる）
+    if (aAbs > 1.0f) aAbs = 1.0f;
+
+    float ratio = gained[i] / relDen;                           // 8band平均に対する比率（音量に依存しない）
+    float aRel = (ratio - SPOT_REL_LO) / (SPOT_REL_HI - SPOT_REL_LO);
+    if (aRel < 0.0f) aRel = 0.0f;
+    if (aRel > 1.0f) aRel = 1.0f;
+
+    float blend = SPOT_W_ABS * aAbs + SPOT_W_REL * aRel;   // 絶対成分は必ず残る（全体静音時の暴走を防ぐ）
+    if (blend > 1.0f) blend = 1.0f;
+    if (blend < 0.0f) blend = 0.0f;
+
+    r[visibleCount]     = SPOT_R_MIN + (SPOT_R_MAX - SPOT_R_MIN) * blend;
+    order[visibleCount] = i;
+    visibleCount++;
+  }
+
+  // 表示対象（0〜n個）だけを対象に、半径の降順へ並べ替える単純選択ソート。
+  for (uint8_t a = 0; a < visibleCount; a++) {
+    uint8_t maxIdx = a;
+    for (uint8_t b = (uint8_t)(a + 1); b < visibleCount; b++) {
+      if (r[b] > r[maxIdx]) maxIdx = b;
+    }
+    if (maxIdx != a) {
+      float    tr = r[a];     r[a]     = r[maxIdx];     r[maxIdx]     = tr;
+      uint8_t  ti = order[a]; order[a] = order[maxIdx]; order[maxIdx] = ti;
+    }
+  }
+
+  // ── 大きい円→小さい円の順に均一半透明で塗るだけ（輪郭線・ハイライト無し）──
+  for (uint8_t k = 0; k < visibleCount; k++) {
+    uint8_t i = order[k];
+    spotFillCircleAlpha(spotX[i], spotY[i], (int)lroundf(r[k]), spotColor[i], SPOT_ALPHA);
+  }
+
+  // 顔は最前面（Lighting中はコンポジタが最後に描く。単体表示中はここで描く）。
+  if (!gLightingActive) drawVisualizerFaceParts(false);
+}
+
+// ============================================================================
 // Visualizer Manager
 //
 // 【Visualizerを追加する手順（このファイル内で完結）】
@@ -14125,6 +14317,7 @@ const VizRenderFn VIZ_RENDER_FN[VIZ_MODE_COUNT] = {
   vizRenderKaleidoscope,// VIZ_MODE_KALEIDO
   vizRenderAnalogVu,    // VIZ_MODE_AVU
   vizRenderMegaBlocks,  // VIZ_MODE_BLOCKS
+  vizRenderFlashSpotlight, // VIZ_MODE_SPOTLIGHT
 };
 
 // 各Visualizerの描画周期(ms)。既存EQは従来どおり80ms。
@@ -14133,7 +14326,10 @@ const VizRenderFn VIZ_RENDER_FN[VIZ_MODE_COUNT] = {
 // Analog VUは針の動きを機械式メーターらしく滑らかに見せるため60ms（約16.7fps）とする。
 // 1フレームの描画は8メーター×約30プリミティブ＝約240プリミティブで、
 // Mirror Wave（81列×最大3回≒243回）と同程度のオーダーに収まる。
-const uint16_t VIZ_INTERVAL_MS[VIZ_MODE_COUNT] = { 0, 80, 70, 70, 40, 70, 60, 70 };
+// Flash Spotlightは位置・色の切替自体はSPOT_INTERVAL_MS(120ms)で内部管理するため、
+// ここはAnalog VUと同じ60ms程度に留め、その間の円サイズ（FFTレベル）の追従を
+// 滑らかにする（Lighting併用時はこの値を使わず毎フレーム描画される）。
+const uint16_t VIZ_INTERVAL_MS[VIZ_MODE_COUNT] = { 0, 80, 70, 70, 40, 70, 60, 70, 60 };
 
 // ====================================================
 // Visualizer 有効判定と切替
