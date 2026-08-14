@@ -825,6 +825,7 @@ enum LightingMode : uint8_t {
   LIGHT_FLOWERCLOCK = 20,     // Flower Clock（背景・画面いっぱいの12色花びら＋中央白文字盤のカラフルなアナログ時計）
   LIGHT_PINBALL = 21,         // PINBALL Arcade（背景・自動プレイのピンボール台。プレイヤー操作なしのスクリーンセーバー）
   LIGHT_BASEBALL = 22,        // BASEBALL Arcade（背景・ATARI2600〜初期ファミコン風の完全自動野球デモ）
+  LIGHT_SKYBURNER = 23,       // SKY BURNER（背景・1980年代後半の初期アーケード空中戦ゲーム風。自機後方視点の疑似3D空中戦デモ）
   // ↓ 将来ここへ追加（Defender / Scramble / Pong / Block Breaker / Fire / Neon …）
   // cfg_lightingMask は uint32_t（今後のLighting追加を見込んで正式採用。bit31=32番目まで拡張余地あり）。
   LIGHT_MODE_COUNT
@@ -880,6 +881,8 @@ const LightModeInfo LIGHT_MODES[LIGHT_MODE_COUNT] = {
     "いつものかりポムの顔が、そのままピンボール台になった完全自動プレイのスクリーンセーバーLightingです。目・鼻・口は通常のかりポムの顔と同じ位置・大きさのまま表示されます。左右の目は丸型バンパーとして、内側は白・外周はピンクのリング・一番外側は白い輪郭というシンプルな電飾風の見た目になり、白い中央には得点「100」の数字が表示され、ボールが当たると一瞬明るく白くフラッシュします。鼻も普段どおりの見た目のまま、当たった瞬間だけ一瞬白く光る隠れた役物として機能します。口（縦線＋逆Y字の斜め線）は見た目こそ普段どおりですが当たり判定を持たず、ボールはラリーが続きやすいよう素通りします（ただし通過した瞬間だけ、その線全体が一瞬白く光る演出があります）。プレイフィールドは濃紺〜ダークブルーの1枚の閉じた盤面として塗りつぶされ、外周は明るいブルーのレールで縁取られます。下部左右のフリッパーは支点が外側、先端は丸みのある形状で、静止時は先端が中央下（ドレイン側）を向き、ボールが来ると先端が中央上方向へ跳ね上がって自動で打ち返し続けます。フリッパーで受け止めきれずボールが落下した場合は自動的に新しいボールが発射され、プレイは無限に続きます。ゲームオーバー・残機・プレイヤー操作は一切なく、スコアの表示も行いません（内部的な得点集計のみ行っています）。表示領域は他のLighting同様、上部48pxの情報パネルを除く画面下側です。Brightness設定が効きます。" },
   { "baseball", "BASEBALL Arcade",
     "ATARI2600〜初期ファミコン時代を思わせる、非常にシンプルでしょぼい雰囲気の完全自動野球デモLightingです。ホームベース側の角度が約120度になる斜め上からの俯瞰視点でフィールドを描き、芝は緑・内野は1塁〜2塁〜3塁を結ぶ幅のある茶色い土の帯（投手マウンドも独立した茶色い円）、塁線・塁・選手・ボールはすべて白で統一します。選手は帽子・ユニフォーム・グローブを持つ、人と分かる丸みのあるドットキャラです。プレイヤー操作は一切なく、投手が投球→打者が自動でスイング→打球がゴロまたはフライで左・中央・右のいずれかへ飛ぶ→守備選手が追いかける→SINGLE・DOUBLE・HOME RUNのいずれかで走者が1塁→2塁→3塁→ホームへ進み、まれに守備選手が捕球してOUTになる、というサイクルを無限に繰り返します。文字による結果表示やRUNS/OUTのスコアUIは一切なく、試合の動きだけを見せる演出です。3アウトでの攻守交代・イニング制・ゲームオーバーの概念も無く、満塁になっても止まらず走者が入れ替わりながら永久に続きます。表示領域は他のLighting同様、上部48pxの情報パネルを除く画面下側です。Brightness設定が効きます。" },
+  { "skyburner", "SKY BURNER",
+    "1980年代後半の初期アーケード空中戦ゲームを彷彿とさせる、自機後方視点の疑似3D空中戦デモです（実在ゲームの再現ではなく、雰囲気を参考にしたKariPom独自の演出です）。自機本体は画面外に存在する体として描かず、画面下端付近からミサイルが発射されます。中央〜上部には後ろ姿の敵機、背景に空・地平線・海面を配置し、地平線を中心とした可変傾きの直線と放射状の速度線でバンク（旋回）と高速飛行を表現します。索敵→敵機出現→追尾→LOCK→ミサイル発射→ミサイル追尾→HIT→爆発→次の敵、という一連の流れを自動的に無限に繰り返します。照準が敵機を追い続けると赤いLOCK表示に変わって自機からミサイルが発射され、ミサイルは直進せず敵機を追尾して軌道が曲がり、手前ほど太く遠方ほど細い白い煙の帯を残します。敵機も時折ミサイルで反撃し、接近しながら大きくなる弾が画面手前で左右へ回避してすれ違います（被弾判定はありません）。命中すると黄→橙/赤→白と変化する爆発を経て、少し間を置いて次の敵機が現れます。画面にはSCORE・ENEMY・HIT・SPD・ALT・THROTTLE・レーダーなどの演出用HUDも表示されますが、実際のゲーム進行・操作・勝敗判定は一切ありません。表示領域は他のLighting同様、上部48pxの情報パネルを除く画面下側です。Brightness設定が効きます。" },
 };
 
 // Lightingの複数選択状態（ビットマスク・NVS "lightMask" に保存）。0=全OFF。
@@ -959,6 +962,7 @@ const uint8_t LIGHT_LAYER[LIGHT_MODE_COUNT] = {
   LIGHT_LAYER_BG,    // LIGHT_FLOWERCLOCK … 面
   LIGHT_LAYER_BG,    // LIGHT_PINBALL … 面
   LIGHT_LAYER_BG,    // LIGHT_BASEBALL … 面
+  LIGHT_LAYER_BG,    // LIGHT_SKYBURNER … 面
 };
 const uint8_t LIGHT_HEADER[LIGHT_MODE_COUNT] = {
   HEADER_LIGHT,      // LIGHT_DISCO  … 明るい原色の床 → 上端は白背景が読みやすい
@@ -988,6 +992,7 @@ const uint8_t LIGHT_HEADER[LIGHT_MODE_COUNT] = {
   HEADER_LIGHT,      // LIGHT_FLOWERCLOCK … 中央白文字盤＋明るい原色の花びら → 上端は白背景が読みやすい
   HEADER_DARK,       // LIGHT_PINBALL … 黒いピンボード台盤面 → 黒
   HEADER_LIGHT,      // LIGHT_BASEBALL … 明るい草地の緑のフィールド → 上端は白背景が読みやすい
+  HEADER_LIGHT,      // LIGHT_SKYBURNER … 明るい青空が大部分を占める → 上端は白背景が読みやすい
 };
 
 // 上端パネルを黒テーマにすべきか（採用中の背景Lightingのヘッダーに従う）。
@@ -23026,6 +23031,947 @@ void lightRenderBaseball(bool needsInit, bool fullRepaint) {
   }
 }
 
+// ############################################################################
+// #  SKY BURNER Lighting（v1.0 / 2026-08-14）                                #
+// ############################################################################
+//
+// ■ コンセプト
+//   1980年代後半の初期アーケード空中戦ゲーム（After Burner等）を思わせる、
+//   自機後方視点の疑似3D空中戦デモです。リアルなフライトシミュレーターの
+//   再現ではなく、「高速飛行しながら敵機を追尾し、ロックオンしてミサイルを
+//   撃つ」という一連の流れを、少ない図形とアニメーションで一目で分かる形に
+//   単純化した表現です。プレイヤー操作は無く、以下のサイクルを自動的に
+//   無限に繰り返します。
+//     索敵 → 敵機出現 → 追尾 → LOCK → ミサイル発射 → ミサイル追尾 →
+//     HIT → 爆発 → 次の敵
+//
+// ■ 疑似3D（重要）
+//   実際の3D投影計算は一切行わない。地平線は「画面中心(160,SKB_HORIZON_Y0)
+//   を通る、可変傾きの直線」として毎フレーム引き直す（傾き=tan(バンク角)。
+//   中心を通る直線の傾きとしてこれは厳密に正しい）ことで旋回（バンク）を
+//   表現し、同じ中心から放射状に伸びる速度線をバンク角ぶん回転させることで
+//   「画面そのものが旋回している」感覚を作る。敵機・照準・ミサイルはすべて
+//   スクリーン座標上を直接動かすだけで、3D空間上の座標は一切持たない。
+//
+// ■ レイヤー種別＝【背景(面)】
+//   Missile Defense / Sky Raid と同じく、空＋地平線＋海面を自前で毎フレーム
+//   全面描画する完結型の背景演出。既存Lighting・Visualizerのコード・状態
+//   には一切触れない。
+//
+// ■ 状態遷移（skbState）
+//   SEARCH（索敵・照準が中央付近をゆっくり漂う。敵機はまだ無し）
+//     → TRACK（敵機出現・接近しながら左右上下へ回避行動。照準が追従し、
+//       一定時間捕捉し続けるとロック進行ゲージが貯まる）
+//     → LOCKED（LOCK表示・照準が赤いブラケットへ変化してから一定時間後に
+//       ミサイル発射）
+//     → MISSILE（ミサイルが敵機を追尾。旋回して軌道が曲がり、白い煙の
+//       軌跡を残す）
+//     → HIT（命中地点で爆発。黄→橙/赤→白と変化し、破片が飛び散る）
+//     → COOLDOWN（一呼吸置いて次のSEARCHへ）
+//
+// ■ かりポムの目線
+//   Retro Race等と同じ理由（Lighting中の setEyeDirection() は白背景で塗り
+//   潰してしまう）で、ここでも eyeOffsetX/eyeOffsetY を直接更新するだけに
+//   留める。照準の位置を追わせることで「照準の先を見ている」ように見せる。
+//
+// ■ 共通ルール遵守
+//   ・背景の描画は lightFillRect / lightDrawLine を使う（fillTriangle・
+//     fillCircle・drawRect は色へ lightBright() を手動適用。他Lightingと
+//     同じ既存の使い分け）
+//   ・上端48px（情報パネル）には描かない（SKB_TOP=48。GFX側のclipRectは
+//     使わず、Missile Defense等と同じく座標を数値でクランプして管理する）
+//   ・顔はコンポジタが最前面に描く
+//   ・動的メモリ確保なし。すべて固定長の静的配列／スカラー変数のみ
+//   ・カスタムstruct（SkbSmoke）は関数引数に直接取らない（配列インデックス
+//     渡しのみ）。Arduino IDEの自動プロトタイプ生成が構造体定義より前へ
+//     プロトタイプを挿入してしまう既知の問題を回避するため（MslBurstと
+//     同じ対策。詳細はMissile Defenseのコメント参照）。
+// ============================================================================
+#define SKB_TOP              48       // 上端の情報パネル高さ（ここには描かない）
+#define SKB_HORIZON_Y0      132       // バンク0度時の地平線Y（画面中心の回転軸）
+
+#define SKB_MAX_BANK_DEG      18.0f   // 最大バンク角（自機＝画面の傾き）
+#define SKB_BANK_SMOOTH        0.07f  // バンク角の追従係数(0..1/フレーム)
+#define SKB_ENEMY_MAX_BANK_DEG 26.0f  // 敵機自身のバンク角（移動方向に合わせて機体を傾ける）
+#define SKB_ENEMY_BANK_SMOOTH  0.10f  // 敵機バンク角の追従係数
+
+#define SKB_SEARCH_MIN_MS     500
+#define SKB_SEARCH_MAX_MS     900
+#define SKB_APPROACH_MS      2600     // 出現から接近しきる(scale最大)までの時間
+#define SKB_ENEMY_FOLLOW       0.10f  // 敵機の実位置→ふらつき目標への追従係数
+#define SKB_AIM_FOLLOW          0.14f  // 照準の敵機への追従係数
+#define SKB_COOLDOWN_AIM_FOLLOW 0.05f  // COOLDOWN中に照準が中央へ戻る係数
+#define SKB_LOCK_CAPTURE_PX    28.0f   // 照準と敵機の距離がこれ未満ならロック進行が貯まる
+#define SKB_LOCK_REQUIRE_MS    850     // ロックに必要な連続捕捉時間(蓄積ms)
+#define SKB_LOCK_DECAY          0.6f   // 捕捉が外れた時のロック進行減衰倍率
+#define SKB_LOCK_HOLD_MS       450     // LOCK表示からミサイル発射までの間
+#define SKB_MISSILE_SPEED_PPS 340.0f   // ミサイル速度(px/秒)
+#define SKB_MISSILE_TURN        0.14f  // 旋回追従率(0..1、毎フレーム速度ベクトルへ適用)
+#define SKB_MISSILE_MAX_MS    1700     // 保険：この時間で強制着弾させる
+#define SKB_MISSILE_HIT_PX     12.0f
+#define SKB_MSL_LAUNCH_Y       236.0f  // こちらのミサイル発射Y（画面下端付近。自機は画面外の体）
+#define SKB_MSL_LANE_OFFSET     78.0f  // 発射レーン（中央/左/右）のXオフセット
+
+// 煙（自機ミサイル用）：「曲がる煙の帯」がミサイル本体より目立つくらいの
+// 迫力にするため、保持数・寿命・1フレームあたりの生成数を大きく確保する。
+#define SKB_SMOKE_MAX            64
+#define SKB_SMOKE_LIFE_MS       1300
+#define SKB_SMOKE_SPAWN_PER_FRAME  3   // 1フレームで軌跡上に補間生成するパフ数
+#define SKB_SMOKE_R0              6.5f // 生成直後の半径（手前＝発射点付近での基準値。遠近感はskbDepthT()で別途掛ける）
+#define SKB_SMOKE_R_MIN           2.0f // 寿命の終わりに近づいた時の下限半径（r0に対する比率の基準）
+#define SKB_SMOKE_R_FAR           1.0f // 遠方（敵機付近）での生成直後の半径（依頼：手前と遠方で明確な太さ差を付ける）
+
+#define SKB_HIT_FLASH_MS        110    // フェーズ1（黄色フラッシュ）の時間
+#define SKB_HIT_MID_MS          260    // フェーズ2（橙/赤）までの累積時間
+#define SKB_HIT_LIFE_MS         560    // 爆発全体の寿命（フェーズ3の終わりまで）
+#define SKB_COOLDOWN_MIN_MS     450
+#define SKB_COOLDOWN_MAX_MS     850
+#define SKB_STREAK_COUNT         14    // 速度線の本数
+#define SKB_STREAK_SPEED_PPS  240.0f   // 速度線が外へ流れる速さ(px/秒)
+#define SKB_STREAK_MAX_R       190.0f  // これを超えたら中心付近から再スタート
+#define SKB_STREAK_SEG_LEN      22.0f  // 速度線1本の長さ
+
+// 敵ミサイル（遠方に小さく現れ、接近するにつれて大きくなり、最後は画面手前で
+// 左右へ回避して外れる。被弾処理・ゲームオーバーは無し＝演出のみ）。
+#define SKB_EMSL_MIN_INTERVAL_MS 2600  // 通過後、次の発射までの最短クールダウン
+#define SKB_EMSL_MAX_INTERVAL_MS 4600
+#define SKB_EMSL_APPROACH_MS    1000   // 接近フェーズの時間
+#define SKB_EMSL_DODGE_MS        350   // 回避フェーズの時間（このぶんは保険タイムアウトの基準）
+#define SKB_EMSL_SCALE_MIN        0.15f
+#define SKB_EMSL_SCALE_PEAK       1.6f  // 画面手前を通過する瞬間の大きさ
+#define SKB_EMSL_SCALE_END        0.55f
+#define SKB_ESMOKE_MAX            20
+#define SKB_ESMOKE_LIFE_MS       550
+#define SKB_ESMOKE_R_FAR          1.0f  // 発射直後（敵機付近＝遠方）での煙半径
+#define SKB_ESMOKE_R_NEAR         7.5f  // 画面手前（最接近）での煙半径。自機ミサイルの煙より
+                                         // やや大きくし、「かなり大きく太い」を誇張して表現する
+
+enum SkbState : uint8_t { SKB_ST_SEARCH = 0, SKB_ST_TRACK, SKB_ST_LOCKED, SKB_ST_MISSILE, SKB_ST_HIT, SKB_ST_COOLDOWN };
+enum SkbEmslPhase : uint8_t { SKB_EMSL_APPROACH = 0, SKB_EMSL_DODGE };
+
+// 空・海・敵機・照準・ミサイル・煙・爆発の配色。HUD・警告は「線（黄緑）1色＋
+// 赤の警告」に統一する（依頼の「色は基本的に線で統一し、警告やロックは赤」）。
+static const uint16_t SKB_SKY_COL         = (uint16_t)((( 70 & 0xF8) << 8) | ((130 & 0xFC) << 3) | (215 >> 3));  // 中空の青
+static const uint16_t SKB_SKY_HZ_COL      = (uint16_t)(((190 & 0xF8) << 8) | ((220 & 0xFC) << 3) | (235 >> 3));  // 地平線付近の明るい空
+static const uint16_t SKB_SEA_COL         = (uint16_t)((( 20 & 0xF8) << 8) | (( 85 & 0xFC) << 3) | (125 >> 3));  // 海面
+static const uint16_t SKB_SEA_HZ_COL      = (uint16_t)((( 55 & 0xF8) << 8) | ((135 & 0xFC) << 3) | (160 >> 3));  // 地平線付近の明るい海面
+static const uint16_t SKB_STREAK_COL      = 0xFFFF;                                                               // 速度線＝白
+static const uint16_t SKB_ENEMY_COL       = (uint16_t)(((230 & 0xF8) << 8) | (( 70 & 0xFC) << 3) | ( 60 >> 3));  // 敵機＝赤
+static const uint16_t SKB_ENEMY_ENGINE_COL= (uint16_t)(((255 & 0xF8) << 8) | ((150 & 0xFC) << 3) | ( 60 >> 3));  // 敵機エンジン排気口＝橙
+static const uint16_t SKB_RETICLE_COL     = (uint16_t)((( 80 & 0xF8) << 8) | ((255 & 0xFC) << 3) | (140 >> 3));  // 照準（追尾中）・HUD基本色＝黄緑
+static const uint16_t SKB_LOCK_COL        = (uint16_t)(((255 & 0xF8) << 8) | (( 60 & 0xFC) << 3) | ( 60 >> 3));  // 照準（LOCK後）・警告・敵ミサイル＝赤
+static const uint16_t SKB_MISSILE_COL     = 0xFFFF;                                                               // ミサイル本体＝白
+static const uint16_t SKB_MISSILE_FLAME   = (uint16_t)(((255 & 0xF8) << 8) | ((160 & 0xFC) << 3) | ( 40 >> 3));  // 噴射炎＝橙
+static const uint16_t SKB_SMOKE_COL       = (uint16_t)(((235 & 0xF8) << 8) | ((235 & 0xFC) << 3) | (235 >> 3));  // 煙＝白〜明るいグレー
+static const uint16_t SKB_HIT_COL_A       = 0xFFE0;                                                               // 爆発フェーズ1＝黄
+static const uint16_t SKB_HIT_COL_B       = (uint16_t)(((255 & 0xF8) << 8) | (( 90 & 0xFC) << 3) | ( 20 >> 3));  // 爆発フェーズ2＝橙/赤
+static const uint16_t SKB_HIT_COL_C       = 0xFFFF;                                                               // 爆発フェーズ3＝白
+
+static uint8_t       skbState        = SKB_ST_SEARCH;
+static unsigned long skbStateStartMs = 0;
+static unsigned long skbNextAt       = 0;    // SEARCH/COOLDOWNの次状態切替時刻
+static unsigned long skbPrevMs       = 0;    // dt計算用（lightRenderBaseballと同じ方式）
+static uint32_t      skbRng          = 0x5A17B00Bu;
+
+static float skbBankDeg = 0.0f;
+
+// 敵機（同時に1機のみ。撃墜のたびに入れ替わる）
+static bool          skbEnemyAlive    = false;
+static float         skbEnemyX = 160.0f, skbEnemyY = 90.0f;
+static float         skbEnemyTargetX  = 160.0f, skbEnemyTargetY = 90.0f;
+static unsigned long skbEnemyWanderAt = 0;
+static float         skbEnemyScale    = 0.35f;
+static float         skbEnemyBankDeg  = 0.0f;   // 敵機自身の左右傾き（移動方向に連動）
+static unsigned long skbEngageStartMs = 0;
+
+// 照準・ロック進行
+static float skbAimX = 160.0f, skbAimY = 100.0f;
+static float skbLockTimerMs = 0.0f;
+
+// こちらのミサイル
+static bool          skbMslActive  = false;
+static float         skbMslX = 0, skbMslY = 0, skbMslVx = 0, skbMslVy = 0;
+static unsigned long skbMslStartMs = 0;
+
+// 煙（過去のミサイル位置を複数保持し、時間とともに縮小・退色させる）。
+// r0は生成時の半径（敵ミサイル用は接近するほど太くするため個体ごとに変える）。
+struct SkbSmoke { bool active; float x, y, r0; unsigned long startMs; };
+static SkbSmoke skbSmoke[SKB_SMOKE_MAX];    // こちらのミサイルの煙（長く太い帯）
+static SkbSmoke skbESmoke[SKB_ESMOKE_MAX];  // 敵ミサイルの煙（短め）
+
+// 敵ミサイル（同時に1発のみ。通過後クールダウンを挟んで次が発射される）
+static bool          skbEmslActive        = false;
+static uint8_t       skbEmslPhase         = SKB_EMSL_APPROACH;
+static float         skbEmslX = 0, skbEmslY = 0, skbEmslScale = 0;
+static float         skbEmslSpawnX = 0, skbEmslSpawnY = 0;
+static float         skbEmslDodgeVx = 0, skbEmslDodgeVy = 0;
+static unsigned long skbEmslPhaseStartMs = 0;
+static unsigned long skbEmslNextAt       = 0;
+
+// 爆発（敵機は同時に1機のみのため、爆発も同時1つで足りる）
+static bool          skbExplActive  = false;
+static float         skbExplX = 0, skbExplY = 0;
+static unsigned long skbExplStartMs = 0;
+static uint32_t      skbExplSeed    = 0;
+
+// 速度線（各線の現在半径・基準角度を保持）
+static float skbStreakR[SKB_STREAK_COUNT];
+static float skbStreakBaseAng[SKB_STREAK_COUNT];
+static bool  skbStreakReady = false;
+
+// HUDテレメトリ（スコア・残存機数・撃墜数・弾数・速度/高度/スロットルの
+// 疑似表示。フライトシムとしての正確さは狙わず、雰囲気を出すための値）
+static uint32_t      skbScore          = 0;
+static uint16_t      skbHitCount       = 0;
+static uint8_t       skbEnemyWaveLeft  = 5;    // HUD「ENEMY」＝残存編隊数(表示専用)
+static uint8_t       skbMslAmmo        = 4;    // HUD「MSL」（発射のたびに減り、時間で回復）
+static unsigned long skbMslRegenAt     = 0;
+static uint8_t       skbSaamAmmo       = 10;   // HUD「SAAM」（時間経過で増減する演出用カウンタ）
+static unsigned long skbSaamRegenAt    = 0;
+static float         skbThrottleSmooth = 80.0f;
+
+static inline uint32_t skbRand()   { skbRng = skbRng * 1664525u + 1013904223u; return skbRng; }
+static inline float    skbRand01() { return (float)(skbRand() >> 8) / 16777216.0f; }  // 0..1
+
+static inline int skbClampY(int y) {
+  if (y < SKB_TOP) return SKB_TOP;
+  if (y > 240)     return 240;
+  return y;
+}
+
+// Lighting再開のたびに呼ばれる全面リセット。速度線の初期配置だけは
+// skbStreakReadyで一度きりに留め、再開のたびに位置が飛ばないようにする。
+static void skbResetState(unsigned long now) {
+  skbState        = SKB_ST_SEARCH;
+  skbStateStartMs = now;
+  skbNextAt       = now + SKB_SEARCH_MIN_MS
+                  + (unsigned long)(skbRand01() * (float)(SKB_SEARCH_MAX_MS - SKB_SEARCH_MIN_MS));
+  skbBankDeg      = 0.0f;
+  skbEnemyAlive   = false;
+  skbEnemyBankDeg = 0.0f;
+  skbAimX = 160.0f; skbAimY = (float)SKB_HORIZON_Y0 - 26.0f;
+  skbLockTimerMs  = 0.0f;
+  skbMslActive    = false;
+  for (uint8_t i = 0; i < SKB_SMOKE_MAX; i++) skbSmoke[i].active = false;
+  for (uint8_t i = 0; i < SKB_ESMOKE_MAX; i++) skbESmoke[i].active = false;
+  skbEmslActive   = false;
+  skbEmslNextAt   = now + 1800 + (unsigned long)(skbRand01() * 1800.0f);   // 開始直後の連続発射を避ける
+  skbExplActive   = false;
+  skbScore          = 0;
+  skbHitCount       = 0;
+  skbEnemyWaveLeft  = 5 + (uint8_t)(skbRand() % 5);
+  skbMslAmmo        = 4;
+  skbMslRegenAt     = now + 3400;
+  skbSaamAmmo       = 10;
+  skbSaamRegenAt    = now + 2200;
+  skbThrottleSmooth = 80.0f;
+  if (!skbStreakReady) {
+    for (uint8_t i = 0; i < SKB_STREAK_COUNT; i++) {
+      skbStreakBaseAng[i] = ((float)i / (float)SKB_STREAK_COUNT) * 6.2831853f + skbRand01() * 0.2f;
+      skbStreakR[i]       = skbRand01() * SKB_STREAK_MAX_R;
+    }
+    skbStreakReady = true;
+  }
+}
+
+// 敵機を新規出現させる（画面上部＝遠方に小さく現れ、接近しながら大きくなる）。
+static void skbSpawnEnemy(unsigned long now) {
+  skbEnemyX = 90.0f + skbRand01() * 140.0f;                  // 90〜230（中央寄り）
+  skbEnemyY = (float)SKB_TOP + 26.0f + skbRand01() * 40.0f;  // 上部寄り＝遠方
+  skbEnemyTargetX  = skbEnemyX;
+  skbEnemyTargetY  = skbEnemyY;
+  skbEnemyScale    = 0.35f;
+  skbEnemyAlive    = true;
+  skbEngageStartMs = now;
+  skbEnemyWanderAt = now;
+  skbLockTimerMs   = 0.0f;
+}
+
+// 敵機の回避行動：完全な直線往復にならないよう、現在地からのランダムな
+// オフセットを一定間隔で目標に選び直し、そこへ緩やかに追従させる。
+// 接近するほどscaleが大きくなり、距離感（遠方では小さく・接近で大きく）を出す。
+static void skbUpdateEnemyWander(unsigned long now) {
+  if (now >= skbEnemyWanderAt) {
+    float dx = (skbRand01() * 2.0f - 1.0f) * 70.0f;
+    float dy = (skbRand01() * 2.0f - 1.0f) * 34.0f;
+    skbEnemyTargetX  = constrain(skbEnemyX + dx, 55.0f, 265.0f);
+    skbEnemyTargetY  = constrain(skbEnemyY + dy, (float)SKB_TOP + 14.0f, (float)SKB_HORIZON_Y0 - 6.0f);
+    skbEnemyWanderAt = now + 380 + (unsigned long)(skbRand01() * 380.0f);
+  }
+  skbEnemyX += (skbEnemyTargetX - skbEnemyX) * SKB_ENEMY_FOLLOW;
+  skbEnemyY += (skbEnemyTargetY - skbEnemyY) * SKB_ENEMY_FOLLOW;
+
+  // 敵機自身のバンク：現在地→ふらつき目標への横方向の向きに合わせて機体を傾ける
+  // （依頼1-2「敵機のバンクに合わせて機体全体も傾ける」対応）。
+  float dxToTarget = skbEnemyTargetX - skbEnemyX;
+  float bankTarget = constrain(dxToTarget / 70.0f * SKB_ENEMY_MAX_BANK_DEG,
+                                -SKB_ENEMY_MAX_BANK_DEG, SKB_ENEMY_MAX_BANK_DEG);
+  skbEnemyBankDeg += (bankTarget - skbEnemyBankDeg) * SKB_ENEMY_BANK_SMOOTH;
+
+  float t = (float)(now - skbEngageStartMs) / (float)SKB_APPROACH_MS;
+  if (t > 1.0f) t = 1.0f;
+  skbEnemyScale = 0.35f + t * 0.75f;
+}
+
+// 照準を敵機へ追従させ、捕捉し続けた時間（ロック進行）を蓄積する。
+// 距離が閾値を超えたら進行はゆっくり減衰させる（僅かなブレでロックが
+// 頻繁にリセットされてチラつくのを防ぐ）。
+static void skbUpdateAimAndLock(float dtMs) {
+  skbAimX += (skbEnemyX - skbAimX) * SKB_AIM_FOLLOW;
+  skbAimY += (skbEnemyY - skbAimY) * SKB_AIM_FOLLOW;
+  float dx = skbEnemyX - skbAimX, dy = skbEnemyY - skbAimY;
+  float dist = sqrtf(dx * dx + dy * dy);
+  if (dist < SKB_LOCK_CAPTURE_PX) {
+    skbLockTimerMs += dtMs;
+  } else {
+    skbLockTimerMs -= dtMs * SKB_LOCK_DECAY;
+    if (skbLockTimerMs < 0.0f) skbLockTimerMs = 0.0f;
+  }
+}
+
+// 煙パフを1つ起動する（空きスロットが無ければ最も古いものを上書き）。
+// mslStartBurst()と同じ考え方。SkbSmokeを直接引数に取らない（ファイル冒頭
+// コメント参照）。こちらのミサイル用・敵ミサイル用で配列を分けるため、
+// あえて関数も分けて重複させる（ポインタ引数にすると"SkbSmoke*"という型名が
+// 関数シグネチャに現れてしまい、同じ自動プロトタイプ問題を踏むため避ける）。
+static void skbSpawnSmoke(float x, float y, float r0, unsigned long now) {
+  int slot = -1;
+  unsigned long oldest = 0xFFFFFFFFu;
+  for (uint8_t i = 0; i < SKB_SMOKE_MAX; i++) {
+    if (!skbSmoke[i].active) { slot = (int)i; break; }
+    if (skbSmoke[i].startMs < oldest) { oldest = skbSmoke[i].startMs; slot = (int)i; }
+  }
+  skbSmoke[slot].active  = true;
+  skbSmoke[slot].x       = x;
+  skbSmoke[slot].y       = y;
+  skbSmoke[slot].r0      = r0;
+  skbSmoke[slot].startMs = now;
+}
+static void skbESpawnSmoke(float x, float y, float r0, unsigned long now) {
+  int slot = -1;
+  unsigned long oldest = 0xFFFFFFFFu;
+  for (uint8_t i = 0; i < SKB_ESMOKE_MAX; i++) {
+    if (!skbESmoke[i].active) { slot = (int)i; break; }
+    if (skbESmoke[i].startMs < oldest) { oldest = skbESmoke[i].startMs; slot = (int)i; }
+  }
+  skbESmoke[slot].active  = true;
+  skbESmoke[slot].x       = x;
+  skbESmoke[slot].y       = y;
+  skbESmoke[slot].r0      = r0;
+  skbESmoke[slot].startMs = now;
+}
+
+// Y座標から「奥行きt(0=遠方/1=手前)」を求める疑似深度値。実際の3D座標は
+// 持たないため、SKB_TOP（上端＝敵機のいる遠方側の目安）〜SKB_MSL_LAUNCH_Y
+// （画面最下部＝発射点＝手前側）のY範囲を単純に0..1へ線形マップするだけの
+// 近似（依頼：現実よりかなり誇張してよい、位置から連続的に変化させる）。
+static inline float skbDepthT(float y) {
+  float t = (y - (float)SKB_TOP) / (SKB_MSL_LAUNCH_Y - (float)SKB_TOP);
+  return constrain(t, 0.0f, 1.0f);
+}
+
+// 移動区間(x0,y0)→(x1,y1)の間に、ジッタを加えたパフを複数個補間生成する。
+// ミサイルは1フレームで数十px動くため、1個ずつの生成では軌跡に隙間が空く。
+// 「曲がる煙の帯」として見えるよう、密に・太く残す（依頼1-3対応）。
+static void skbSpawnMissileSmokeTrail(float x0, float y0, float x1, float y1, unsigned long now) {
+  float dx = x1 - x0, dy = y1 - y0;
+  float len = sqrtf(dx * dx + dy * dy);
+  float px = (len > 0.1f) ? -dy / len : 0.0f;
+  float py = (len > 0.1f) ?  dx / len : 0.0f;
+  for (uint8_t k = 0; k < SKB_SMOKE_SPAWN_PER_FRAME; k++) {
+    float t = (float)(k + 1) / (float)(SKB_SMOKE_SPAWN_PER_FRAME + 1);
+    float jitter = (skbRand01() * 2.0f - 1.0f) * 2.2f;
+    float sx = x0 + dx * t + px * jitter;
+    float sy = y0 + dy * t + py * jitter;
+    // 奥行き(depthT)を2乗して誇張し、手前ほど太く・遠方ほど細くする（依頼：遠近感強化）。
+    // 個体差の揺らぎ(±15%)は残しつつ、遠近差が主役になるよう振れ幅は控えめにする。
+    float depthT = skbDepthT(sy);
+    float rBase  = SKB_SMOKE_R_FAR + (SKB_SMOKE_R0 - SKB_SMOKE_R_FAR) * depthT * depthT;
+    float r0     = rBase * (0.85f + skbRand01() * 0.3f);
+    skbSpawnSmoke(sx, sy, r0, now);
+  }
+}
+
+// 煙パフ1個ぶんを描く（インデックス渡し。SkbSmoke&・SkbSmoke*は取らない）。
+// 生成時の半径(r0)から、寿命の前半は太いまま・後半にかけて縮小＋背景色へ
+// 寄せて薄れる（実機のRGB565にαブレンドは無いための近似）。
+static void skbDrawSmoke(uint8_t i, unsigned long now) {
+  if (!skbSmoke[i].active) return;
+  unsigned long el = now - skbSmoke[i].startMs;
+  if (el >= (unsigned long)SKB_SMOKE_LIFE_MS) { skbSmoke[i].active = false; return; }
+  float t = (float)el / (float)SKB_SMOKE_LIFE_MS;   // 0..1
+  float rMin = SKB_SMOKE_R_MIN * (skbSmoke[i].r0 / SKB_SMOKE_R0);
+  float r = skbSmoke[i].r0 - (skbSmoke[i].r0 - rMin) * t;
+  int ri = (int)lroundf(r);
+  if (ri < 1) ri = 1;
+  uint16_t col = (t < 0.55f) ? SKB_SMOKE_COL
+                              : light565Lerp(SKB_SMOKE_COL, SKB_SKY_HZ_COL, (int)(((t - 0.55f) / 0.45f) * 220.0f));
+  GFX.fillCircle((int)lroundf(skbSmoke[i].x), (int)lroundf(skbSmoke[i].y), ri, lightBright(col));
+}
+static void skbEDrawSmoke(uint8_t i, unsigned long now) {
+  if (!skbESmoke[i].active) return;
+  unsigned long el = now - skbESmoke[i].startMs;
+  if (el >= (unsigned long)SKB_ESMOKE_LIFE_MS) { skbESmoke[i].active = false; return; }
+  float t = (float)el / (float)SKB_ESMOKE_LIFE_MS;   // 0..1
+  float rMin = 1.0f;
+  float r = skbESmoke[i].r0 - (skbESmoke[i].r0 - rMin) * t;
+  int ri = (int)lroundf(r);
+  if (ri < 1) ri = 1;
+  uint16_t col = (t < 0.5f) ? SKB_SMOKE_COL
+                             : light565Lerp(SKB_SMOKE_COL, SKB_SKY_HZ_COL, (int)(((t - 0.5f) / 0.5f) * 220.0f));
+  GFX.fillCircle((int)lroundf(skbESmoke[i].x), (int)lroundf(skbESmoke[i].y), ri, lightBright(col));
+}
+
+static inline uint32_t skbHash(uint32_t seed, uint32_t salt) {
+  uint32_t h = seed * 2654435761u + salt * 0x85ebca6bu;
+  h ^= h >> 13; h *= 0xC2B2AE35u; h ^= h >> 16;
+  return h;
+}
+
+static void skbStartExplosion(float x, float y, unsigned long now) {
+  skbExplActive  = true;
+  skbExplX       = x;
+  skbExplY       = y;
+  skbExplStartMs = now;
+  skbExplSeed    = skbRand();
+}
+
+// 爆発→煙の1フレーム分を描く。黄→橙/赤→白の3段階＋破片の飛散。
+static void skbDrawExplosion(unsigned long now) {
+  if (!skbExplActive) return;
+  unsigned long el = now - skbExplStartMs;
+  if (el >= (unsigned long)SKB_HIT_LIFE_MS) { skbExplActive = false; return; }
+  int ex = (int)lroundf(skbExplX), ey = (int)lroundf(skbExplY);
+
+  if (el < (unsigned long)SKB_HIT_FLASH_MS) {
+    // フェーズ1：黄色い閃光が急拡大
+    float t = (float)el / (float)SKB_HIT_FLASH_MS;
+    int r = 3 + (int)(t * 22.0f);
+    GFX.fillCircle(ex, ey, r, lightBright(SKB_HIT_COL_A));
+  } else if (el < (unsigned long)SKB_HIT_MID_MS) {
+    // フェーズ2：橙/赤へ遷移
+    float t = (float)(el - SKB_HIT_FLASH_MS) / (float)(SKB_HIT_MID_MS - SKB_HIT_FLASH_MS);
+    int r = 22 + (int)(t * 10.0f);
+    uint16_t col = light565Lerp(SKB_HIT_COL_A, SKB_HIT_COL_B, (int)(t * 255.0f));
+    GFX.fillCircle(ex, ey, r, lightBright(col));
+  } else {
+    // フェーズ3：白く薄れながら縮小して消える
+    float t = (float)(el - SKB_HIT_MID_MS) / (float)(SKB_HIT_LIFE_MS - SKB_HIT_MID_MS);
+    int r = 32 - (int)(t * 30.0f);
+    if (r < 1) r = 1;
+    uint16_t col = light565Lerp(SKB_HIT_COL_B, SKB_HIT_COL_C, (int)(t * 255.0f));
+    GFX.fillCircle(ex, ey, r, lightBright(col));
+  }
+
+  // 破片：フェーズ2以降、短い線が放射状に飛ぶ。Sky Raidの爆発ドットと同じ
+  // ハッシュ方式で配置を決める（配列を持たずに済む）。
+  if (el >= (unsigned long)SKB_HIT_FLASH_MS) {
+    float t2 = (float)(el - SKB_HIT_FLASH_MS) / (float)(SKB_HIT_LIFE_MS - SKB_HIT_FLASH_MS);
+    for (uint8_t k = 0; k < 6; k++) {
+      uint32_t h    = skbHash(skbExplSeed, (uint32_t)k * 97u + 11u);
+      float    ang  = (float)(h % 360u) * 0.0174533f;
+      float    dist = 6.0f + t2 * 26.0f + (float)((h >> 8) % 5u);
+      int fx  = ex + (int)(cosf(ang) * dist);
+      int fy  = ey + (int)(sinf(ang) * dist);
+      int fx2 = ex + (int)(cosf(ang) * (dist - 5.0f));
+      int fy2 = ey + (int)(sinf(ang) * (dist - 5.0f));
+      lightDrawLine(fx2, fy2, fx, fy, (t2 < 0.5f) ? SKB_HIT_COL_B : SKB_HIT_COL_C);
+    }
+  }
+}
+
+// LOCK後にミサイルを発射する。自機本体は画面外に存在する体（依頼1-1）のため、
+// 発射点は画面下端付近の3レーン（中央/左/右）からランダムに選ぶだけにする。
+static void skbFireMissile(unsigned long now) {
+  int lane = (int)(skbRand() % 3) - 1;   // -1=左 / 0=中央 / +1=右
+  skbMslX = 160.0f + (float)lane * SKB_MSL_LANE_OFFSET + (skbRand01() * 16.0f - 8.0f);
+  skbMslY = SKB_MSL_LAUNCH_Y;
+  float dx = skbEnemyX - skbMslX, dy = skbEnemyY - skbMslY;
+  float len = sqrtf(dx * dx + dy * dy);
+  if (len < 1.0f) len = 1.0f;
+  skbMslVx = (dx / len) * SKB_MISSILE_SPEED_PPS;
+  skbMslVy = (dy / len) * SKB_MISSILE_SPEED_PPS;
+  skbMslActive  = true;
+  skbMslStartMs = now;
+  for (uint8_t i = 0; i < SKB_SMOKE_MAX; i++) skbSmoke[i].active = false;
+  if (skbMslAmmo > 0) skbMslAmmo--;   // HUD表示専用（0になっても発射は止めない。時間で回復する）
+}
+
+// ミサイルの誘導・移動・命中判定。直進させず、毎フレーム速度ベクトルを
+// 目標方向へ少しずつ寄せることで曲がる軌道にする（Missile Defenseの
+// 照準追従と同じ「瞬間移動させない」考え方の速度版）。
+static void skbUpdateMissile(unsigned long now, float dt) {
+  if (!skbMslActive) return;
+  float dx = skbEnemyX - skbMslX, dy = skbEnemyY - skbMslY;
+  float len = sqrtf(dx * dx + dy * dy);
+  if (len > 0.5f) {
+    float desiredVx = (dx / len) * SKB_MISSILE_SPEED_PPS;
+    float desiredVy = (dy / len) * SKB_MISSILE_SPEED_PPS;
+    skbMslVx += (desiredVx - skbMslVx) * SKB_MISSILE_TURN;
+    skbMslVy += (desiredVy - skbMslVy) * SKB_MISSILE_TURN;
+    float vlen = sqrtf(skbMslVx * skbMslVx + skbMslVy * skbMslVy);
+    if (vlen > 1.0f) {   // 旋回で減速しないよう速さを正規化し直す
+      skbMslVx = skbMslVx / vlen * SKB_MISSILE_SPEED_PPS;
+      skbMslVy = skbMslVy / vlen * SKB_MISSILE_SPEED_PPS;
+    }
+  }
+  float prevX = skbMslX, prevY = skbMslY;
+  skbMslX += skbMslVx * dt;
+  skbMslY += skbMslVy * dt;
+  // 直前位置→今の位置のあいだへ密に煙を補間生成＝太く長く連続した帯になる（依頼1-3）。
+  skbSpawnMissileSmokeTrail(prevX, prevY, skbMslX, skbMslY, now);
+
+  bool hit = (len <= SKB_MISSILE_HIT_PX) || ((now - skbMslStartMs) >= (unsigned long)SKB_MISSILE_MAX_MS);
+  if (hit) {
+    skbStartExplosion(skbEnemyX, skbEnemyY, now);
+    skbEnemyAlive   = false;
+    skbMslActive    = false;
+    skbState        = SKB_ST_HIT;
+    skbStateStartMs = now;
+    // HUD表示専用のスコア・撃墜数・残存編隊数を更新。
+    skbHitCount++;
+    skbScore += 150 + (uint32_t)(skbRand() % 100);
+    if (skbEnemyWaveLeft > 0) skbEnemyWaveLeft--;
+    if (skbEnemyWaveLeft == 0) skbEnemyWaveLeft = 5 + (uint8_t)(skbRand() % 5);   // 新しい編隊が来た体で仕切り直す
+  }
+}
+
+static void skbDrawMissile() {
+  if (!skbMslActive) return;
+  float vlen = sqrtf(skbMslVx * skbMslVx + skbMslVy * skbMslVy);
+  float dx = (vlen > 0.1f) ? skbMslVx / vlen : 0.0f;
+  float dy = (vlen > 0.1f) ? skbMslVy / vlen : -1.0f;
+  int hx = (int)lroundf(skbMslX + dx * 5.0f), hy = (int)lroundf(skbMslY + dy * 5.0f);
+  int tx = (int)lroundf(skbMslX - dx * 5.0f), ty = (int)lroundf(skbMslY - dy * 5.0f);
+  lightDrawLine(tx, ty, hx, hy, SKB_MISSILE_COL);
+  GFX.fillCircle(hx, hy, 2, lightBright(SKB_MISSILE_COL));
+  GFX.fillCircle(tx, ty, 2, lightBright(SKB_MISSILE_FLAME));   // 噴射炎（尾部）
+}
+
+// ローカル座標(lx,ly)を角度(sinA,cosA)で回転し、pivotへ平行移動した整数
+// スクリーン座標を返す（自機・敵機シルエットの各頂点に使う共通ヘルパ）。
+static inline void skbRotPt(float lx, float ly, float sinA, float cosA,
+                             float px, float py, int* ox, int* oy) {
+  *ox = (int)lroundf(px + lx * cosA - ly * sinA);
+  *oy = (int)lroundf(py + lx * sinA + ly * cosA);
+}
+
+// 敵機シルエット（依頼1-2：追跡している自機から見た「後ろ姿」）。
+// 垂直尾翼・水平尾翼・胴体後端・主翼・エンジン排気口が見えるブロック構成にし、
+// 敵機自身のバンク角(skbEnemyBankDeg)ぶん機体全体を回転させる。scaleは遠近
+// （遠方では小さく、接近すると大きく）を表現する。
+static void skbDrawEnemy() {
+  if (!skbEnemyAlive) return;
+  float s = skbEnemyScale;
+  float bankRad = skbEnemyBankDeg * 0.0174533f;
+  float sinA = sinf(bankRad), cosA = cosf(bankRad);
+  const float px = skbEnemyX, py = skbEnemyY;
+  int x0, y0, x1, y1, x2, y2, x3, y3;
+
+  // 垂直尾翼（追跡視点でいちばん上に突き出て見える部位）
+  skbRotPt(-3.0f * s, -2.0f * s, sinA, cosA, px, py, &x0, &y0);
+  skbRotPt(0.0f, -15.0f * s, sinA, cosA, px, py, &x1, &y1);
+  skbRotPt(3.0f * s, -2.0f * s, sinA, cosA, px, py, &x2, &y2);
+  GFX.fillTriangle(x0, y0, x1, y1, x2, y2, lightBright(SKB_ENEMY_COL));
+
+  // 水平尾翼（垂直尾翼の付け根を横切る板）
+  skbRotPt(-11.0f * s, -3.0f * s, sinA, cosA, px, py, &x0, &y0);
+  skbRotPt(11.0f * s, -3.0f * s, sinA, cosA, px, py, &x1, &y1);
+  skbRotPt(11.0f * s, 0.0f, sinA, cosA, px, py, &x2, &y2);
+  skbRotPt(-11.0f * s, 0.0f, sinA, cosA, px, py, &x3, &y3);
+  GFX.fillTriangle(x0, y0, x1, y1, x2, y2, lightBright(SKB_ENEMY_COL));
+  GFX.fillTriangle(x0, y0, x2, y2, x3, y3, lightBright(SKB_ENEMY_COL));
+
+  // 胴体後端
+  skbRotPt(-3.5f * s, -4.0f * s, sinA, cosA, px, py, &x0, &y0);
+  skbRotPt(3.5f * s, -4.0f * s, sinA, cosA, px, py, &x1, &y1);
+  skbRotPt(3.5f * s, 9.0f * s, sinA, cosA, px, py, &x2, &y2);
+  skbRotPt(-3.5f * s, 9.0f * s, sinA, cosA, px, py, &x3, &y3);
+  GFX.fillTriangle(x0, y0, x1, y1, x2, y2, lightBright(SKB_ENEMY_COL));
+  GFX.fillTriangle(x0, y0, x2, y2, x3, y3, lightBright(SKB_ENEMY_COL));
+
+  // 主翼（左右。後方から見ているため胴体からハの字に開いて見える）
+  skbRotPt(-3.0f * s, 2.0f * s, sinA, cosA, px, py, &x0, &y0);
+  skbRotPt(-24.0f * s, 10.0f * s, sinA, cosA, px, py, &x1, &y1);
+  skbRotPt(-13.0f * s, 5.0f * s, sinA, cosA, px, py, &x2, &y2);
+  GFX.fillTriangle(x0, y0, x1, y1, x2, y2, lightBright(SKB_ENEMY_COL));
+  skbRotPt(3.0f * s, 2.0f * s, sinA, cosA, px, py, &x0, &y0);
+  skbRotPt(24.0f * s, 10.0f * s, sinA, cosA, px, py, &x1, &y1);
+  skbRotPt(13.0f * s, 5.0f * s, sinA, cosA, px, py, &x2, &y2);
+  GFX.fillTriangle(x0, y0, x1, y1, x2, y2, lightBright(SKB_ENEMY_COL));
+
+  // エンジン排気口（機体最後端＝追跡視点でいちばん手前。橙色に光らせて存在感を出す）
+  int engR = (int)(2.2f * s); if (engR < 1) engR = 1;
+  int ex0, ey0, ex1, ey1;
+  skbRotPt(-2.2f * s, 9.0f * s, sinA, cosA, px, py, &ex0, &ey0);
+  skbRotPt(2.2f * s, 9.0f * s, sinA, cosA, px, py, &ex1, &ey1);
+  GFX.fillCircle(ex0, ey0, engR, lightBright(SKB_ENEMY_ENGINE_COL));
+  GFX.fillCircle(ex1, ey1, engR, lightBright(SKB_ENEMY_ENGINE_COL));
+}
+
+// バンク0度時の地平線Yに、中心(160,SKB_HORIZON_Y0)を通る直線の傾き
+// tan(bankRad)を適用したY座標を返す（上端48pxへは絶対にはみ出さないよう
+// クランプする）。
+static inline int skbHorizonYAt(int x, float slope) {
+  return skbClampY(SKB_HORIZON_Y0 + (int)lroundf((float)(x - 160) * slope));
+}
+
+// 空・地平線帯・海・地平線帯を、バンク角ぶん傾いた4枚の帯（各2枚の三角形）
+// で塗る。GFX.fillTriangleは画面外座標でも安全（他Lightingと同じ前提）。
+static void skbDrawBackground(float bankRad) {
+  float slope = tanf(bankRad);
+  int hL = skbHorizonYAt(0, slope), hR = skbHorizonYAt(320, slope);
+  int hL2 = skbClampY(hL - 16), hR2 = skbClampY(hR - 16);   // 空側の明るい帯
+  int gL2 = skbClampY(hL + 14), gR2 = skbClampY(hR + 14);   // 海側の明るい帯
+
+  GFX.fillTriangle(0, SKB_TOP, 320, SKB_TOP, 320, hR, lightBright(SKB_SKY_COL));
+  GFX.fillTriangle(0, SKB_TOP, 320, hR,       0, hL, lightBright(SKB_SKY_COL));
+  GFX.fillTriangle(0, hL2, 320, hR2, 320, hR, lightBright(SKB_SKY_HZ_COL));
+  GFX.fillTriangle(0, hL2, 320, hR,  0,   hL, lightBright(SKB_SKY_HZ_COL));
+
+  GFX.fillTriangle(0, hL, 320, hR,  320, 240, lightBright(SKB_SEA_COL));
+  GFX.fillTriangle(0, hL, 320, 240, 0,   240, lightBright(SKB_SEA_COL));
+  GFX.fillTriangle(0, hL, 320, hR,  320, gR2, lightBright(SKB_SEA_HZ_COL));
+  GFX.fillTriangle(0, hL, 320, gR2, 0,   gL2, lightBright(SKB_SEA_HZ_COL));
+}
+
+// 画面中心からの放射状の速度線。バンク角ぶん向きを回転させ、地平線と
+// 連動して「画面そのものが旋回している」感覚を補強する。
+static void skbDrawStreaks(float bankRad, float dt) {
+  const float vx = 160.0f, vy = (float)SKB_HORIZON_Y0;
+  for (uint8_t i = 0; i < SKB_STREAK_COUNT; i++) {
+    float ang = skbStreakBaseAng[i] + bankRad;
+    float cx = cosf(ang), cy = sinf(ang) * 0.62f;   // 縦を少し圧縮してコックピット越しの見た目に寄せる
+    float r0 = skbStreakR[i];
+    float r1 = r0 + SKB_STREAK_SEG_LEN;
+    int x0 = (int)lroundf(vx + cx * r0), y0 = skbClampY((int)lroundf(vy + cy * r0));
+    int x1 = (int)lroundf(vx + cx * r1), y1 = skbClampY((int)lroundf(vy + cy * r1));
+    int bri = (int)(60.0f + 195.0f * (r0 / SKB_STREAK_MAX_R));
+    if (bri > 255) bri = 255;
+    lightDrawLine(x0, y0, x1, y1, light565Scale(SKB_STREAK_COL, bri));
+
+    skbStreakR[i] += SKB_STREAK_SPEED_PPS * dt;
+    if (skbStreakR[i] > SKB_STREAK_MAX_R) skbStreakR[i] = skbRand01() * 20.0f;  // 中心付近から再スタート
+  }
+}
+
+// 照準・HUD。追尾中は黄緑のクロスヘア、LOCK中〜ミサイル飛翔中は赤い
+// ブラケット＋点滅する「LOCK」表示に切り替える。
+static void skbDrawReticle(unsigned long now) {
+  bool locked = (skbState == SKB_ST_LOCKED || skbState == SKB_ST_MISSILE);
+  uint16_t col = locked ? SKB_LOCK_COL : SKB_RETICLE_COL;
+  int ax = (int)lroundf(skbAimX), ay = (int)lroundf(skbAimY);
+  int armOuter = locked ? 16 : 13;
+  int armInner = locked ? 7  : 6;
+  lightDrawLine(ax - armOuter, ay, ax - armInner, ay, col);
+  lightDrawLine(ax + armInner, ay, ax + armOuter, ay, col);
+  lightDrawLine(ax, ay - armOuter, ax, ay - armInner, col);
+  lightDrawLine(ax, ay + armInner, ax, ay + armOuter, col);
+  GFX.drawRect(ax - 4, ay - 4, 8, 8, lightBright(col));
+
+  if (locked) {
+    // ロック時：四隅にブラケットを追加して「捕捉している」感を強める
+    int b = armOuter + 4;
+    lightDrawLine(ax - b, ay - b, ax - b + 6, ay - b, col);
+    lightDrawLine(ax - b, ay - b, ax - b, ay - b + 6, col);
+    lightDrawLine(ax + b, ay - b, ax + b - 6, ay - b, col);
+    lightDrawLine(ax + b, ay - b, ax + b, ay - b + 6, col);
+    lightDrawLine(ax - b, ay + b, ax - b + 6, ay + b, col);
+    lightDrawLine(ax - b, ay + b, ax - b, ay + b - 6, col);
+    lightDrawLine(ax + b, ay + b, ax + b - 6, ay + b, col);
+    lightDrawLine(ax + b, ay + b, ax + b, ay + b - 6, col);
+  }
+  if (skbState == SKB_ST_LOCKED && ((now / 150) % 2) == 0) {
+    // LOCK文字は150msごとに点滅させて視認性を上げる
+    GFX.setTextDatum(MC_DATUM);
+    GFX.setTextSize(2);
+    GFX.setTextColor(lightBright(SKB_LOCK_COL));
+    GFX.drawString("LOCK", ax, ay - armOuter - 16);
+    GFX.setTextSize(1);
+    GFX.setTextDatum(TL_DATUM);   // 他描画に影響しないよう既定へ戻す
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// 敵ミサイル（依頼1-4）：敵機がこちらへ向けて発射し、遠方では小さく、
+// 接近するにつれて大きく・煙も太くなり、画面手前で左右へ回避して外れる。
+// 被弾処理・ゲームオーバーは実装しない（演出のみ）。
+// ────────────────────────────────────────────────────────────────────────
+
+// 敵機が生きていて空戦中（TRACK/LOCKED/MISSILE）、かつ同時発射数が0で、
+// クールダウンが明けていれば新規発射する。
+static void skbUpdateEnemyMissileSpawn(unsigned long now) {
+  if (skbEmslActive) return;
+  if (!skbEnemyAlive) return;
+  if (skbState != SKB_ST_TRACK && skbState != SKB_ST_LOCKED && skbState != SKB_ST_MISSILE) return;
+  if (now < skbEmslNextAt) return;
+
+  skbEmslActive       = true;
+  skbEmslPhase        = SKB_EMSL_APPROACH;
+  skbEmslPhaseStartMs = now;
+  skbEmslSpawnX       = skbEnemyX;
+  skbEmslSpawnY       = skbEnemyY;
+  skbEmslX            = skbEnemyX;
+  skbEmslY            = skbEnemyY;
+  skbEmslScale        = SKB_EMSL_SCALE_MIN;
+  for (uint8_t i = 0; i < SKB_ESMOKE_MAX; i++) skbESmoke[i].active = false;
+  // 通過（接近＋回避）にかかる時間ぶんクールダウンを足しておく＝次弾は
+  // 「今回が完全に終わってから」一定間隔を置いて発射される。
+  skbEmslNextAt = now + SKB_EMSL_APPROACH_MS + SKB_EMSL_DODGE_MS
+                + SKB_EMSL_MIN_INTERVAL_MS
+                + (unsigned long)(skbRand01() * (float)(SKB_EMSL_MAX_INTERVAL_MS - SKB_EMSL_MIN_INTERVAL_MS));
+}
+
+// 敵ミサイルの奥行きスケール(skbEmslScale＝遠方で小さく手前で大きくなる既存の
+// 距離指標)から、煙の半径を求める。MIN(遠方)〜PEAK(最接近)を0..1に正規化し
+// 2乗で誇張することで、「奥からこちらへ迫ってくる」ほど急激に太くなる見た目に
+// する（依頼2：本体の接近拡大と煙の太さを連動させる）。
+static inline float skbEmslSmokeRadius(float scale) {
+  float c = (scale - SKB_EMSL_SCALE_MIN) / (SKB_EMSL_SCALE_PEAK - SKB_EMSL_SCALE_MIN);
+  c = constrain(c, 0.0f, 1.0f);
+  return SKB_ESMOKE_R_FAR + (SKB_ESMOKE_R_NEAR - SKB_ESMOKE_R_FAR) * c * c;
+}
+
+// 接近フェーズ：敵機の位置→画面下端中央付近（＝自機のいる方向）へ、
+// 2乗イージングで加速しながら接近し、scaleが急激に大きくなる。
+// 回避フェーズ：接近しきった瞬間に左右どちらかへ急旋回し、高速で画面外へ
+// 抜けて消える（保険タイムアウト付き）。
+static void skbUpdateEnemyMissile(unsigned long now, float dt) {
+  if (!skbEmslActive) return;
+  if (skbEmslPhase == SKB_EMSL_APPROACH) {
+    float t = (float)(now - skbEmslPhaseStartMs) / (float)SKB_EMSL_APPROACH_MS;
+    if (t > 1.0f) t = 1.0f;
+    float te = t * t;   // 後半ほど急接近する感じを出すイージング
+    float oldX = skbEmslX, oldY = skbEmslY;
+    skbEmslX     = skbEmslSpawnX + (160.0f - skbEmslSpawnX) * te;
+    skbEmslY     = skbEmslSpawnY + (250.0f - skbEmslSpawnY) * te;
+    skbEmslScale = SKB_EMSL_SCALE_MIN + (SKB_EMSL_SCALE_PEAK - SKB_EMSL_SCALE_MIN) * te;
+    skbESpawnSmoke(oldX, oldY, skbEmslSmokeRadius(skbEmslScale), now);   // 接近するほど煙も太くなる（依頼2：遠近感）
+    if (t >= 1.0f) {
+      float dir = (skbRand01() < 0.5f) ? -1.0f : 1.0f;
+      skbEmslDodgeVx = dir * (260.0f + skbRand01() * 120.0f);
+      skbEmslDodgeVy = -60.0f + skbRand01() * 40.0f;
+      skbEmslPhase        = SKB_EMSL_DODGE;
+      skbEmslPhaseStartMs = now;
+    }
+  } else {   // SKB_EMSL_DODGE
+    float oldX = skbEmslX, oldY = skbEmslY;
+    skbEmslX += skbEmslDodgeVx * dt;
+    skbEmslY += skbEmslDodgeVy * dt;
+    skbEmslScale += (SKB_EMSL_SCALE_END - skbEmslScale) * 0.15f;   // 通過後は少し萎む
+    skbESpawnSmoke(oldX, oldY, skbEmslSmokeRadius(skbEmslScale), now);
+    unsigned long el = now - skbEmslPhaseStartMs;
+    bool offscreen = (skbEmslX < -40.0f || skbEmslX > 360.0f || skbEmslY > 280.0f || skbEmslY < (float)SKB_TOP - 40.0f);
+    if (offscreen || el >= (unsigned long)(SKB_EMSL_DODGE_MS * 3)) {   // 保険タイムアウト
+      skbEmslActive = false;
+    }
+  }
+}
+
+// 敵ミサイル本体（小さな光点で表現。細部を描き込むより、大きさの変化だけで
+// 「接近している」と分かることを優先する＝依頼のシンプルさ優先の方針に合わせる）。
+static void skbDrawEnemyMissile() {
+  if (!skbEmslActive) return;
+  int mx = (int)lroundf(skbEmslX), my = (int)lroundf(skbEmslY);
+  int r = (int)lroundf(2.0f + 3.0f * skbEmslScale); if (r < 1) r = 1;
+  GFX.fillCircle(mx, my, r, lightBright(SKB_LOCK_COL));
+  int coreR = r - 2; if (coreR < 1) coreR = 1;
+  GFX.fillCircle(mx, my, coreR, lightBright(WHITE));   // 中心の明るい核
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// HUD（依頼2）：SCORE/ENEMY/HIT/SPD/ALT/THROTTLE/GUN・MSL・SAAM/DMG/
+// LOCK/<MISSILE ALERT>/レーダーを、線1色（黄緑）＋警告のみ赤で表示する。
+// 320×240の狭い画面に収めるため、四隅・中央付近へシンプルなテキストと
+// バー・円だけで配置する（実機のフライトシムほどの作り込みはしない）。
+// ────────────────────────────────────────────────────────────────────────
+
+// MSL（自弾。発射のたびに減り、時間経過で回復）とSAAM（演出専用の副次
+// カウンタ）の疑似残弾、およびTHROTTLE表示のなめらかな追従を更新する。
+static void skbUpdateHudTelemetry(unsigned long now) {
+  if (skbMslAmmo < 4 && now >= skbMslRegenAt) {
+    skbMslAmmo++;
+    skbMslRegenAt = now + 3400;
+  }
+  if (now >= skbSaamRegenAt) {
+    if (skbSaamAmmo > 0) skbSaamAmmo--; else skbSaamAmmo = 10;
+    skbSaamRegenAt = now + 2200;
+  }
+  float throttleTarget = (skbState == SKB_ST_LOCKED || skbState == SKB_ST_MISSILE)
+                        ? 100.0f
+                        : 76.0f + sinf((float)now * 0.0006f) * 6.0f;
+  skbThrottleSmooth += (throttleTarget - skbThrottleSmooth) * 0.05f;
+}
+
+static void skbDrawHud(unsigned long now) {
+  char buf[24];
+  GFX.setTextSize(1);
+  GFX.setTextColor(lightBright(SKB_RETICLE_COL));
+
+  // 左上：SCORE / ENEMY / HIT
+  snprintf(buf, sizeof(buf), "SCORE:%06lu", (unsigned long)(skbScore % 1000000UL));
+  GFX.drawString(buf, 4, 50);
+  snprintf(buf, sizeof(buf), "ENEMY:%02u  HIT:%02u", skbEnemyWaveLeft, (unsigned)(skbHitCount % 100));
+  GFX.drawString(buf, 4, 58);
+
+  // 左中央：SPD／右中央：ALT（実飛行と連動しない疑似テレメトリ。雰囲気のみ）
+  int spd = 700 + (int)(sinf((float)now * 0.0009f) * 90.0f) + (int)(sinf((float)now * 0.0037f) * 18.0f);
+  int alt = 5200 + (int)(sinf((float)now * 0.00042f) * 650.0f) + (int)(cosf((float)now * 0.0021f) * 80.0f);
+  snprintf(buf, sizeof(buf), "SPD:%04d", spd);
+  GFX.drawString(buf, 4, 138);
+  snprintf(buf, sizeof(buf), "ALT:%05d", alt);
+  GFX.drawString(buf, 246, 138);
+
+  // 左下：THROTTLE（縦バー＋%）
+  int barX = 6, barY = 168, barW = 10, barH = 56;
+  GFX.drawRect(barX, barY, barW, barH, lightBright(SKB_RETICLE_COL));
+  int fillH = (int)((skbThrottleSmooth / 100.0f) * (float)(barH - 2));
+  if (fillH > 0) lightFillRect(barX + 1, barY + (barH - 1 - fillH), barW - 2, fillH, SKB_RETICLE_COL);
+  snprintf(buf, sizeof(buf), "THR%3d", (int)lroundf(skbThrottleSmooth));
+  GFX.drawString(buf, barX - 2, barY + barH + 4);
+
+  // 右下：武装状態（GUN/MSL/SAAM）とダメージ
+  int wx = 248, wy = 168;
+  GFX.drawString("GUN:INF", wx, wy);
+  snprintf(buf, sizeof(buf), "MSL:%02u", skbMslAmmo);
+  GFX.drawString(buf, wx, wy + 9);
+  snprintf(buf, sizeof(buf), "SAAM:%02u", skbSaamAmmo);
+  GFX.drawString(buf, wx, wy + 18);
+  GFX.drawString("DMG:00%", wx, wy + 27);   // 被弾処理は実装しないため常に0%固定
+
+  // 右上：簡易レーダー（円形ミニマップ。中心＝自機、敵機・敵ミサイルの
+  // おおよその方向を点で示す。実際の3D座標は持たないため、画面上のズレを
+  // そのまま縮小して転用する簡易表現）
+  int rcx = 296, rcy = 66, rr = 16;
+  GFX.drawEllipse(rcx, rcy, rr, rr, lightBright(SKB_RETICLE_COL));
+  GFX.fillCircle(rcx, rcy, 1, lightBright(SKB_RETICLE_COL));
+  if (skbEnemyAlive) {
+    float relX = (skbEnemyX - 160.0f) / 160.0f;
+    float relY = (skbEnemyY - (float)SKB_HORIZON_Y0) / 90.0f;
+    int rx = rcx + (int)lroundf(constrain(relX, -1.0f, 1.0f) * (float)(rr - 3));
+    int ry = rcy + (int)lroundf(constrain(relY, -1.0f, 1.0f) * (float)(rr - 3));
+    GFX.fillCircle(rx, ry, 2, lightBright(SKB_ENEMY_COL));
+  }
+  if (skbEmslActive && ((now / 150) % 2) == 0) {
+    float relX = (skbEmslX - 160.0f) / 160.0f;
+    float relY = (skbEmslY - (float)SKB_HORIZON_Y0) / 140.0f;
+    int rx = rcx + (int)lroundf(constrain(relX, -1.0f, 1.0f) * (float)(rr - 3));
+    int ry = rcy + (int)lroundf(constrain(relY, -1.0f, 1.0f) * (float)(rr - 3));
+    GFX.fillCircle(rx, ry, 2, lightBright(SKB_LOCK_COL));
+  }
+
+  // 中央付近：<MISSILE ALERT>（敵ミサイル接近中のみ赤点滅）
+  if (skbEmslActive && ((now / 200) % 2) == 0) {
+    GFX.setTextDatum(MC_DATUM);
+    GFX.setTextColor(lightBright(SKB_LOCK_COL));
+    GFX.drawString("<MISSILE ALERT>", 160, 58);
+    GFX.setTextDatum(TL_DATUM);
+  }
+}
+
+void lightRenderSkyBurner(bool needsInit, bool fullRepaint) {
+  (void)fullRepaint;
+  unsigned long now = millis();
+  if (needsInit || skbPrevMs == 0) { skbResetState(now); skbPrevMs = now; }
+  float dt = (float)(now - skbPrevMs) / 1000.0f;
+  if (dt > 0.20f) dt = 0.20f;
+  float dtMs = dt * 1000.0f;
+  skbPrevMs = now;
+
+  // ── 状態遷移 ──
+  switch (skbState) {
+    case SKB_ST_SEARCH: {
+      // 索敵：照準だけが中央付近をゆっくり漂う。敵機はまだ出さない。
+      skbAimX = 160.0f + sinf((float)now * 0.0032f) * 20.0f;
+      skbAimY = (float)SKB_HORIZON_Y0 - 26.0f + cosf((float)now * 0.0021f) * 12.0f;
+      if (now >= skbNextAt) {
+        skbSpawnEnemy(now);
+        skbState        = SKB_ST_TRACK;
+        skbStateStartMs = now;
+      }
+      break;
+    }
+    case SKB_ST_TRACK: {
+      skbUpdateEnemyWander(now);
+      skbUpdateAimAndLock(dtMs);
+      if (skbLockTimerMs >= (float)SKB_LOCK_REQUIRE_MS) {
+        skbState        = SKB_ST_LOCKED;
+        skbStateStartMs = now;
+      }
+      break;
+    }
+    case SKB_ST_LOCKED: {
+      skbUpdateEnemyWander(now);
+      skbUpdateAimAndLock(dtMs);
+      if (now - skbStateStartMs >= (unsigned long)SKB_LOCK_HOLD_MS) {
+        skbFireMissile(now);
+        skbState        = SKB_ST_MISSILE;
+        skbStateStartMs = now;
+      }
+      break;
+    }
+    case SKB_ST_MISSILE: {
+      skbUpdateEnemyWander(now);
+      skbAimX += (skbEnemyX - skbAimX) * SKB_AIM_FOLLOW;
+      skbAimY += (skbEnemyY - skbAimY) * SKB_AIM_FOLLOW;
+      skbUpdateMissile(now, dt);   // 命中したら内部でSKB_ST_HITへ遷移する
+      break;
+    }
+    case SKB_ST_HIT: {
+      if (now - skbStateStartMs >= (unsigned long)SKB_HIT_LIFE_MS) {
+        skbState        = SKB_ST_COOLDOWN;
+        skbStateStartMs = now;
+        skbNextAt        = now + SKB_COOLDOWN_MIN_MS
+                          + (unsigned long)(skbRand01() * (float)(SKB_COOLDOWN_MAX_MS - SKB_COOLDOWN_MIN_MS));
+      }
+      break;
+    }
+    case SKB_ST_COOLDOWN: {
+      skbAimX += (160.0f - skbAimX) * SKB_COOLDOWN_AIM_FOLLOW;
+      skbAimY += (((float)SKB_HORIZON_Y0 - 26.0f) - skbAimY) * SKB_COOLDOWN_AIM_FOLLOW;
+      if (now >= skbNextAt) {
+        skbState        = SKB_ST_SEARCH;
+        skbStateStartMs = now;
+        skbNextAt        = now + SKB_SEARCH_MIN_MS
+                          + (unsigned long)(skbRand01() * (float)(SKB_SEARCH_MAX_MS - SKB_SEARCH_MIN_MS));
+      }
+      break;
+    }
+  }
+
+  // ── 敵ミサイル（依頼1-4）：state switchとは別枠で、毎フレーム独立して
+  //    発射判定・移動を進める（HITで敵機が消えた直後も飛翔中の弾は最後まで
+  //    飛び続けさせたいため、状態遷移のswitchには含めない）。
+  skbUpdateEnemyMissileSpawn(now);
+  skbUpdateEnemyMissile(now, dt);
+  skbUpdateHudTelemetry(now);
+
+  // ── バンク角：照準の左右オフセットに応じて自機が旋回しているように見せる ──
+  float bankTargetDeg = constrain((skbAimX - 160.0f) / 140.0f * SKB_MAX_BANK_DEG,
+                                   -SKB_MAX_BANK_DEG, SKB_MAX_BANK_DEG);
+  skbBankDeg += (bankTargetDeg - skbBankDeg) * SKB_BANK_SMOOTH;
+  float bankRad = skbBankDeg * 0.0174533f;
+
+  // ── 描画（背景→速度線→敵機→こちらの煙/ミサイル→敵ミサイルの煙/本体→
+  //    爆発→HUD→照準の順。自機本体は画面外の体のため描かない＝依頼1-1）──
+  skbDrawBackground(bankRad);
+  skbDrawStreaks(bankRad, dt);
+  skbDrawEnemy();
+  for (uint8_t i = 0; i < SKB_SMOKE_MAX; i++) skbDrawSmoke(i, now);
+  skbDrawMissile();
+  for (uint8_t i = 0; i < SKB_ESMOKE_MAX; i++) skbEDrawSmoke(i, now);
+  skbDrawEnemyMissile();
+  skbDrawExplosion(now);
+  skbDrawHud(now);
+  skbDrawReticle(now);
+
+  // ── かりポムの黒目：照準の方向を見ているように見せる ──
+  eyeOffsetX = constrain((int)lroundf((skbAimX - 160.0f) / 140.0f * (float)EYE_SHIFT_PIXELS),
+                          -EYE_SHIFT_PIXELS, EYE_SHIFT_PIXELS);
+  eyeOffsetY = constrain((int)lroundf((skbAimY - (float)SKB_HORIZON_Y0) / 90.0f * (float)EYE_SHIFT_PIXELS * 0.7f),
+                          -EYE_SHIFT_PIXELS, EYE_SHIFT_PIXELS);
+}
+
 // ============================================================================
 // Lighting Manager（描画関数テーブル）
 //
@@ -23056,6 +24002,7 @@ const LightRenderFn LIGHT_RENDER_FN[LIGHT_MODE_COUNT] = {
   lightRenderFlowerClock,           // LIGHT_FLOWERCLOCK
   lightRenderPinball,                // LIGHT_PINBALL
   lightRenderBaseball,               // LIGHT_BASEBALL
+  lightRenderSkyBurner,               // LIGHT_SKYBURNER
 };
 
 // LIGHT_LAYER[] / LIGHT_HEADER[] / lightingHeaderDark() / LIGHT_LAYER_BG・OVL /
