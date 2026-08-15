@@ -135,7 +135,7 @@ CoreS3の実機がなくても3の一部はKariPom Desktop（2.3）で、CoreS3�
 |---|---|---|
 | **① KariPom Desktop** | PCのみ（CoreS3不要） | PCだけでBBXを楽しめるスタンドアロン版（2.3） |
 | **② CoreS3＋KariPom Companion** | かりポム本体＋PC（任意） | WebUIやBBXなど、かりポムの主要機能をひととおり楽しめる標準構成（第9章・第15章） |
-| **③ CoreS3＋Karipom Ear（PCM1808＋Pico2）** | かりポム本体＋拡張ハードウェア | PCなしでもBBXを楽しめる発展構成（第12章、詳しくはKaripom Ear設計・製作マニュアル） |
+| **③ CoreS3＋KariPom Companion＋Karipom Ear（PCM1808＋Pico2）** | かりポム本体＋PC（任意）＋拡張ハードウェア | PCなしでもBBXを楽しめる発展構成（第12章、詳しくはKaripom Ear設計・製作マニュアル） |
 
 **① KariPom Desktop** — PCだけでBBXを楽しめるスタンドアロン版です。かりポムとの会話や口パクを気軽に楽しめます（2.3）。
 
@@ -145,7 +145,7 @@ CoreS3の実機がなくても3の一部はKariPom Desktop（2.3）で、CoreS3�
 
 ↓
 
-**③ CoreS3＋Karipom Ear（PCM1808＋Pico2）** — 発展構成です。「Karipom Ear 設計・製作マニュアル」の設計図・回路図・組み立て手順を使って拡張すると、PCを使わずにBBXを楽しめる構成へと発展させられます（第12章）。このマニュアルでは、さらに発展させたい方向けのオプション（LINE OUT増設・Bluetooth入力）も設計資料として紹介しています。
+**③ CoreS3＋KariPom Companion＋Karipom Ear（PCM1808＋Pico2）** — ②にKaripom Earを追加した発展構成です。「Karipom Ear 設計・製作マニュアル」の設計図・回路図・組み立て手順を使って拡張すると、②までのKariPom Companionを使った遊び方はそのままに、**PCを使わずにBBXを楽しむという選択肢が増えます**（第12章）。Karipom Earを追加してもKariPom Companionが不要になるわけではなく、両方を使える「全部入り」の構成です。このマニュアルでは、さらに発展させたい方向けのオプション（LINE OUT増設・Bluetooth入力）も設計資料として紹介しています。
 
 💡 まずは①か②から始めて、慣れてきたら③に挑戦する、という進み方がおすすめです。③は今後も機能追加が予定されている、継続的にアップデート中の構成です。
 
@@ -1321,6 +1321,8 @@ A. はい。かりポムはGitHubで公開されている、今も継続的に�
 
 | Ver. 4.12 | 2026年8月 | Visualizerの数え方の表記を統一。WebUIの選択肢は「OFF」を含めて9項目、実際の演出は8種類、という関係が分かるよう、第13.2章の見出しと冒頭・第3章の機能一覧・19.2・用語集・図キャプションの表記を修正した（GitHubのREADMEが「Visualizer（8種）」と表記していることとの食い違いを解消するため）。Visualizerの機能・種類そのものに変更はない。 |
 
+| Ver. 4.13 | 2026年8月 | 2.5「どこから始める？（3つの構成）」の③の表記を「CoreS3＋Karipom Ear（PCM1808＋Pico2）」から「CoreS3＋KariPom Companion＋Karipom Ear（PCM1808＋Pico2）」へ修正（比較表の「必要なもの」も「かりポム本体＋PC（任意）＋拡張ハードウェア」へ変更）。③は②にKaripom Earを追加した全部入りの発展構成であり、Karipom Earを追加してもKariPom Companionが不要になるわけではないことを本文に明記した。①②および2.5のその他の記述は変更していない。 |
+
 ※かりポムは、ファームウェアの更新により機能が追加・変更される場合があります。本書の内容と実機の動作が異なる場合は、最新のWebUI表示を優先してください。
 
 ```{=openxml}
@@ -1381,5 +1383,5 @@ A. はい。かりポムはGitHubで公開されている、今も継続的に�
 
 ---
 
-かりポム ユーザーマニュアル Ver. 4.12
+かりポム ユーザーマニュアル Ver. 4.13
 Copyright (c) 2026 Kariage POMPADOUR Entertainment Corporation
