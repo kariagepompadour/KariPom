@@ -20586,16 +20586,32 @@ static void aquDrawFish(int i) {
   }
 
   // ── 尾への付け根（体から尾びれへなだらかにすぼめ、自然な輪郭にする）──
-  GFX.fillTriangle((int)tailBaseX, (int)(y - bodyHi * 0.38f), (int)tailBaseX, (int)(y + bodyHi * 0.38f),
-                    (int)(tailBaseX - dir * bodyLen * 0.22f), (int)y, lightBright(bodyTop));
+  // 2026-08-16見た目調整：根本（幅の広い側）を胴体楕円の縁ちょうど（tailBaseX、
+  // 楕円の高さが0になる位置）に置くと、楕円の縁が滑らかに0へすぼまるのに対し三角形は
+  // そこで急に0.76*bodyHi幅の垂直な壁になってしまい、「楕円＋三角」が別パーツに見える
+  // 原因になっていた。根本の位置だけを胴体中心側（tailWedgeBaseX）へ寄せ、その位置での
+  // 楕円の自然な高さ（0.38*bodyHi相当）と三角形の根本幅が一致するようにし、先端は
+  // 従来どおりtailBaseX（尾びれの付け根）へ向けてすぼめる。三角形の形状・色・尾びれ側の
+  // 座標・魚の輪郭サイズそのものは変更していない（根本位置と先端位置を入れ替えただけ）。
+  {
+    float tailWedgeBaseX = x - dir * bodyLen * 0.32f;
+    GFX.fillTriangle((int)tailWedgeBaseX, (int)(y - bodyHi * 0.38f), (int)tailWedgeBaseX, (int)(y + bodyHi * 0.38f),
+                      (int)tailBaseX, (int)y, lightBright(bodyTop));
+  }
 
   // ── 体（背側は濃く、腹側は明るい2トーン）──
   GFX.fillEllipse((int)x, (int)y, (int)(bodyLen * 0.5f), (int)(bodyHi * 0.5f), lightBright(bodyTop));
   GFX.fillEllipse((int)x, (int)(y + bodyHi * 0.20f), (int)(bodyLen * 0.44f), (int)(bodyHi * 0.30f), lightBright(bodyBelly));
 
   // ── 鼻先（頭側を少しすぼめて自然な顔つきにする）──
-  GFX.fillTriangle((int)headX, (int)(y - bodyHi * 0.30f), (int)headX, (int)(y + bodyHi * 0.30f),
-                    (int)(headX + dir * bodyLen * 0.16f), (int)y, lightBright(bodyTop));
+  // 2026-08-16見た目調整：尾の付け根と同じ理由で、根本（headX）を胴体中心側
+  // （noseBaseX）へ寄せ、その位置での楕円の自然な高さ（0.30*bodyHi相当）と三角形の
+  // 根本幅を一致させた。鼻先の位置・とがり方（headX + bodyLen*0.16の先端）は変更していない。
+  {
+    float noseBaseX = x + dir * bodyLen * 0.40f;
+    GFX.fillTriangle((int)noseBaseX, (int)(y - bodyHi * 0.30f), (int)noseBaseX, (int)(y + bodyHi * 0.30f),
+                      (int)(headX + dir * bodyLen * 0.16f), (int)y, lightBright(bodyTop));
+  }
 
   // ── 背側のハイライト（艶）と腹側の陰影の細い筋 ──
   lightDrawLine((int)(x - bodyLen * 0.28f), (int)(y - bodyHi * 0.30f), (int)(x + bodyLen * 0.18f), (int)(y - bodyHi * 0.36f), hiliteCol);
@@ -20915,27 +20931,31 @@ static void flypDrawFlyer(int i) {
   // との指摘を受け、サイズを従来のおよそ半分に縮小し、根元が最も大きく先端へ向かって
   // 小さくなる3枚の羽根（丸いブロブ）を重ねる方式へ変更した。色を1枚おきに変えることで
   // 「複数の羽根が分かれて見える」丸みのある鳥の翼らしい質感を出している。
-  float wingSpan = bw * 0.72f;   // 従来（bw*1.4）のおよそ半分
-  {   // 左羽（奥側。やや小さく暗め）
+  float wingSpan = bw * 0.72f;
+
+  // Desktop版で実機確認済みの最終調整を反映。
+  // 画面左側＝奥羽：3枚を同じ薄いグレーで描き、根元・中間を少し小さくする。
+  // 画面右側＝手前羽：3枚を同じ白系で描き、根元・中間を少し小さくする。
+  // 手前羽は本体正面より後で描くため、ここでは座標だけ保持する。
+  uint16_t rearWingCol  = flypRgb(218, 218, 222);
+  uint16_t frontWingCol = flypRgb(248, 248, 250);
+
+  {   // 画面左側の奥羽
     float ws = wingSpan * 0.92f;
-    float lift0 = wingLift * 0.22f, lift1 = wingLift * 0.55f, lift2 = wingLift * 0.85f;
-    int rx0 = bodyL - (int)(ws * 0.30f), ry0 = (int)(y - bh * 0.05f - lift0);
-    int rx1 = bodyL - (int)(ws * 0.62f), ry1 = (int)(y - bh * 0.18f - lift1);
-    int rx2 = bodyL - (int)(ws * 0.94f), ry2 = (int)(y - bh * 0.28f - lift2);
-    GFX.fillEllipse(rx0, ry0, (int)(bw * 0.32f) + 1, (int)(bh * 0.42f) + 1, lightBright(pal.wingShade));
-    GFX.fillEllipse(rx1, ry1, (int)(bw * 0.25f) + 1, (int)(bh * 0.31f) + 1, lightBright(pal.wing));
-    GFX.fillEllipse(rx2, ry2, (int)(bw * 0.17f) + 1, (int)(bh * 0.21f) + 1, lightBright(pal.wingShade));
+    float lift0 = wingLift * 0.15f, lift1 = wingLift * 0.37f, lift2 = wingLift * 0.57f;
+    int rx0 = bodyL - (int)(ws * 0.20f), ry0 = (int)(y - bh * 0.05f - lift0);
+    int rx1 = bodyL - (int)(ws * 0.41f), ry1 = (int)(y - bh * 0.18f - lift1);
+    int rx2 = bodyL - (int)(ws * 0.63f), ry2 = (int)(y - bh * 0.28f - lift2);
+    GFX.fillEllipse(rx0, ry0, (int)(bw * 0.26f) + 1, (int)(bh * 0.32f) + 1, lightBright(rearWingCol));
+    GFX.fillEllipse(rx1, ry1, (int)(bw * 0.22f) + 1, (int)(bh * 0.27f) + 1, lightBright(rearWingCol));
+    GFX.fillEllipse(rx2, ry2, (int)(bw * 0.17f) + 1, (int)(bh * 0.21f) + 1, lightBright(rearWingCol));
   }
-  {   // 右羽（手前側。標準色でやや大きい）
-    float ws = wingSpan;
-    float lift0 = wingLift * 0.25f, lift1 = wingLift * 0.65f, lift2 = wingLift * 1.0f;
-    int rx0 = bodyR + (int)(ws * 0.30f), ry0 = (int)(y - bh * 0.05f - lift0);
-    int rx1 = bodyR + (int)(ws * 0.62f), ry1 = (int)(y - bh * 0.18f - lift1);
-    int rx2 = bodyR + (int)(ws * 0.94f), ry2 = (int)(y - bh * 0.28f - lift2);
-    GFX.fillEllipse(rx0, ry0, (int)(bw * 0.36f) + 1, (int)(bh * 0.46f) + 1, lightBright(pal.wing));
-    GFX.fillEllipse(rx1, ry1, (int)(bw * 0.28f) + 1, (int)(bh * 0.34f) + 1, lightBright(pal.wingShade));
-    GFX.fillEllipse(rx2, ry2, (int)(bw * 0.19f) + 1, (int)(bh * 0.23f) + 1, lightBright(pal.wing));
-  }
+
+  float frontWs = wingSpan;
+  float frontLift0 = wingLift * 0.17f, frontLift1 = wingLift * 0.43f, frontLift2 = wingLift * 0.67f;
+  int frontRx0 = bodyR + (int)(frontWs * 0.20f), frontRy0 = (int)(y - bh * 0.05f - frontLift0);
+  int frontRx1 = bodyR + (int)(frontWs * 0.41f), frontRy1 = (int)(y - bh * 0.18f - frontLift1);
+  int frontRx2 = bodyR + (int)(frontWs * 0.63f), frontRy2 = (int)(y - bh * 0.28f - frontLift2);
 
   // ── ウサ耳（2026-08-09追加、2026-08-10位置を再修正、2026-08-10色味を再調整。
   //     位置・形・サイズは変更しない。実機確認で「背面にある耳が正面の白い画面と
@@ -20994,6 +21014,12 @@ static void flypDrawFlyer(int i) {
   lightDrawLine(bodyL, bodyT, bodyR, bodyT, WHITE);
   lightDrawLine(bodyL, bodyT, bodyL, bodyB, WHITE);
 
+  // 画面右側の手前羽：本体より後ろに隠れないよう、本体正面の後に描く。
+  // 表示画面はこの後に描くため、根元が本体へ重なっても顔は覆わない。
+  GFX.fillEllipse(frontRx0, frontRy0, (int)(bw * 0.28f) + 1, (int)(bh * 0.34f) + 1, lightBright(frontWingCol));
+  GFX.fillEllipse(frontRx1, frontRy1, (int)(bw * 0.24f) + 1, (int)(bh * 0.29f) + 1, lightBright(frontWingCol));
+  GFX.fillEllipse(frontRx2, frontRy2, (int)(bw * 0.19f) + 1, (int)(bh * 0.23f) + 1, lightBright(frontWingCol));
+
   // ── 正面ディスプレイ（ベゼル＋白画面＋KariPom本来の顔）──
   // 2026-08-09改訂：実機評価で「独自の表情ではなく既存KariPomの顔にしてほしい」との
   // 指摘を受け、黒画面＋白い目という独自デザインをやめ、白画面＋黒い目2つ・鼻・
@@ -21031,7 +21057,6 @@ static void flypDrawFlyer(int i) {
   }
 
   // ── 小さなポート／インジケーター（電子機器らしいディテール）──
-  lightFillRect(bodyL + 2, bodyB - 3, (int)(bw * 0.18f) + 1, 2, flypRgb(120, 200, 140));
   GFX.fillCircle(bodyR - 3, bodyT + 3, 1, lightBright(flypRgb(230, 210, 140)));
 }
 
