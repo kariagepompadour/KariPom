@@ -1,6 +1,6 @@
 ---
 title: "かりポム ユーザーマニュアル"
-subtitle: "KariPom User Manual — Ver. 4.15"
+subtitle: "KariPom User Manual — Ver. 4.16"
 date: "2026年8月"
 lang: ja
 ---
@@ -883,22 +883,21 @@ PCで再生している音声（音楽、動画、AIの読み上げ音声など�
 - Windows・macOS・Linuxのいずれかのパソコン
 - かりポムとPCが**同じWi-Fi**につながっていること
 - PCの音声をKariPom Companionに取り込むための設定（OSにより異なります）
-  - **macOS** — BlackHole 2chなどの仮想オーディオデバイス＋複数出力装置（Multi-Output Device）
+  - **macOS**（13 Ventura以降） — 追加ドライバや仮想オーディオデバイスは不要です。Apple純正のScreenCaptureKitを使ってPCの再生音を直接取得します。初回のみ、macOSの「画面とシステムオーディオの録音」権限の許可が必要です。
   - **Windows** — WASAPI Loopbackを使用するため、追加ソフトは不要です
   - **Linux** — PulseAudio／PipeWireのモニターソースを使用します
 
-❗ **macOSでの注意**：「複数出力装置（Multi-Output Device）」は、Talkを使う間ずっと、**システム設定 → サウンド → 出力で選択されたままにしておく**必要があります。他の操作でOSの出力先が普段のスピーカーへ戻ってしまうと、KariPom Companionが音声を取得できなくなり、口パクが止まります。
+❗ **macOSでの注意**：初回にKariPom Companionを起動すると、macOSから録音許可のダイアログが表示されます。ここで許可しないと、PC音声（Wi-Fi）モードで口パクできません。誤って拒否した場合や、後から許可を変更したい場合は、**システム設定 → プライバシーとセキュリティ → 画面とシステムオーディオの録音**でKariPom（開発用.pyで実行している場合はTerminal）を許可し、KariPom Companionを再起動してください。
 
 💡 音声環境の設定でうまくいかない場合は、本マニュアルと`karipom_companion.py`をChatGPTなどのAIに読み込ませ、お使いのOS・PC環境に合わせて相談しながら進めてください。
 
 **使い方の流れ**
 
-1. （macOSの場合のみ）PCのサウンド出力をBlackHole（または複数出力装置）に切り替えます。Windows／Linuxではこの手順は不要です。
-2. KariPom Companionを起動すると、**Talkは自動的に動作を始めます**（IPアドレスが未設定でも、PC音声の解析自体は行われます）。タブ内の「Talk：動作中／停止中」の表示とボタンで、手動での停止・再開もできます。
-3. かりポムのWebUI「🐰 Karipom Ear」で、音源を**PC音声（Wi-Fi）**に切り替えます。
-4. PCで音声を再生すると、かりポムが口パクします。
+1. KariPom Companionを起動します（macOSでは初回のみ、録音許可のダイアログで「許可」を選んでください）。**Talkは自動的に動作を始めます**（IPアドレスが未設定でも、PC音声の解析自体は行われます）。タブ内の「Talk：動作中／停止中」の表示とボタンで、手動での停止・再開もできます。
+2. かりポムのWebUI「🐰 Karipom Ear」で、音源を**PC音声（Wi-Fi）**に切り替えます。
+3. PCで音声を再生すると、かりポムが口パクします。
 
-【図：PC→（macOSはBlackHole経由）→KariPom Companion（Talk）→Wi-Fi→かりポム のデータの流れ図】
+【図：PC→（macOSはScreenCaptureKit経由）→KariPom Companion（Talk）→Wi-Fi→かりポム のデータの流れ図】
 
 ## 15.5 🚽 Log／健康診断タブ
 
@@ -916,8 +915,8 @@ PCで再生している音声（音楽、動画、AIの読み上げ音声など�
 
 ## 15.6 うまく動かないとき
 
-- **口が動かない** → PCとかりポムが同じWi-Fiにいるか、音源が「PC音声（Wi-Fi）」になっているか、（macOSの場合は）出力先がBlackHoleになっているかを確認してください。
-- **macOSで、途中から口パクが止まった** → システム設定 → サウンド → 出力で、「複数出力装置（Multi-Output Device）」の選択が外れていないか確認してください。他のアプリの操作などでOSの出力先が普段のスピーカーへ戻ると、KariPom Companionが音声を取得できなくなります。
+- **口が動かない** → PCとかりポムが同じWi-Fiにいるか、音源が「PC音声（Wi-Fi）」になっているか、（macOSの場合は）画面とシステムオーディオの録音の許可がされているかを確認してください。
+- **macOSで、録音の許可を確認・変更したい** → システム設定 → プライバシーとセキュリティ → 画面とシステムオーディオの録音で、KariPom（開発用.pyではTerminal）が許可されているか確認してください。許可を変更した場合は、KariPom Companionを再起動してください。
 - **長時間つけっぱなしで反応しなくなった** → かりポム側は省電力による通信切れを防ぐ対策済みですが、PC側のスリープでプログラムが止まることがあります。スリープ設定をご確認ください。それでも直らない場合は、かりポムの電源を入れ直してください。
 - **KariPom Labタブに何も表示されない** → IPアドレスを保存したか確認してください。それでも表示されない場合は、「外部ブラウザで開く」ボタンをお使いください。
 
@@ -1327,6 +1326,7 @@ A. はい。かりポムはGitHubで公開されている、今も継続的に�
 | Ver. 4.14 | 2026年8月 | Flying Pompadourの羽の見た目を最終調整（実機確認済み）。奥羽・手前羽をそれぞれ単色（奥＝薄いグレー、手前＝白系）に統一し、根元・中間のサイズをやや縮小、手前羽を本体正面より前面に描画。顔画面に残っていた未使用の緑アクセント線を削除した。飛行ロジック・耳・本体・他のLightingへの変更はない。表紙のサブタイトル表記がVer. 4.13の時点で更新漏れとなっていたため、あわせてVer. 4.14へ修正した。 |
 
 | Ver. 4.15 | 2026年8月 | 内蔵マイクモードでのAudio Visualizer誤操作防止を追加（実機確認済み）。内蔵マイク選択中にVisualizerを選ぶと「内蔵マイクモードではAudio Visualizerは使用できません。」と案内し、選択をOFFへ戻すようにした（PC音声（Wi-Fi）選択中にKariPom Companionからの音声データが届いていない場合も同様に案内してOFFへ戻す）。あわせて、この案内表示時に画面が一瞬白くなっていた問題を修正した。PC音声（Wi-Fi）・LINE IN（Karipom Ear）の既存の音声経路や、Visualizer以外の機能への変更はない。第15.3章「KariPom BBXタブ」の説明を、KariPom Desktopと同じCharacter／Visualizer／Lightingの3ボタン操作に合わせて更新し、第20.7章のFAQにPC音声（Wi-Fi）選択時の確認事項を追記した。 |
+| Ver. 4.16 | 2026年8月 | macOSのPC音声取得方式を、BlackHole 2ch＋Audio MIDI設定の複数出力装置から、Apple純正ScreenCaptureKitへ変更（実機確認済み）。対応macOSは13 Ventura以降。追加ドライバや複数出力装置の設定が不要になり、初回のみmacOSの「画面とシステムオーディオの録音」権限を許可するだけで済むようになった。第15.4章「Talkタブ」・第15.6章「うまく動かないとき」・用語集のBlackHole項目をこの新方式に合わせて更新した（Windows／Linuxの取得方式、KariPom Ear／LINE IN経路への変更はない）。あわせて、Character／Visualizer／Lightingの3ボタンについて、左右操作を初見でも分かりやすくするため、ラベル文字はそのままに左右端へ薄いシェブロン（‹›相当のベクター線）を描画のみで追加した（クリック判定・ラベル文字列は変更なし）。 |
 
 ※かりポムは、ファームウェアの更新により機能が追加・変更される場合があります。本書の内容と実機の動作が異なる場合は、最新のWebUI表示を優先してください。
 
@@ -1355,7 +1355,7 @@ A. はい。かりポムはGitHubで公開されている、今も継続的に�
 | APモード | 本体自身がWi-Fiの電波の発信元になるモード。Wi-Fi設定に使用。 |
 | UDP | ユーディーピー。データを素早く送る通信方式。PC連携の口パク（Talk）に使用（ポート12345）。 |
 | ポート番号 | 通信の「窓口」の番号。かりポムのUDP通信は12345番を使用。 |
-| BlackHole | macOSの音声をソフト間で受け渡すための無料の仮想オーディオデバイス。Windows／Linuxでは不要。 |
+| ScreenCaptureKit | macOSでPCの再生音を直接取得するためのApple純正のしくみ。追加の仮想オーディオデバイスは不要（初回のみ画面とシステムオーディオの録音の許可が必要）。 |
 | Python | パイソン。プログラミング言語。PC側プログラム（karipom_companion.py・karipom_desktop.py）の実行に使用。 |
 | KariPom Companion | カリポム・コンパニオン。`karipom_companion.py`で起動する、Windows・macOS・Linux対応の統合管理ツール。KariPom Lab／KariPom BBX／Talk／Log・健康診断の4タブでWebUI表示やPC連携機能をまとめて使える（第15章）。 |
 | KariPom Desktop | CoreS3の実機がなくても、PCだけでかりポムの世界を体験できる、GitHub公開の姉妹プロジェクト。Windows・macOS・Linux対応（第2章）。 |
@@ -1388,5 +1388,5 @@ A. はい。かりポムはGitHubで公開されている、今も継続的に�
 
 ---
 
-かりポム ユーザーマニュアル Ver. 4.13
+かりポム ユーザーマニュアル Ver. 4.16
 Copyright (c) 2026 Kariage POMPADOUR Entertainment Corporation

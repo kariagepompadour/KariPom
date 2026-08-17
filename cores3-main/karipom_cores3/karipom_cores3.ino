@@ -2353,9 +2353,10 @@ void prepareLogToilet() {
 }
 
 // ====================================================
-// Mac音声連動モード
-// BlackHole等でMac音声を検知したPythonからUDPで
-// SPEAK_START / SPEAK_STOP を受け取り、口パクへ反映する。
+// PC音声連動モード
+// CompanionがPC再生音を取得・解析し、UDPで
+// SPEAK_START / SPEAK_STOP / FFTを受け取り、口パク・Visualizerへ反映する。
+// macOSはScreenCaptureKitを使用するためBlackHoleは不要。
 // Web画面のボタンでON/OFFする。
 // ====================================================
 bool macAudioLinkEnabled = true;  // デフォルトON
@@ -10136,17 +10137,17 @@ void setup() {
         //     「対応予定」ではなく「対応実装済み・実機未検証」と正確に表記する。
         //   ・実装／UDP通信／音声取得処理そのものは変更していない（説明文のみ）。
         //
-        // 2026/07/25: macOS説明を「BlackHole 2chのみ」から「BlackHole 2ch＋複数出力装置
-        //   （Multi-Output Device）を使う」ことが伝わる表記へ修正。詳細なAudio MIDI設定
-        //   手順（スクリーンショット付き）はREADME側で案内するため、WebUIは簡潔な表記に留める。
-        //   Windows/Linuxの説明文は変更なし。実装／UDP通信／音声取得処理は変更していない。
-        html += "💻 PC音声（Wi-Fi）モードを使用する場合は、PC側でKariPom Talk（Pythonプログラム）を実行してください。<br>";
+        // 2026/08/18: macOSのPC音声取得をBlackHole＋複数出力装置から
+        //   Apple純正ScreenCaptureKitへ変更。macOS 13 Ventura以降で追加ドライバ不要。
+        //   初回のみmacOSの「画面とシステムオーディオの録音」権限を許可する。
+        //   Windows/Linuxの取得方式は変更しない。
+        html += "💻 PC音声（Wi-Fi）モードを使用する場合は、PC側でKariPom Companionを実行してください。<br>";
         html += "🔊 PC音声の取得方式：<br>";
-        html += "・macOS：BlackHole 2ch＋複数出力装置（Multi-Output Device）を使用（詳細セットアップ手順はREADME参照）<br>";
+        html += "・macOS 13以降：ScreenCaptureKit（BlackHole不要。初回のみmacOSの録音権限を許可）<br>";
         html += "・Windows：WASAPI Loopback（追加ソフト不要）<br>";
         html += "・Linux：PulseAudio / PipeWireのモニターソースを使用（対応実装済み・実機未検証）<br>";
         html += "📶 PCとCoreS3を同じWi-Fiに接続してください。<br>";
-        html += "🖥 karipom_talk.py の M5_IP を、かりポム画面に表示されるCoreS3のIPアドレスに変更してください。";
+        html += "🖥 KariPom CompanionでCoreS3のIPアドレスを保存すると、PC音声の解析結果が自動送信されます。";
         html += "</p>";
 
         // 2026/07/26: ここにあったページ移動ナビはタイトル直下（最上部）へ移動した。
@@ -10584,7 +10585,7 @@ function sendCmd(url) {
         } else if (vizError == "source") {
           html += "<script>window.addEventListener('load',function(){setTimeout(function(){alert('音声入力がOFFです。\\nPC音声（Wi-Fi）またはLINE IN（KariPom Ear）を選択してください。\\n\\nVisualizerはOFFに戻しました。');},0);});</script>";
         } else if (vizError == "pc") {
-          html += "<script>window.addEventListener('load',function(){setTimeout(function(){alert('PC音声データを受信していません。\\nKariPom Companionを起動し、PC音声取得の準備を確認してください。\\n\\nmacOS: BlackHole 2ch + Audio MIDI設定の複数出力装置\\nWindows: 通常は追加ソフト不要（再生デバイスを確認）\\nLinux: PulseAudio / PipeWire のmonitor source\\n\\n準備後にもう一度Visualizerを選んでください。\\nVisualizerはOFFに戻しました。');},0);});</script>";
+          html += "<script>window.addEventListener('load',function(){setTimeout(function(){alert('PC音声データを受信していません。\\nKariPom Companionを起動し、PC音声取得の準備を確認してください。\\n\\nmacOS 13以降: ScreenCaptureKit（BlackHole不要。録音権限を確認）\\nWindows: 通常は追加ソフト不要（再生デバイスを確認）\\nLinux: PulseAudio / PipeWire のmonitor source\\n\\n準備後にもう一度Visualizerを選んでください。\\nVisualizerはOFFに戻しました。');},0);});</script>";
         }
 
         html += "</div></body></html>";
@@ -14718,7 +14719,7 @@ static bool           vizNeedsInit    = true;          // 次フレームで全�
 // Web Cockpit Visualizer開始前チェック（2026-08-17）
 //
 // PC音声(Wi-Fi/UDP)選択中にVisualizerをONにする場合、CoreS3単独では
-// BlackHole/WASAPI/PulseAudio等のPC側環境そのものは判定できない。
+// ScreenCaptureKit/WASAPI/PulseAudio等のPC側環境そのものは判定できない。
 // 代わりにCompanionから継続送信されるFFTパケットの鮮度を確認する。
 // FFTが届いていなければ「Companion未起動 / PC音声取得環境未準備」とみなし、
 // VisualizerをOFFへ戻してWebブラウザに案内ダイアログを表示する。
