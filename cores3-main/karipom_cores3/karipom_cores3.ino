@@ -62,7 +62,7 @@ Servo servoLR;  // 左右サーボ（LR_SERVO_PIN=1）
 // ログの先頭に記録し、どのビルドで取得したログか判別できるようにする。
 // FW_VERSION は手動更新、FW_BUILD は __DATE__ __TIME__ で自動記録。
 // ====================================================
-#define FW_VERSION "stable_2.3"
+#define FW_VERSION "stable_2.4"
 #define FW_BUILD   (__DATE__ " " __TIME__)
 
 // ====================================================

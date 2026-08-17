@@ -1,6 +1,6 @@
 ---
 title: "かりポム ユーザーマニュアル"
-subtitle: "KariPom User Manual — Ver. 4.16"
+subtitle: "KariPom User Manual — Ver. 4.17"
 date: "2026年8月"
 lang: ja
 ---
@@ -1327,6 +1327,7 @@ A. はい。かりポムはGitHubで公開されている、今も継続的に�
 
 | Ver. 4.15 | 2026年8月 | 内蔵マイクモードでのAudio Visualizer誤操作防止を追加（実機確認済み）。内蔵マイク選択中にVisualizerを選ぶと「内蔵マイクモードではAudio Visualizerは使用できません。」と案内し、選択をOFFへ戻すようにした（PC音声（Wi-Fi）選択中にKariPom Companionからの音声データが届いていない場合も同様に案内してOFFへ戻す）。あわせて、この案内表示時に画面が一瞬白くなっていた問題を修正した。PC音声（Wi-Fi）・LINE IN（Karipom Ear）の既存の音声経路や、Visualizer以外の機能への変更はない。第15.3章「KariPom BBXタブ」の説明を、KariPom Desktopと同じCharacter／Visualizer／Lightingの3ボタン操作に合わせて更新し、第20.7章のFAQにPC音声（Wi-Fi）選択時の確認事項を追記した。 |
 | Ver. 4.16 | 2026年8月 | macOSのPC音声取得方式を、BlackHole 2ch＋Audio MIDI設定の複数出力装置から、Apple純正ScreenCaptureKitへ変更（実機確認済み）。対応macOSは13 Ventura以降。追加ドライバや複数出力装置の設定が不要になり、初回のみmacOSの「画面とシステムオーディオの録音」権限を許可するだけで済むようになった。第15.4章「Talkタブ」・第15.6章「うまく動かないとき」・用語集のBlackHole項目をこの新方式に合わせて更新した（Windows／Linuxの取得方式、KariPom Ear／LINE IN経路への変更はない）。あわせて、Character／Visualizer／Lightingの3ボタンについて、左右操作を初見でも分かりやすくするため、ラベル文字はそのままに左右端へ薄いシェブロン（‹›相当のベクター線）を描画のみで追加した（クリック判定・ラベル文字列は変更なし）。 |
+| Ver. 4.17 | 2026年8月 | KariPom v2.4正式リリースに合わせて更新。ScreenCaptureKit音声helperを、初回起動時にswiftcでビルドする方式から、あらかじめビルド済みのUniversal Binary（arm64＋x86_64）を各リポジトリへ同梱する方式へ変更し、一般ユーザーによるXcode／Command Line Tools／Swift compilerのインストールが完全に不要になった（実機確認済み）。あわせて、コマンドライン経由のTalkモード（run_talk_mode）のmacOS音声取得もBlackHoleからScreenCaptureKitへ統一し、GUI版と同じ方式に揃えた。ファームウェアはstable_2.4、KariPom CompanionはKariPom v2.4として版数を揃えた。本文・表紙・巻末の版数表記もVer. 4.17へ更新した。 |
 
 ※かりポムは、ファームウェアの更新により機能が追加・変更される場合があります。本書の内容と実機の動作が異なる場合は、最新のWebUI表示を優先してください。
 
@@ -1388,5 +1389,5 @@ A. はい。かりポムはGitHubで公開されている、今も継続的に�
 
 ---
 
-かりポム ユーザーマニュアル Ver. 4.16
+かりポム ユーザーマニュアル Ver. 4.17
 Copyright (c) 2026 Kariage POMPADOUR Entertainment Corporation
