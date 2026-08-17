@@ -9,5 +9,4 @@ idna==3.18
 numpy==2.5.1
 pycparser==3.0
 requests==2.34.2
-sounddevice==0.5.5
 urllib3==2.7.0

@@ -4,6 +4,9 @@
 # KariPom Companion v4 — 1ウィンドウ4タブ統合版
 # 2026-08-17: KariPom BBXを最新Desktopと同じ3ボタン/全Visualizer/全Lightingへ更新。
 #             Visualizer開始時にOS別音声環境を確認し、不足時は案内後Faceへロールバック。
+# 2026-08-17: run_talk_mode()のmacOS経路もBlackHoleからScreenCaptureKitへ統一。
+#             helperは事前ビルド済みバイナリ（mac-companion/resources/）を同梱し、
+#             実行時のswiftcビルドを廃止（一般ユーザーにXcode/Command Line Toolsは不要）。
 #
 # 統合元:
 #   - karipom_companion_v2.py          (PyQt5 GUI: ログ取得・健康診断・サマリー等)
@@ -52,7 +55,7 @@
 #                       手動起動する場合は通常指定不要）
 # =============================================================================
 
-import sys, json, os, re, threading, traceback, subprocess, webbrowser, random, math, hashlib, shutil
+import sys, json, os, re, threading, traceback, subprocess, webbrowser, random, math, shutil
 import numpy as np
 import socket, platform, time, signal
 from pathlib import Path
@@ -1069,116 +1072,30 @@ class EmbeddedSpeechDetector:
         self.on_state(False, 0.0)
 
 
-MAC_SCK_HELPER_SOURCE = r'''
-import Foundation
-import ScreenCaptureKit
-import CoreMedia
-import AudioToolbox
+def locate_mac_sck_helper():
+    """mac-companion/resources/ に同梱された、事前ビルド済みScreenCaptureKit音声helper
+    （Universal Binary: arm64/x86_64）の実行ファイルパスを返す。
 
-@available(macOS 13.0, *)
-final class KariPomAudioOutput: NSObject, SCStreamOutput {
-    private let stdout = FileHandle.standardOutput
-
-    func stream(_ stream: SCStream,
-                didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
-                of outputType: SCStreamOutputType) {
-        guard outputType == .audio,
-              CMSampleBufferIsValid(sampleBuffer),
-              CMSampleBufferGetNumSamples(sampleBuffer) > 0,
-              let formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer),
-              let asbdPtr = CMAudioFormatDescriptionGetStreamBasicDescription(formatDescription)
-        else { return }
-
-        let asbd = asbdPtr.pointee
-        guard asbd.mFormatID == kAudioFormatLinearPCM,
-              (asbd.mFormatFlags & kAudioFormatFlagIsFloat) != 0,
-              asbd.mBitsPerChannel == 32
-        else {
-            fputs("UNSUPPORTED_AUDIO_FORMAT\n", stderr)
-            return
-        }
-
-        var blockBuffer: CMBlockBuffer?
-        var audioBufferList = AudioBufferList(
-            mNumberBuffers: 1,
-            mBuffers: AudioBuffer(mNumberChannels: 1, mDataByteSize: 0, mData: nil)
+    Swiftソースは resources/karipom_sck_helper.swift、ビルド手順は
+    resources/build_helper.sh を参照。ビルドは開発者が一度だけ実行してバイナリを
+    リポジトリへコミットするものであり、一般ユーザーの実行時にswiftc/Xcode
+    Command Line Toolsを必要としない（helperは配布物に同梱済み）。
+    将来の.app配布版では、この関数がアプリバンドル内Resourcesを指すよう
+    差し替えるだけでよい。
+    """
+    helper_path = Path(__file__).resolve().parent / "resources" / "karipom_sck_helper"
+    if not helper_path.exists():
+        raise FileNotFoundError(
+            f"ScreenCaptureKit helperが見つかりません: {helper_path}\n"
+            "mac-companion/resources/karipom_sck_helper が配布物に含まれているか確認してください"
+            "（resources/build_helper.sh で生成できます）。"
         )
-        let status = CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(
-            sampleBuffer,
-            bufferListSizeNeededOut: nil,
-            bufferListOut: &audioBufferList,
-            bufferListSize: MemoryLayout<AudioBufferList>.size,
-            blockBufferAllocator: kCFAllocatorDefault,
-            blockBufferMemoryAllocator: kCFAllocatorDefault,
-            flags: UInt32(kCMSampleBufferFlag_AudioBufferList_Assure16ByteAlignment),
-            blockBufferOut: &blockBuffer
-        )
-        guard status == noErr,
-              audioBufferList.mNumberBuffers >= 1,
-              let data = audioBufferList.mBuffers.mData
-        else { return }
-        stdout.write(Data(bytes: data, count: Int(audioBufferList.mBuffers.mDataByteSize)))
-    }
-}
-
-@available(macOS 13.0, *)
-final class KariPomCaptureDelegate: NSObject, SCStreamDelegate {
-    func stream(_ stream: SCStream, didStopWithError error: Error) {
-        fputs("STREAM_STOPPED: \(error.localizedDescription)\n", stderr)
-        fflush(stderr)
-        exit(3)
-    }
-}
-
-@available(macOS 13.0, *)
-func startCapture() async throws -> (SCStream, KariPomAudioOutput, KariPomCaptureDelegate) {
-    let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
-    guard let display = content.displays.first else {
-        throw NSError(domain: "KariPomScreenCapture", code: 1,
-                      userInfo: [NSLocalizedDescriptionKey: "No display is available for capture."])
-    }
-
-    let filter = SCContentFilter(display: display, excludingApplications: [], exceptingWindows: [])
-    let config = SCStreamConfiguration()
-    config.capturesAudio = true
-    config.sampleRate = 44100
-    config.channelCount = 1
-    config.excludesCurrentProcessAudio = true
-    // 画面フレームは受け取らないが、最小構成にしてScreenCaptureKitの負荷を抑える。
-    config.width = 2
-    config.height = 2
-    config.minimumFrameInterval = CMTime(value: 1, timescale: 1)
-    config.queueDepth = 1
-
-    let output = KariPomAudioOutput()
-    let delegate = KariPomCaptureDelegate()
-    let stream = SCStream(filter: filter, configuration: config, delegate: delegate)
-    let queue = DispatchQueue(label: "jp.karipom.desktop.audio")
-    try stream.addStreamOutput(output, type: .audio, sampleHandlerQueue: queue)
-    try await stream.startCapture()
-    fputs("READY\n", stderr)
-    fflush(stderr)
-    return (stream, output, delegate)
-}
-
-if #available(macOS 13.0, *) {
-    var retained: (SCStream, KariPomAudioOutput, KariPomCaptureDelegate)?
-    Task {
-        do {
-            retained = try await startCapture()
-        } catch {
-            let ns = error as NSError
-            fputs("START_ERROR: domain=\(ns.domain) code=\(ns.code) \(error.localizedDescription)\n", stderr)
-            fflush(stderr)
-            exit(2)
-        }
-    }
-    RunLoop.main.run()
-} else {
-    fputs("UNSUPPORTED_MACOS: macOS 13 or later is required.\n", stderr)
-    exit(4)
-}
-'''
+    if not os.access(helper_path, os.X_OK):
+        try:
+            helper_path.chmod(helper_path.stat().st_mode | 0o111)
+        except OSError:
+            pass
+    return helper_path
 
 
 class EmbeddedTalkEngine:
@@ -1297,7 +1214,7 @@ class EmbeddedTalkEngine:
 
         macOSはBlackHoleを使わずScreenCaptureKitを使用する。
         code:
-          OK / UNSUPPORTED_MACOS / MISSING_SWIFTC / MAC_HELPER_BUILD_ERROR /
+          OK / UNSUPPORTED_MACOS / MISSING_HELPER_BINARY /
           MISSING_SOUNDCARD / MISSING_LOOPBACK / AUDIO_CHECK_ERROR
         """
         try:
@@ -1309,11 +1226,9 @@ class EmbeddedTalkEngine:
                 if version < (13, 0):
                     return False, "UNSUPPORTED_MACOS", "ScreenCaptureKit audio requires macOS 13 or later"
                 try:
-                    helper_path = self._ensure_macos_capture_helper()
-                except FileNotFoundError as exc:
-                    return False, "MISSING_SWIFTC", str(exc)
+                    helper_path = locate_mac_sck_helper()
                 except Exception as exc:
-                    return False, "MAC_HELPER_BUILD_ERROR", f"{type(exc).__name__}: {exc}"
+                    return False, "MISSING_HELPER_BINARY", str(exc)
                 return True, "OK", str(helper_path)
 
             try:
@@ -1330,55 +1245,6 @@ class EmbeddedTalkEngine:
             return False, "MISSING_LOOPBACK", "PC playback loopback/monitor source not found"
         except Exception as exc:
             return False, "AUDIO_CHECK_ERROR", f"{type(exc).__name__}: {exc}"
-
-    @staticmethod
-    def _mac_helper_dir():
-        return Path.home() / "Library" / "Caches" / "KariPomCompanion" / "ScreenCaptureKit"
-
-    def _ensure_macos_capture_helper(self):
-        """開発用.pyではScreenCaptureKit helperを一度だけビルドする。
-        将来の.app配布版では署名済みhelperをアプリ内へ同梱し、この工程を不要にする。
-        """
-        helper_dir = self._mac_helper_dir()
-        helper_dir.mkdir(parents=True, exist_ok=True)
-        source_path = helper_dir / "karipom_sck_audio.swift"
-        binary_path = helper_dir / "karipom_sck_audio"
-        stamp_path = helper_dir / "source.sha256"
-        digest = hashlib.sha256(MAC_SCK_HELPER_SOURCE.encode("utf-8")).hexdigest()
-
-        if binary_path.exists() and stamp_path.exists() and stamp_path.read_text().strip() == digest:
-            return binary_path
-
-        swiftc = shutil.which("swiftc")
-        if swiftc is None:
-            xcrun = shutil.which("xcrun")
-            if xcrun is not None:
-                probe = subprocess.run(
-                    [xcrun, "--find", "swiftc"],
-                    capture_output=True, text=True, check=False,
-                )
-                if probe.returncode == 0:
-                    swiftc = probe.stdout.strip()
-        if not swiftc:
-            raise FileNotFoundError(
-                "Swift compilerが見つかりません。開発用.pyの検証にはXcode Command Line Toolsが必要です。"
-            )
-
-        source_path.write_text(MAC_SCK_HELPER_SOURCE, encoding="utf-8")
-        cmd = [
-            swiftc, str(source_path), "-O",
-            "-framework", "Foundation",
-            "-framework", "ScreenCaptureKit",
-            "-framework", "CoreMedia",
-            "-framework", "AudioToolbox",
-            "-o", str(binary_path),
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
-        if result.returncode != 0:
-            detail = (result.stderr or result.stdout or "swiftc failed").strip()
-            raise RuntimeError(detail)
-        stamp_path.write_text(digest, encoding="utf-8")
-        return binary_path
 
     @staticmethod
     def _is_sck_permission_denied(detail):
@@ -1417,7 +1283,7 @@ class EmbeddedTalkEngine:
 
         while not self.stop_event.is_set():
             try:
-                helper_path = self._ensure_macos_capture_helper()
+                helper_path = locate_mac_sck_helper()
             except Exception as exc:
                 msg = f"ScreenCaptureKit helper error: {type(exc).__name__}: {exc}"
                 self.state.set_source("")
@@ -10401,17 +10267,14 @@ class MainWindow(QMainWindow):
                 "KariPom CompanionのBlackHole不要モードはmacOS 13 Ventura以降が必要です。"
                 "\n\nVisualizerはFaceへ戻します。"
             )
-        elif code == "MISSING_SWIFTC":
-            box.setText("開発用ScreenCaptureKit helperをビルドできません。")
+        elif code == "MISSING_HELPER_BINARY":
+            box.setText("ScreenCaptureKit helperが見つかりません。")
             box.setInformativeText(
                 f"{detail}\n\n"
-                "これは開発用.pyでの確認時だけ必要です。将来の.app配布版では"
-                "helperを同梱するため、一般ユーザーにXcode/Swiftの導入は不要です。"
+                "mac-companion/resources/ に同梱されているはずのhelperが見当たりません。"
+                "配布物（リポジトリ）が壊れていないか確認し、KariPom Companionを再起動してください。"
                 "\n\nVisualizerはFaceへ戻します。"
             )
-        elif code == "MAC_HELPER_BUILD_ERROR":
-            box.setText("ScreenCaptureKit helperのビルドに失敗しました。")
-            box.setInformativeText(f"{detail}\n\nVisualizerはFaceへ戻します。")
         elif code == "MISSING_SOUNDCARD":
             box.setText("Windows/Linux用の音声ライブラリ soundcard が見つかりません。")
             extra = (
@@ -10848,8 +10711,8 @@ IS_LINUX   = (OS_NAME == "Linux")
 
 # 音声ライブラリの実体は run_talk_mode() 内で遅延importし、ここへ代入する。
 # numpy はBBX/Desktop互換描画でもGUI起動時から使用するため、上部でimport済みの
-# グローバル np を維持する。sounddevice/soundcardのみTalk起動時に遅延importする。
-sd = None
+# グローバル np を維持する。soundcardのみTalk起動時（Windows/Linux）に遅延importする。
+# macOSはBlackHole/sounddeviceを使わず、Apple純正ScreenCaptureKitを使用する。
 sc = None
 
 M5_PORT = 12345   # Talk UDP送信先ポート（既存のCoreS3側.ino仕様のため変更しない）
@@ -10960,18 +10823,7 @@ def ask_ip_for_talk():
     return ip
 
 
-# ===== デバイス検索（OS依存部・従来どおり）=====
-def find_blackhole_device():
-    # Mac専用（従来どおり）
-    devices = sd.query_devices()
-
-    for i, d in enumerate(devices):
-        if "BlackHole" in d["name"]:
-            return i, d["name"]
-
-    return None, None
-
-
+# ===== デバイス検索（OS依存部）=====
 def _is_loopback_mic(m):
     # Windows: isloopback属性 / Linux: Pulseのモニターソース（id末尾 .monitor）
     if getattr(m, "isloopback", False):
@@ -11015,7 +10867,11 @@ def find_loopback_mic():
 
 def print_devices():
     if IS_MAC:
-        print(sd.query_devices())
+        try:
+            helper_path = locate_mac_sck_helper()
+            print(f"macOS: ScreenCaptureKit helper = {helper_path}")
+        except Exception as e:
+            print(f"macOS: ScreenCaptureKit helperを確認できません ({e})")
     else:
         print("=== 音声デバイス一覧（[loopback]がPC再生音の取得元候補）===")
         for m in sc.all_microphones(include_loopback=True):
@@ -11182,70 +11038,121 @@ def process_block(mono_block):
         last_status_sent_time = now
 
 
-def callback(indata, frames, time_info, status):
-    # Mac専用（sounddevice InputStreamコールバック・従来どおり）
-    if status:
-        # input_overflow は BlackHole / macOS の曲切替時に発生しやすい。
-        # 口パクは継続するが、ウォッチドッグが停止検出した場合は自動再起動する。
-        print("Audio status:", status, file=sys.stderr)
-
-    process_block(indata[:, 0])
+_mac_sck_permission_denied = False
+_mac_sck_last_detail = ""
 
 
-# ===== Mac: sounddevice ストリーム（従来どおり）=====
-def _run_stream(device_id):
-    """
-    InputStream を開いてメインループを回す。
-    ストリームが停止（stream.active=False または STREAM_WATCHDOG_TIMEOUT 秒間
-    コールバックが呼ばれない）を検出した場合は return して呼び元に再起動を促す。
-    KeyboardInterrupt が来たら例外をそのまま上に伝える。
-    """
-    global _last_callback_time, FFT_ENABLED
+# ===== Mac: ScreenCaptureKit helper（別プロセス）から取得（BlackHole不要）=====
+def _run_mac_sck_capture(helper_path, generation):
+    """ScreenCaptureKit helperをサブプロセスとして起動し、Float32 mono PCMを
+    process_block()へ渡す取得スレッド本体（Windows/Linuxの_capture_loop()に相当）。
+    権限拒否を検出した場合は_mac_sck_permission_deniedを立てて終了する
+    （再試行しても解決しないため、呼び元run_talk_mode()はこれを見て再試行を止める）。"""
+    global _mac_sck_permission_denied, _mac_sck_last_detail
 
+    proc = None
+    stderr_lines = []
+    try:
+        proc = subprocess.Popen(
+            [str(helper_path)],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            bufsize=0,
+        )
+
+        def stderr_reader():
+            assert proc is not None and proc.stderr is not None
+            for raw in iter(proc.stderr.readline, b""):
+                line = raw.decode("utf-8", errors="replace").strip()
+                if line:
+                    stderr_lines.append(line)
+                    print(f"[ScreenCaptureKit] {line}", file=sys.stderr)
+
+        threading.Thread(target=stderr_reader, name="KariPomTalkSCKStderr",
+                          daemon=True).start()
+
+        assert proc.stdout is not None
+        pending = bytearray()
+        bytes_per_block = BLOCKSIZE * 4  # Float32 mono
+        while _capture_generation == generation:
+            chunk = proc.stdout.read(max(4096, bytes_per_block - len(pending)))
+            if not chunk:
+                break
+            pending.extend(chunk)
+            while len(pending) >= bytes_per_block:
+                raw_block = bytes(pending[:bytes_per_block])
+                del pending[:bytes_per_block]
+                mono = np.frombuffer(raw_block, dtype=np.float32).copy()
+                if mono.size == BLOCKSIZE:
+                    process_block(mono)
+    except Exception as e:
+        print(f"\n[watchdog] ScreenCaptureKit capture エラー: {type(e).__name__}: {e}",
+              file=sys.stderr)
+    finally:
+        if proc is not None and proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=2.0)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+        detail = stderr_lines[-1] if stderr_lines else ""
+        if detail and EmbeddedTalkEngine._is_sck_permission_denied(detail):
+            _mac_sck_permission_denied = True
+            _mac_sck_last_detail = detail
+
+
+def _run_stream_sck(helper_path):
+    """取得スレッドを起動し、Mac版_run_stream()と同じ監視・FFTループを回す。
+    停止検出時は return して呼び元に再起動を促す。権限拒否時は
+    _mac_sck_permission_denied が立った状態で戻るため、呼び元（run_talk_mode）は
+    再試行せず終了する。"""
+    global _last_callback_time, FFT_ENABLED, _capture_generation
+
+    _capture_generation += 1
+    generation = _capture_generation
     _last_callback_time = time.time()   # 起動直後はタイムアウトさせない
 
-    with sd.InputStream(
-        device=device_id,
-        channels=1,
-        samplerate=SAMPLERATE,
-        blocksize=BLOCKSIZE,
-        callback=callback
-    ) as stream:
-        fft_error_count = 0
-        while True:
-            # ---- ウォッチドッグ ----
-            if not stream.active:
-                print("\n[watchdog] InputStream が非アクティブになりました。"
-                      "再起動します...", file=sys.stderr)
-                send_message(b"SPEAK_STOP")
-                return  # 呼び元のループで再起動
+    th = threading.Thread(target=_run_mac_sck_capture, args=(helper_path, generation),
+                          daemon=True)
+    th.start()
 
-            elapsed = time.time() - _last_callback_time
-            if elapsed > STREAM_WATCHDOG_TIMEOUT:
-                print(f"\n[watchdog] コールバック停止を検出"
-                      f"（{elapsed:.1f}秒間未受信）。再起動します...",
-                      file=sys.stderr)
-                send_message(b"SPEAK_STOP")
-                return  # 呼び元のループで再起動
+    fft_error_count = 0
+    while True:
+        # ---- ウォッチドッグ ----
+        if not th.is_alive():
+            print("\n[watchdog] ScreenCaptureKit取得スレッドが停止しました。再起動します...",
+                  file=sys.stderr)
+            send_message(b"SPEAK_STOP")
+            return  # 呼び元のループで再起動
 
-            # ---- IP再読込（Companion側で「保存」されたIPをその場で反映） ----
-            _maybe_reload_ip()
+        elapsed = time.time() - _last_callback_time
+        if elapsed > STREAM_WATCHDOG_TIMEOUT:
+            print(f"\n[watchdog] 音声ブロック停止を検出"
+                  f"（{elapsed:.1f}秒間未受信）。再起動します...",
+                  file=sys.stderr)
+            _capture_generation += 1  # 取得スレッドへ終了を指示
+            send_message(b"SPEAK_STOP")
+            return  # 呼び元のループで再起動
 
-            # ---- FFT 処理（既存ロジック） ----
-            if FFT_ENABLED:
-                try:
-                    fft_update_and_draw()
-                    fft_error_count = 0
-                except Exception as e:
-                    fft_error_count += 1
-                    print(f"\nFFT error: {e}", file=sys.stderr)
-                    if fft_error_count >= 5:
-                        FFT_ENABLED = False
-                        print("FFTエラーが続いたため無効化しました"
-                              "（口パクとUDP送信は継続します）", file=sys.stderr)
-                time.sleep(FFT_UPDATE_INTERVAL)
-            else:
-                time.sleep(0.1)
+        # ---- IP再読込（Companion側で「保存」されたIPをその場で反映） ----
+        _maybe_reload_ip()
+
+        # ---- FFT 処理（既存ロジック） ----
+        if FFT_ENABLED:
+            try:
+                fft_update_and_draw()
+                fft_error_count = 0
+            except Exception as e:
+                fft_error_count += 1
+                print(f"\nFFT error: {e}", file=sys.stderr)
+                if fft_error_count >= 5:
+                    FFT_ENABLED = False
+                    print("FFTエラーが続いたため無効化しました"
+                          "（口パクとUDP送信は継続します）", file=sys.stderr)
+            time.sleep(FFT_UPDATE_INTERVAL)
+        else:
+            time.sleep(0.1)
 
 
 # ===== Windows/Linux: soundcard 取得スレッド＋監視ループ（従来どおり）=====
@@ -11341,7 +11248,7 @@ def run_talk_mode():
     karipom_talk_20260719_multiOS.py のモジュールレベル実行部分を、そのままの順序・
     ロジックで関数化したもの。Companion GUIモードでは一切呼び出されない。
     """
-    global np, sd, sc
+    global np, sc
     global THRESHOLD, FFT_ENABLED, FFT_SEND_ENABLED, INPUT_HINT
     global M5_IP, sock
     global _fft_window, _fft_freqs, _fft_band_bins, _fft_levels, _FFT_BAR_CHARS
@@ -11349,14 +11256,14 @@ def run_talk_mode():
     global _last_ip_reload_check
 
     # ===== 音声ライブラリの読み込み（Talkモード起動時のみ実行）=====
-    #   Mac          : sounddevice（従来どおり）
+    #   Mac          : Apple純正ScreenCaptureKit（同梱の事前ビルド済みhelperを起動。
+    #                  BlackHole/sounddeviceは不要）
     #   Windows/Linux: soundcard（WASAPI Loopback / Pulseモニター対応）
     import numpy as _np
     np = _np
 
     if IS_MAC:
-        import sounddevice as _sd
-        sd = _sd
+        pass
     else:
         try:
             import soundcard as _sc
@@ -11448,19 +11355,14 @@ def run_talk_mode():
 
     # ===== 起動メッセージ・デバイス選択 =====
     if IS_MAC:
-        print("=== Karipom Mac Audio Link ===")
-        found_id, found_name = find_blackhole_device()
-
-        if found_id is not None:
-            print(f"Detected BlackHole: {found_name} = {found_id}")
-        else:
-            print("Detected BlackHole: NOT FOUND")
-
-        if found_id is None:
-            raise RuntimeError("BlackHole input device not found")
-
-        device_id = found_id
-        print(f"Using device: {device_id}")
+        print("=== Karipom Mac Audio Link (ScreenCaptureKit) ===")
+        try:
+            helper_path = locate_mac_sck_helper()
+        except Exception as e:
+            print(f"ScreenCaptureKit helperが見つかりません: {e}")
+            sys.exit(1)
+        print(f"Using ScreenCaptureKit helper: {helper_path}")
+        device_id = None
         mic = None
 
     else:
@@ -11495,38 +11397,31 @@ def run_talk_mode():
     # ===== メインループ =====
     try:
         if IS_MAC:
-            # ---- Mac: 従来コードそのまま ----
-            current_device_id = device_id
+            # ---- Mac: ScreenCaptureKit helper（別プロセス）を使用。BlackHole不要 ----
             while True:
                 try:
-                    # ストリームを開いて監視ループを回す。停止検出で return してくる。
-                    _run_stream(current_device_id)
+                    # 取得スレッドを起動して監視ループを回す。停止検出で return してくる。
+                    _run_stream_sck(helper_path)
 
                 except Exception as e:
-                    # InputStreamオープン失敗・PortAudio例外・一時的なデバイス消失など
-                    # あらゆる例外をここで受け止め、プロセスを終了させない。
-                    print(f"\n[watchdog] InputStream エラー: {type(e).__name__}: {e}",
+                    # helper起動失敗・一時的な取得エラーなど、あらゆる例外をここで
+                    # 受け止め、プロセスを終了させない（権限拒否は下でsys.exit(1)する）。
+                    print(f"\n[watchdog] ScreenCaptureKit エラー: {type(e).__name__}: {e}",
                           file=sys.stderr)
                     send_message(b"SPEAK_STOP")
 
-                # ---- 自己復旧：デバイス再スキャン → 再オープン ----
+                if _mac_sck_permission_denied:
+                    print("\nmacOSの『画面とシステムオーディオの録音』権限が許可されていません。",
+                          file=sys.stderr)
+                    print(f"詳細: {_mac_sck_last_detail}", file=sys.stderr)
+                    print("システム設定 → プライバシーとセキュリティ → 画面とシステムオーディオの録音 で"
+                          "許可してから、もう一度起動してください。", file=sys.stderr)
+                    sys.exit(1)
+
+                # ---- 自己復旧：一時停止（スリープ復帰等）後に再オープン ----
                 print(f"[watchdog] {STREAM_RESTART_WAIT}秒後に再起動します...",
                       file=sys.stderr)
                 time.sleep(STREAM_RESTART_WAIT)
-
-                new_id, new_name = find_blackhole_device()
-                if new_id is not None:
-                    if new_id != current_device_id:
-                        print(f"[watchdog] デバイスID変更検出: "
-                              f"{current_device_id} → {new_id} ({new_name})",
-                              file=sys.stderr)
-                    current_device_id = new_id
-                    print(f"[watchdog] InputStream を再オープンします "
-                          f"(device={current_device_id})", file=sys.stderr)
-                else:
-                    print("[watchdog] BlackHole が見つかりません。再試行します...",
-                          file=sys.stderr)
-                    time.sleep(STREAM_RESTART_WAIT)
 
         else:
             # ---- Windows / Linux ----
@@ -11565,8 +11460,7 @@ def run_talk_mode():
 
     except KeyboardInterrupt:
         print("\n停止します")
-        if not IS_MAC:
-            _capture_generation += 1  # 取得スレッドへ終了を指示
+        _capture_generation += 1  # 取得スレッドへ終了を指示
         send_message(b"SPEAK_STOP")
         print("■ SPEAK_STOP sent on exit")
 
