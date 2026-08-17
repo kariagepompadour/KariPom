@@ -27,6 +27,7 @@
 // v46を基準に、Mouth座標のSerial出力だけを停止。v47の自動更新変更は入れない
 // v38を基準に、リセット/再起動直後のサーボ暴れ対策を追加
 // v29を基準に、カメラによる自動首振りをOFF。Web手動操作とDEMOの「黒目先行→首移動→黒目中央」だけを確認する版
+// Change 2026/08/17: Web Cockpit Visualizer開始前チェック追加（UDP時Companion/FFT未受信・MIC時は警告してOFFへロールバック）
 // Change 2026/07/16 (EAR Step4): Ear FFTをfftLevel[]/lastFftPacketTimeへ接続（Visualizer Face反映）/
 //   Ear優先・途絶400msでUDP FFTへ自動復帰 / EAR_FFT_TO_FACE_ENABLEDで無効化可
 // Change 2026/07/16 (EAR Step4.1): 音声ソース選択と入力源を整合（LINE IN=Ear / UDP=Mac）/
@@ -2411,6 +2412,7 @@ String lastUdpState = "";
 // handleUDP()は値の保存のみ行い、描画はloop()側（FFT_DISPLAY_TEST時のみ）。
 uint8_t fftLevel[8] = {0};
 unsigned long lastFftPacketTime = 0;
+unsigned long lastUdpFftPacketTime = 0;  // 2026-08-17: Companion/PC FFT readiness専用。Ear FFTでは更新しない。
 const unsigned long FFT_RX_TIMEOUT_MS = 400;  // 受信途絶とみなす時間（バー減衰開始）
 
 // ====================================================
@@ -2645,6 +2647,11 @@ void handleSpeakRequest();
 void handleCommunication();
 void handleDiagnosticHeartbeat();
 void handleUDP();
+// 2026-08-17: Web Cockpit Visualizer開始前チェック（明示プロトタイプ）
+bool pcVisualizerFeedReady();
+void resetVisualizerSelectionToOff(const String& reason);
+void sendVisualizerRequirementDialog(const String& kind);
+bool blockVisualizerStartIfNotReady();
 void updateExternalMouth();
 
 // 音声入力フレームワーク
@@ -7905,6 +7912,7 @@ void handleUDP() {
           fftLevel[i] = (uint8_t)constrain(v[i], 0, 100);
         }
         lastFftPacketTime = millis();
+        lastUdpFftPacketTime = lastFftPacketTime;  // PC/Companion由来FFTのみを別管理
       }
       continue;  // ログ・lastUdpState更新・SPEAK系分岐を行わずに次のパケットへ
     }
@@ -9915,6 +9923,10 @@ void setup() {
 
       server.on("/", []() {
         unsigned long _t0 = webLogStart("/");
+        // Visualizer開始条件NG時は、専用の白い中間ページを返さず
+        // KariPom Lab本体へ戻してからダイアログを表示する。
+        // これにより警告後の一瞬の白画面を避ける。
+        String vizError = server.arg("viz_error");
         String html;
         html.reserve(12000);
         html += "<html><head><meta charset='UTF-8'>";
@@ -10303,7 +10315,7 @@ void setup() {
 
         // 2026-08-12: セクション全体の概要説明はLightingと同様、タイトル直下・
         //   操作UI（Random/モードボタン）より前へ配置。文言・クラスは変更していない（位置のみ移動）。
-        html += "<p class='note'>PC音声（Wi-Fi）、LINE IN（Karipom Ear）、将来のBluetooth入力で<b>共通</b>のオーディオビジュアライザー設定です（入力元ごとの個別設定はありません）。内蔵マイクモードでは使用しません。選択内容はNVSへ保存され、再起動後も維持されます。</p>";
+        html += "<p class='note'>PC音声（Wi-Fi）、LINE IN（Karipom Ear）、将来のBluetooth入力で<b>共通</b>のオーディオビジュアライザー設定です（入力元ごとの個別設定はありません）。内蔵マイクモードでは使用しません。PC音声（Wi-Fi）選択中にCompanionからFFTデータが届いていない場合は、案内ダイアログを表示してVisualizerをOFFへ戻します。選択内容はNVSへ保存され、再起動後も維持されます。</p>";
 
         // ── 🎲 Audio Visualizer Random（v1.0 / 2026-07-27）──
         // Lighting Randomとは完全に独立。個別選択とRandomは相互排他。
@@ -10564,6 +10576,17 @@ function sendCmd(url) {
 </script>
 )rawliteral";
 
+        // Visualizer開始条件NGの警告。
+        // ページ本体を描画し終えた後（load後の次イベントループ）にalertすることで、
+        // 従来の専用白背景ページによる白フラッシュを発生させない。
+        if (vizError == "mic") {
+          html += "<script>window.addEventListener('load',function(){setTimeout(function(){alert('内蔵マイクモードではAudio Visualizerは使用できません。');},0);});</script>";
+        } else if (vizError == "source") {
+          html += "<script>window.addEventListener('load',function(){setTimeout(function(){alert('音声入力がOFFです。\\nPC音声（Wi-Fi）またはLINE IN（KariPom Ear）を選択してください。\\n\\nVisualizerはOFFに戻しました。');},0);});</script>";
+        } else if (vizError == "pc") {
+          html += "<script>window.addEventListener('load',function(){setTimeout(function(){alert('PC音声データを受信していません。\\nKariPom Companionを起動し、PC音声取得の準備を確認してください。\\n\\nmacOS: BlackHole 2ch + Audio MIDI設定の複数出力装置\\nWindows: 通常は追加ソフト不要（再生デバイスを確認）\\nLinux: PulseAudio / PipeWire のmonitor source\\n\\n準備後にもう一度Visualizerを選んでください。\\nVisualizerはOFFに戻しました。');},0);});</script>";
+        }
+
         html += "</div></body></html>";
 
         server.send(200, "text/html; charset=UTF-8", html);
@@ -10739,6 +10762,8 @@ function sendCmd(url) {
           if (m == String(VIZ_MODES[vi].id)) { found = (int)vi; break; }
         }
         if (found < 0) { server.send(400, "text/plain", "bad value: " + m); return; }
+        // OFFは常に選択可。Face以外を開始する時だけ、入力元/PC FFT供給を事前確認する。
+        if (found != (int)VIZ_MODE_OFF && blockVisualizerStartIfNotReady()) return;
         // 🎲 Visualizer RandomがON中にユーザーが個別選択した場合は、
         // RandomをOFFにし、ユーザーの手動選択を優先する（相互排他）。
         if (cfg_vizRandomOn) {
@@ -10764,6 +10789,7 @@ function sendCmd(url) {
           addLog("VISUALIZER RANDOM: OFF (manual select - legacy)");
         }
         if (v == "on") {
+          if (blockVisualizerStartIfNotReady()) return;
           // 直前がOFFだった場合のみ Graphic EQ を選択する。
           // 既に Audio Halo 等を選んでいる環境で ON を押しても勝手にEQへ戻さない。
           if (cfg_visualizerMode == VIZ_MODE_OFF) cfg_visualizerMode = VIZ_MODE_EQ;
@@ -10784,6 +10810,7 @@ function sendCmd(url) {
       server.on("/visualizer_random", []() {
         String v = server.arg("v");
         if (v == "on") {
+          if (blockVisualizerStartIfNotReady()) return;
           if (!cfg_vizRandomOn) {
             cfg_vizRandomOn = true;
             cfg_visualizerMode = VIZ_MODE_OFF;   // 個別選択を解除
@@ -14685,6 +14712,61 @@ const unsigned long FFT_FACE_ACTIVE_MS = 500;
 // visualizerFaceActive（現在Visualizer表示中か）は Unified Scene Canvas ブロックで宣言済み。
 static VisualizerMode vizRenderedMode = VIZ_MODE_OFF;  // 直前フレームで描いたモード
 static bool           vizNeedsInit    = true;          // 次フレームで全面初期化するか
+
+
+// ============================================================================
+// Web Cockpit Visualizer開始前チェック（2026-08-17）
+//
+// PC音声(Wi-Fi/UDP)選択中にVisualizerをONにする場合、CoreS3単独では
+// BlackHole/WASAPI/PulseAudio等のPC側環境そのものは判定できない。
+// 代わりにCompanionから継続送信されるFFTパケットの鮮度を確認する。
+// FFTが届いていなければ「Companion未起動 / PC音声取得環境未準備」とみなし、
+// VisualizerをOFFへ戻してWebブラウザに案内ダイアログを表示する。
+// LINE IN(KariPom Ear)はCompanion不要なので、このPC側チェックの対象外。
+// ============================================================================
+const unsigned long PC_VISUALIZER_READY_MS = 1500;
+
+bool pcVisualizerFeedReady() {
+  return lastUdpFftPacketTime != 0 &&
+         (millis() - lastUdpFftPacketTime) <= PC_VISUALIZER_READY_MS;
+}
+
+void resetVisualizerSelectionToOff(const String& reason) {
+  cfg_vizRandomOn        = false;
+  cfg_visualizerMode     = VIZ_MODE_OFF;
+  cfg_udpVisualizerFace  = false;
+  cfg_vizManualMode      = VIZ_MODE_OFF;
+  saveConfig();
+  addLog("VISUALIZER BLOCKED -> OFF: " + reason);
+}
+
+void sendVisualizerRequirementDialog(const String& kind) {
+  // 旧実装はこのハンドラ自身が白背景HTMLを返してalert→location.replace('/')
+  // としていたため、警告後にブラウザが一瞬真っ白になっていた。
+  // KariPom Lab本体へ302で戻し、ルートページ側でalertを出す。
+  String location = "/?viz_error=" + kind;
+  server.sendHeader("Location", location);
+  server.send(302, "text/plain", "");
+}
+
+bool blockVisualizerStartIfNotReady() {
+  if (audioSource == AUDIO_SRC_MIC) {
+    resetVisualizerSelectionToOff("MIC source is not supported for Visualizer");
+    sendVisualizerRequirementDialog("mic");
+    return true;
+  }
+  if (audioSource == AUDIO_SRC_OFF) {
+    resetVisualizerSelectionToOff("Audio source is OFF");
+    sendVisualizerRequirementDialog("source");
+    return true;
+  }
+  if (audioSource == AUDIO_SRC_UDP && !pcVisualizerFeedReady()) {
+    resetVisualizerSelectionToOff("Companion/PC FFT feed is not ready");
+    sendVisualizerRequirementDialog("pc");
+    return true;
+  }
+  return false;
+}
 
 bool isVisualizerFaceEnabled() {
   return cfg_visualizerMode != VIZ_MODE_OFF &&
