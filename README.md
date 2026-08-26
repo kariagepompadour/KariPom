@@ -24,6 +24,7 @@
 | `docs/manual/` | かりポム ユーザーマニュアル |
 | `docs/pcm1808_pico2/` | Karipom Ear 設計・製作マニュアル（正式版） |
 | `docs/karipom_ear/` | Karipom Ear開発時の仕様書・確認手順書などの開発記録 |
+| `docs/stackchan/` | M5Stack公式StackChanへの移植調査資料 |
 
 ## ドキュメント
 
@@ -32,6 +33,8 @@
 電子工作を伴うKaripom Ear拡張（PCM1808＋Pico2）、LINE OUT増設、Bluetooth入力（MH-M18）については、**[Karipom Ear 設計・製作マニュアル](docs/pcm1808_pico2/PCM1808_Pico2_設計マニュアル.md)**（[docx版](docs/pcm1808_pico2/PCM1808_Pico2_設計マニュアル.docx)）が正式資料です。`docs/karipom_ear/` にある各種仕様書・手順書は開発過程の記録であり、内容が正式マニュアルと重複・相違する場合は正式マニュアルを優先してください。
 
 なお、LINE OUT増設は作者の実機で製作・動作確認済みです。Bluetooth入力（MH-M18）は設計・手順書まで完成していますが、作者の実機にはまだ搭載していないオプションです。
+
+M5Stack公式StackChanへの移植を検討する方向けに、**[M5Stack公式StackChanへの移植用仕様書](docs/stackchan/StackChan_KariPom移植用仕様書_公開版.md)**も公開しています。StackChan公式ソースコードのサーボ仕様調査と、KariPomからの移植方針をまとめた資料です。
 
 ## 3Dモデル
 
