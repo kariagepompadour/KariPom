@@ -34,7 +34,7 @@ With the optional **Karipom Ear** hardware extension (PCM1808 + Raspberry Pi Pic
 
 ## Documentation
 
-Start with the **[KariPom User Manual](docs/manual/karipom_manual.md)** ([DOCX version](docs/manual/karipom_manual.docx)). It explains what KariPom can do, how to enjoy it, and where to begin.
+Start with the **[KariPom User Manual](docs/manual/karipom_manual_EN.md)** ([DOCX version](docs/manual/karipom_manual.docx)). It explains what KariPom can do, how to enjoy it, and where to begin.
 
 For the electronics-based Karipom Ear extension (PCM1808 + Pico 2), LINE OUT modification, and Bluetooth input (MH-M18), the official reference is the **[Karipom Ear Design and Build Manual](docs/pcm1808_pico2/PCM1808_Pico2_設計マニュアル.md)** ([DOCX version](docs/pcm1808_pico2/PCM1808_Pico2_設計マニュアル.docx)). Documents under `docs/karipom_ear/` are development records. If they overlap with or differ from the official manual, follow the official manual.
 
