@@ -65,6 +65,13 @@ A standalone version lets you enjoy KariPom's lip-sync on a PC without the physi
 
 **[KariPom Desktop](https://github.com/kariagepompadour/KariPom-Desktop)**
 
+## Sister Project: KariPom Web
+
+Experience KariPom's lip-sync and audio-reactive animations directly in your browser — no CoreS3 hardware or software installation required.
+
+KariPom Web works with compatible desktop browsers on Windows and macOS. Audio-reactive features are not supported on smartphones.
+
+**[KariPom Web](https://kariagepompadour.github.io/KariPom-Web/)**
 ## License
 
 This repository is published for noncommercial use. See [LICENSE.md](LICENSE.md) for details.
