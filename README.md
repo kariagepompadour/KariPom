@@ -61,6 +61,14 @@ CoreS3の実機がなくても、PCだけでかりポムの口パク体験を楽
 
 **KariPom Desktop** — https://github.com/kariagepompadour/KariPom-Desktop
 
+## 姉妹プロジェクト：KariPom Web
+
+CoreS3の実機やソフトウェアのインストールなしで、ブラウザからかりポムの口パクや音声連動アニメーションを楽しめます。
+
+PC（Windows / macOS）の対応ブラウザで動作します。スマートフォンでは音声連動機能を利用できません。
+
+**KariPom Web** — https://kariagepompadour.github.io/KariPom-Web/
+
 ## ライセンス
 
 本リポジトリは非商用利用を前提に公開しています。詳細は [LICENSE.md](LICENSE.md) をご覧ください。
